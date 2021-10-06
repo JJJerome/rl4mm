@@ -11,10 +11,9 @@ def create_book_table():
     )
 
     cur = conn.cursor()
-    cur.execute(
-        """
+    cur.execute('''
         CREATE TABLE IF NOT EXISTS book_L10(
-        id serial PRIMARY KEY,
+        id varchar(32) PRIMARY KEY,
         timestamp TIMESTAMP,   
         type VARCHAR(32),
         external_id VARCHAR(32),
@@ -63,6 +62,5 @@ def create_book_table():
         bid_size_9 NUMERIC(64,32),
         exchange VARCHAR(32),
         ticker VARCHAR(32));
-    """
-    )
+    ''')
     conn.commit()
