@@ -13,4 +13,5 @@ def get_book_trade_dataframe(
     messages = reformat_message_data(messages, trading_date)
     books = rescale_book_data(books)
     book_trade_df = pd.concat([messages, books], axis=1)
+    book_trade_df.columns = book_trade_df.columns.str.replace('_',' ')
     return book_trade_df.set_index("timestamp")
