@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import List
 
+import ast
 import pandas as pd
 
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import sessionmaker
 
 from RL4MM.database.PostgresEngine import PostgresEngine
-from RL4MM.database.models import Base, Book, Trade
+from RL4MM.database.models import Base, Book, Event
 
 
 class HistoricalDatabase:
@@ -16,9 +17,9 @@ class HistoricalDatabase:
         self.session_maker = sessionmaker(bind=self.engine)
         Base.metadata.create_all(bind=self.engine)
 
-    def insert_trades(self, trades: List[Trade]) -> None:
+    def insert_events(self, events: List[Event]) -> None:
         session = self.session_maker()
-        session.add_all(trades)
+        session.add_all(events)
         session.commit()
         session.close()
 
@@ -36,13 +37,16 @@ class HistoricalDatabase:
             .filter(Book.ticker == ticker)
             .filter(Book.timestamp <= timestamp)
             .order_by(Book.timestamp.desc())
+            .order_by(Book.id.desc())
             .first()
         )
         session.close()
         if snapshot is None:
             return pd.DataFrame()
         else:
-            return pd.DataFrame([snapshot.__dict__]).drop(columns=["_sa_instance_state"])
+            book_data = pd.DataFrame([snapshot.__dict__]).data[0]
+            ts = pd.DataFrame([snapshot.__dict__]).timestamp[0]
+            return pd.Series(ast.literal_eval(book_data),name=ts)
 
     def get_next_snapshot(self, timestamp: datetime, exchange: str, ticker: str) -> pd.DataFrame:
         session = self.session_maker()
@@ -58,7 +62,9 @@ class HistoricalDatabase:
         if snapshot is None:
             return pd.DataFrame()
         else:
-            return pd.DataFrame([snapshot.__dict__]).drop(columns=["_sa_instance_state"])
+            book_data = pd.DataFrame([snapshot.__dict__]).drop(columns=["_sa_instance_state"]).data[0]
+            ts = pd.DataFrame([snapshot.__dict__]).timestamp[0]
+            return pd.Series(ast.literal_eval(book_data),name=ts)
 
     def get_book_snapshots(self, start_date: datetime, end_date: datetime, exchange: str, ticker: str) -> pd.DataFrame:
         session = self.session_maker()
@@ -77,19 +83,19 @@ class HistoricalDatabase:
         else:
             return pd.DataFrame()
 
-    def get_trades(self, start_date: datetime, end_date: datetime, exchange: str, ticker: str) -> pd.DataFrame:
+    def get_events(self, start_date: datetime, end_date: datetime, exchange: str, ticker: str) -> pd.DataFrame:
         session = self.session_maker()
-        trades = (
-            session.query(Trade)
-            .filter(Trade.exchange == exchange)
-            .filter(Trade.ticker == ticker)
-            .filter(Trade.timestamp.between(start_date, end_date))
-            .order_by(Trade.timestamp.asc())
+        events = (
+            session.query(Event)
+            .filter(Event.exchange == exchange)
+            .filter(Event.ticker == ticker)
+            .filter(Event.timestamp.between(start_date, end_date))
+            .order_by(Event.timestamp.asc())
             .all()
         )
         session.close()
-        trades_dict = [t.__dict__ for t in trades]
-        if len(trades_dict) > 0:
-            return pd.DataFrame(trades_dict).drop(columns=["_sa_instance_state"])
+        events_dict = [t.__dict__ for t in events]
+        if len(events_dict) > 0:
+            return pd.DataFrame(events_dict).drop(columns=["_sa_instance_state"])
         else:
             return pd.DataFrame()
