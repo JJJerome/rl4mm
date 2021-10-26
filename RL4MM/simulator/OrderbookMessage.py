@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
 from dataclasses import dataclass
@@ -7,23 +7,25 @@ from enum import Enum
 
 
 class EventType(Enum):
-    SUBMISSION = "submission"
-    DELETION = "deletion"
-    CANCELLATION = "cancellation"
-    EXECUTION_VISIBLE = "execution_visible"
-    EXECUTION_HIDDEN = "execution_hidden"
-    TRADING_HALT = "trading_halt"
+    SUBMISSION = 1
+    CANCELLATION = 2
+    DELETION = 3
+    EXECUTION_VISIBLE = 4
+    EXECUTION_HIDDEN = 5
+    CROSS_TRADE = 6
+    TRADING_HALT = 7
 
 
 @dataclass
 class OrderbookMessage:
     _id: str
     datetime: datetime
-    event_type: EventType
+    event_type: str
     ticker: str
     size: float
     price: float
-    side: int
+    side: str
+    distance_to_fill: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -34,4 +36,5 @@ class OrderbookMessage:
             "size": self.size,
             "price": self.price,
             "side": self.side,
+            "distance_to_fill": self.distance_to_fill,
         }
