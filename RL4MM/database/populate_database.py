@@ -1,4 +1,3 @@
-from os import popen
 from typing import List
 
 import logging
@@ -15,7 +14,7 @@ from urllib.request import urlopen
 from zipfile import ZipFile
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.database.models import Book, Trade
+from RL4MM.database.models import Book, Event
 from RL4MM.database.PostgresEngine import PostgresEngine
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S")
@@ -39,18 +38,19 @@ def populate_database(
         raise NotImplementedError
     for ticker in tickers:
         for trading_date in trading_dates:
-            logging.info(f"Downloading book and trade data for {ticker} on {trading_date} from LOBSTER.")
+            logging.info(f"Downloading book and message data for {ticker} on {trading_date} from LOBSTER.")
             books, messages = get_lobster_data(ticker, trading_date, levels)
             messages = reformat_message_data(messages, trading_date)
             messages = add_internal_index(messages, ticker, trading_date, exchange)
             books = rescale_book_data(books)
-            trade_list, book_list = get_trade_and_book_lists(messages, books, exchange, ticker)
-            logging.info(f"Inserting book and trade data for {ticker} on {trading_date} into database.")
+            event_list, book_list = get_event_and_book_lists(messages, books, exchange, ticker)
+            logging.info(f"Inserting book and event data for {ticker} on {trading_date} into database.")
             try:
                 database.insert_books(book_list)
-                database.insert_trades(trade_list)
+                database.insert_events(event_list)
             except IntegrityError:
                 logging.warning(f"Data for {ticker} on {trading_date} already exists in database and so was not added.")
+    logging.info(f"Successfully added data for tickers {tickers} into database.")
 
 
 def create_tables():
@@ -111,9 +111,9 @@ def reformat_message_data(messages: DataFrame, trading_date: str) -> DataFrame:
 
 
 def rescale_book_data(books: DataFrame) -> DataFrame:
-    for order_type in ["ask", "bid"]:
+    for event_type in ["ask", "bid"]:
         for i in range(10):
-            books[order_type + "_price_" + str(i)] /= 10000
+            books[event_type + "_price_" + str(i)] /= 10000
     return books
 
 
@@ -133,11 +133,11 @@ def add_internal_index(dataframe: DataFrame, ticker: str, trading_date: str, exc
     return dataframe
 
 
-def get_trade_and_book_lists(messages: DataFrame, books: DataFrame, exchange: str, ticker: str) -> [Trade, Book]:
-    trade_list, book_list = list(), list()
+def get_event_and_book_lists(messages: DataFrame, books: DataFrame, exchange: str, ticker: str) -> [Event, Book]:
+    event_list, book_list = list(), list()
     for message in messages.itertuples():
-        trade_list.append(
-            Trade(
+        event_list.append(
+            Event(
                 id=message.internal_index,
                 timestamp=message.timestamp,
                 exchange=exchange,
@@ -146,7 +146,7 @@ def get_trade_and_book_lists(messages: DataFrame, books: DataFrame, exchange: st
                 size=message.size,
                 price=message.price,
                 external_id=message.external_id,
-                order_type=message.type,
+                event_type=message.type,
             )
         )
         book_list.append(
@@ -158,7 +158,7 @@ def get_trade_and_book_lists(messages: DataFrame, books: DataFrame, exchange: st
                 data=books.iloc[message.Index].to_json(),
             )
         )
-    return trade_list, book_list
+    return event_list, book_list
 
 
 if __name__ == "__main__":

@@ -46,7 +46,7 @@ class HistoricalDatabase:
         else:
             book_data = pd.DataFrame([snapshot.__dict__]).data[0]
             ts = pd.DataFrame([snapshot.__dict__]).timestamp[0]
-            return pd.Series(ast.literal_eval(book_data),name=ts)
+            return pd.Series(ast.literal_eval(book_data), name=ts)
 
     def get_next_snapshot(self, timestamp: datetime, exchange: str, ticker: str) -> pd.DataFrame:
         session = self.session_maker()
@@ -64,7 +64,7 @@ class HistoricalDatabase:
         else:
             book_data = pd.DataFrame([snapshot.__dict__]).drop(columns=["_sa_instance_state"]).data[0]
             ts = pd.DataFrame([snapshot.__dict__]).timestamp[0]
-            return pd.Series(ast.literal_eval(book_data),name=ts)
+            return pd.Series(ast.literal_eval(book_data), name=ts)
 
     def get_book_snapshots(self, start_date: datetime, end_date: datetime, exchange: str, ticker: str) -> pd.DataFrame:
         session = self.session_maker()
@@ -79,7 +79,10 @@ class HistoricalDatabase:
         session.close()
         snapshots_dict = [s.__dict__ for s in snapshots]
         if len(snapshots_dict) > 0:
-            return pd.DataFrame(snapshots_dict).drop(columns=["_sa_instance_state"])
+            book_data = pd.DataFrame(snapshots_dict).drop(columns=["_sa_instance_state"]).data
+            ts = pd.DataFrame(snapshots_dict).timestamp
+            book_data.index = ts
+            return book_data.apply(self.convert_book_to_series)
         else:
             return pd.DataFrame()
 
@@ -99,3 +102,7 @@ class HistoricalDatabase:
             return pd.DataFrame(events_dict).drop(columns=["_sa_instance_state"])
         else:
             return pd.DataFrame()
+
+    @staticmethod
+    def convert_book_to_series(book_data: str) -> pd.Series:
+        return pd.Series(ast.literal_eval(book_data))
