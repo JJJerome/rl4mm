@@ -25,7 +25,7 @@ class OrderbookMessage:
     size: float
     price: float
     side: str
-    distance_to_fill: Optional[int] = None
+    queue_position: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -36,5 +36,5 @@ class OrderbookMessage:
             "size": self.size,
             "price": self.price,
             "side": self.side,
-            "distance_to_fill": self.distance_to_fill,
+            "distance_to_fill": self.queue_position,
         }

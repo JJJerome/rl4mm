@@ -1,12 +1,13 @@
 import abc
-import ast
+import numpy as np
+
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import chain
 
-from typing import Tuple, Dict, DefaultDict, List, Any
+from typing import Any, Dict, DefaultDict, List, Optional, Tuple
 
 import pandas as pd
 
@@ -143,58 +144,98 @@ class SimpleOrderbookSimulator:
         """
 
         # TODO: replace all occurrences of "events" with "messages".
-        filled_messages = list()
         slip_start = start_date + timedelta(microseconds=slippage)
-        book = self.database.get_last_snapshot(slip_start, exchange=self.exchange, ticker=self.ticker)
-        messages = self.database.get_events(slip_start, end_date, self.exchange, self.ticker).set_index("timestamp")
-        assert sum(messages.exchange != self.exchange) == 0, f"Some messages do not come from {self.exchange}!"
-        assert sum(messages.ticker != self.ticker) == 0, f"Some messages do not correspond to the ticker {self.ticker}!"
+        book = self.get_last_snapshot(slip_start)
+        history = self.database.get_events(slip_start, end_date, self.exchange, self.ticker).set_index("timestamp")
+        assert sum(history.exchange != self.exchange) == 0, f"Some messages do not come from {self.exchange}!"
+        assert sum(history.ticker != self.ticker) == 0, f"Some messages do not correspond to the ticker {self.ticker}!"
         book_df = self.convert_book_to_df(book, self.levels)
         for message in messages_to_fill:
-            if not message.distance_to_fill:  # join the back of the queue
-                message.distance_to_fill = book_df.loc[book_df.price == message.price, "size"][0] + message.size
-        target_price_levels = [message.price for message in messages_to_fill]
+            if not message.queue_position:  # join the back of the queue
+                message.queue_position = book_df.loc[book_df.price == message.price, "size"][0]
+        target_price_levels = {m.price for m in messages_to_fill}
+        queue_positions = self.get_best_queue_positions(messages_to_fill)
 
-        for message in messages.iterrows():
-            new_message = message[1]
-            if new_message.price not in book_df.price.values:
-                pass
-            elif new_message.event_type in ["deletion", "execution_visible", "cancellation"]:
-                book_df.loc[book_df["price"] == new_message.price, "size"] -= new_message["size"]
-                if new_message.price in target_price_levels:
-                    if (
-                        len(
-                            messages[
-                                (messages.external_id == new_message.external_id)
-                                & (messages.event_type == "submission")
-                            ]
-                        )
-                        == 0
-                    ):
-                        for message in messages_to_fill:
-                            if message.price == new_message.price:
-                                message.distance_to_fill -= new_message["size"]
-            elif new_message.event_type == "submission":
-                book_df.loc[book_df["price"] == new_message.price, "size"] += new_message["size"]
-            elif new_message.event_type == "execution_hidden":
-                pass
-            else:
-                raise NotImplementedError
-
-            for message_to_fill in messages_to_fill:
-                if message_to_fill.distance_to_fill <= 0:
-                    filled_messages.append(message_to_fill)
-                    messages_to_fill.remove(message_to_fill)
+        filled_messages = list()
+        for message in history.itertuples():
             if len(messages_to_fill) == 0:
                 break
-            target_price_levels = [message.price for message in messages_to_fill]
+            if message.price not in target_price_levels:
+                pass  # TODO: is there anything we can do here, to speed up?
+            if message.event_type in ["deletion", "cancellation"]:
+                queue_positions = self.update_queue_positions(message, messages_to_fill, history)
+                continue
+            if message.event_type == "execution_hidden":
+                pass
+            if message.event_type in ["cross_trade", "trading_halt"]:
+                raise NotImplementedError
+            if message.event_type == "execution_visible":
+                if min(queue_positions.values()) > 0:
+                    queue_positions = self.update_queue_positions(message, messages_to_fill, history)
+                elif queue_positions["bid"] <= 0 and message.direction == "bid":
+                    best_bid = self.get_best_prices(messages_to_fill)["bid"]
+                    if message.price <= best_bid:
+                        size_on_bid = -np.infty
+                        for our_message in messages_to_fill:
+                            if our_message.price == best_bid:
+                                our_message.queue_position -= message.size
+                                size_on_bid = max(size_on_bid, our_message.queue_position + our_message.size)
+                                if our_message.queue_position + our_message.size <= 0:
+                                    messages_to_fill.remove(our_message)
+                                    filled_messages.append(our_message)
+                        if size_on_bid <= 0:
+                            queue_positions = self.update_queue_positions(
+                                message, messages_to_fill, history, size_on_bid
+                            )
+                elif queue_positions["ask"] <= 0 and message.direction == "ask":
+                    best_ask = self.get_best_prices(messages_to_fill)["ask"]
+                    if message.price >= best_ask:
+                        size_on_ask = -np.infty
+                        for our_message in messages_to_fill:
+                            if our_message.price == best_ask:
+                                our_message.queue_position -= message.size
+                                size_on_ask = max(size_on_ask, our_message.queue_position + our_message.size)
+                                if our_message.queue_position + our_message.size <= 0:
+                                    messages_to_fill.remove(our_message)
+                                    filled_messages.append(our_message)
+                        if size_on_ask <= 0:
+                            queue_positions = self.update_queue_positions(
+                                message, messages_to_fill, history, size_on_ask
+                            )
 
+        # TODO: think about this...
         terminal_book = self.database.get_last_snapshot(end_date, exchange=self.exchange, ticker=self.ticker)
         terminal_book_df = self.convert_book_to_df(terminal_book)
-        for message in messages_to_fill + filled_messages:
-            terminal_book_df.loc[terminal_book_df["price"] == message.price, "size"] += message.size
+        for message in messages_to_fill:
+            if message.queue_position > 0:
+                terminal_book_df.loc[terminal_book_df["price"] == message.price, "size"] += message.size
+            elif message.queue_position + message.size > 0:
+                terminal_book_df.loc[terminal_book_df["price"] == message.price, "size"] += message.queue_position + message.size
+            else:
+                pass
+        for message in filled_messages:
+            terminal_book_df.loc[f"{message.side}_0", "size"] += message.size
 
         return messages_to_fill, filled_messages, self.convert_df_to_book(book_df=terminal_book_df)
+
+    def get_last_snapshot(self, timestamp: datetime):
+        return self.database.get_last_snapshot(timestamp, exchange=self.exchange, ticker=self.ticker)
+
+    @classmethod
+    def update_queue_positions(
+        cls,
+        incoming_message: OrderbookMessage,
+        messages_to_fill: List,
+        history: pd.DataFrame,
+        message_size: Optional[int] = None,
+    ):
+        recent = sum((history.external_id == incoming_message.external_id) & (history.event_type == "submission"))
+        if not recent:
+            message_size = incoming_message.size if message_size is None else message_size
+            for our_message in messages_to_fill:
+                if our_message.price == incoming_message.price:
+                    our_message.queue_position -= message_size
+        return cls.get_best_queue_positions(messages_to_fill)
 
     @classmethod
     def _aggregate_orderbook_and_queue(
@@ -261,3 +302,42 @@ class SimpleOrderbookSimulator:
             for col_name in ["price", "size"]:
                 book.loc[_index[0:3] + "_" + col_name + "_" + _index[-1]] = book_df.loc[_index, col_name]
         return book
+
+    @staticmethod
+    def get_best_prices(messages: List) -> dict:
+        best_prices = dict()
+        try:
+            best_prices["bid"] = max([message.price for message in messages if message.side == "bid"])
+        except ValueError:
+            best_prices["bid"] = -np.infty
+        try:
+            best_prices["ask"] = min([message.price for message in messages if message.side == "ask"])
+        except ValueError:
+            best_prices["ask"] = np.infty
+        return best_prices
+
+    @classmethod
+    def get_best_queue_positions(cls, messages: List) -> dict:
+        best_queue_positions = dict()
+        best_prices = cls.get_best_prices(messages)
+        try:
+            best_queue_positions["bid"] = min(
+                [
+                    message.queue_position
+                    for message in messages
+                    if message.price == best_prices["bid"] and message.side == "bid"
+                ]
+            )
+        except ValueError:
+            best_queue_positions["bid"] = np.infty
+        try:
+            best_queue_positions["ask"] = min(
+                [
+                    message.queue_position
+                    for message in messages
+                    if message.price == best_prices["ask"] and message.side == "ask"
+                ]
+            )
+        except ValueError:
+            best_queue_positions["ask"] = np.infty
+        return best_queue_positions
