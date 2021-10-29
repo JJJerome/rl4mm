@@ -1,119 +1,99 @@
 import abc
+from abc import ABC
+
 import numpy as np
 
-from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import chain
 
-from typing import Any, Dict, DefaultDict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
+from RL4MM.agents.Agent import Agent
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.simulator import OrderbookMessage
 
 
 @dataclass
-class SimulatedTrade:
+class OrderbookMessage:
+    _id: str
     datetime: datetime
+    message_type: str
+    ticker: str
     size: float
     price: float
-    side: int
+    side: str
+    queue_position: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
+            "_id": self._id,
             "datetime": self.datetime,
+            "message_type": self.message_type,
+            "ticker": self.ticker,
             "size": self.size,
             "price": self.price,
             "side": self.side,
+            "distance_to_fill": self.queue_position,
+        }
+
+
+@dataclass
+class Orderbook:
+    datetime: datetime
+    bids: Dict[float, int]
+    asks: Dict[float, int]
+
+    def to_series(self) -> Dict[str, Any]:
+        return {
+            "_id": self._id,
+            "datetime": self.datetime,
+            "message_type": self.message_type,
+            "ticker": self.ticker,
+            "size": self.size,
+            "price": self.price,
+            "side": self.side,
+            "distance_to_fill": self.queue_position,
         }
 
 
 class OrderbookSimulator(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def simulate_trading(self, *kwargs) -> Tuple[SimulatedTrade, pd.DataFrame]:
+    def simulate_step(self, *kwargs) -> Tuple[List[OrderbookMessage], List[OrderbookMessage], pd.DataFrame]:
         """Returns the quantity traded given an order start and end date, as well as the resulting orderbook state."""
         pass
 
-    @staticmethod
-    def _get_best_levels(orderbook: Dict[float, float], levels: int) -> Dict[float, float]:
-        bids = sorted([price for price, size in orderbook.items() if size > 0])[-levels:][::-1]
-        asks = sorted([price for price, size in orderbook.items() if size < 0])[:levels]
-        return {price: orderbook[price] for price in bids + asks}
-
-    @classmethod
-    def orderbook_dict_to_df(
-        cls, orderbooks: Dict[datetime, Dict[float, float]], levels: int, pre_clipped: bool = False
-    ) -> pd.DataFrame:
-        if not pre_clipped:
-            orderbooks = {ts: cls._get_best_levels(book, levels) for ts, book in orderbooks.items()}
-        orderbook_df = pd.DataFrame.from_dict(
-            {ts: [item for pair in bid_ask.items() for item in pair] for ts, bid_ask in orderbooks.items()},
-            orient="index",
-            columns=[
-                side + name + f"{i}" for side in ["bid_", "ask_"] for i in range(levels) for name in ["price_", "size_"]
-            ],
-        )
-        orderbook_df.loc[:, [f"ask_size_{i}" for i in range(levels)]] *= -1
-        return orderbook_df.sort_index()
-
-    @classmethod
-    def orderbook_dict_to_series(
-        cls, orderbook: Dict[float, float], timestamp: datetime, levels: int, pre_sorted: bool = False
-    ) -> pd.Series:
-        if not pre_sorted:
-            orderbook = cls._get_best_levels(orderbook, levels)
-        orderbook_series = pd.Series(
-            [item for pair in orderbook.items() for item in pair],
-            name=timestamp,
-            index=[
-                side + name + f"{i}" for side in ["bid_", "ask_"] for i in range(levels) for name in ["price_", "size_"]
-            ],
-        )
-        orderbook_series.loc[[f"ask_size_{i}" for i in range(levels)]] *= -1
-        return orderbook_series
-
-    @staticmethod
-    def orderbook_series_to_dict(orderbook: pd.Series, levels: int) -> DefaultDict[float, float]:
-        prices = [
-            orderbook.loc[name]
-            for name in [
-                side + name + f"{i}" for side in ["bid_", "ask_"] for i in range(levels) for name in ["price_"]
-            ]
-        ]
-        sizes = [orderbook.loc[quantity] for quantity in [f"bid_size_{i}" for i in range(levels)]] + [
-            -orderbook.loc[quantity] for quantity in [f"ask_size_{i}" for i in range(levels)]
-        ]
-        return defaultdict(float, dict(zip(prices, sizes)))
+    def simulate_trading(
+        self, start_date: datetime, end_date: datetime, step_size: timedelta, agent: Agent
+    ) -> Tuple[List[OrderbookMessage], List[OrderbookMessage], pd.DataFrame]:
+        raise NotImplementedError
 
 
-class SimpleOrderbookSimulator:
+class HistoricalOrderbookSimulator(OrderbookSimulator):
     def __init__(
         self,
-        start_date: datetime,
-        end_date: datetime,
         exchange: str,
         ticker: str,
+        slippage: int = 0,
         levels: int = 10,
         database: HistoricalDatabase = None,
     ) -> None:
-        self.start_date = start_date
-        self.end_date = end_date
+
         self.exchange = exchange
         self.ticker = ticker
+        self.slippage = slippage
         self.levels = levels
         self.database = database or HistoricalDatabase()
 
-    def simulate_trading(
+    def simulate_step(
         self,
         start_date: datetime,
         end_date: datetime,
-        messages_to_fill,  # : List[OrderbookMessage],
-        slippage: int = 0,
-    ):  # -> Tuple[List[OrderbookMessage], List[SimulatedTrade], pd.DataFrame]:
-        # TODO: Sort out typing
+        messages_to_fill: List[OrderbookMessage],
+        start_book: Optional[pd.Series] = None,
+    ) -> Tuple[List[OrderbookMessage], List[OrderbookMessage], pd.DataFrame]:
         """
         Order is placed on the touch
 
@@ -143,33 +123,49 @@ class SimpleOrderbookSimulator:
                 - State = next state + order quantity at best ask price
         """
 
-        # TODO: replace all occurrences of "events" with "messages".
-        slip_start = start_date + timedelta(microseconds=slippage)
-        book = self.get_last_snapshot(slip_start)
-        history = self.database.get_events(slip_start, end_date, self.exchange, self.ticker).set_index("timestamp")
+        # TODO: replace all occurrences of "messages" with "messages".
+        slip_start = start_date + timedelta(microseconds=self.slippage)
+        if start_book is not None:
+            book = start_book
+            initial_book_delta = self.get_book_delta(start_book, book)
+        else:
+            book = self.get_last_snapshot(slip_start)
+            initial_book_delta = 0
+        filled_messages = list()
+        history = self.database.get_messages(slip_start, end_date, self.exchange, self.ticker)
+        if len(history) == 0:
+            terminal_book = self.database.get_last_snapshot(end_date, exchange=self.exchange, ticker=self.ticker)
+            return messages_to_fill, filled_messages, terminal_book
+        history.set_index("timestamp", inplace=True)
         assert sum(history.exchange != self.exchange) == 0, f"Some messages do not come from {self.exchange}!"
         assert sum(history.ticker != self.ticker) == 0, f"Some messages do not correspond to the ticker {self.ticker}!"
         book_df = self.convert_book_to_df(book, self.levels)
+        messages_not_in_book = list()
+        for message in messages_to_fill:
+            if message.price not in book_df.price.values:
+                messages_not_in_book.append(message)
+        for message in messages_not_in_book:  # TODO: is this the correct way to deal with messages not in book?
+            messages_to_fill.remove(message)
+            print(f"removed {message} from messages to fill, since it does not appear in the L10 book")
         for message in messages_to_fill:
             if not message.queue_position:  # join the back of the queue
                 message.queue_position = book_df.loc[book_df.price == message.price, "size"][0]
         target_price_levels = {m.price for m in messages_to_fill}
         queue_positions = self.get_best_queue_positions(messages_to_fill)
 
-        filled_messages = list()
         for message in history.itertuples():
             if len(messages_to_fill) == 0:
                 break
             if message.price not in target_price_levels:
                 pass  # TODO: is there anything we can do here, to speed up?
-            if message.event_type in ["deletion", "cancellation"]:
+            if message.message_type in ["deletion", "cancellation"]:
                 queue_positions = self.update_queue_positions(message, messages_to_fill, history)
                 continue
-            if message.event_type == "execution_hidden":
+            if message.message_type == "execution_hidden":
                 pass
-            if message.event_type in ["cross_trade", "trading_halt"]:
+            if message.message_type in ["cross_trade", "trading_halt"]:
                 raise NotImplementedError
-            if message.event_type == "execution_visible":
+            if message.message_type == "execution_visible":
                 if min(queue_positions.values()) > 0:
                     queue_positions = self.update_queue_positions(message, messages_to_fill, history)
                 elif queue_positions["bid"] <= 0 and message.direction == "bid":
@@ -210,13 +206,23 @@ class SimpleOrderbookSimulator:
             if message.queue_position > 0:
                 terminal_book_df.loc[terminal_book_df["price"] == message.price, "size"] += message.size
             elif message.queue_position + message.size > 0:
-                terminal_book_df.loc[terminal_book_df["price"] == message.price, "size"] += message.queue_position + message.size
+                terminal_book_df.loc[terminal_book_df["price"] == message.price, "size"] += (
+                    message.queue_position + message.size
+                )
             else:
                 pass
         for message in filled_messages:
             terminal_book_df.loc[f"{message.side}_0", "size"] += message.size
 
-        return messages_to_fill, filled_messages, self.convert_df_to_book(book_df=terminal_book_df)
+        return messages_to_fill, filled_messages, self.convert_df_to_book(book_df=terminal_book_df) + initial_book_delta
+
+    @classmethod
+    def get_book_delta(cls, book_1: pd.Series, book_2: pd.Series):
+        assert len(book_1) == len(book_2), "Books must be the same size"
+        for i in range(len(book_1) // 4):
+            for side in ["bid", "ask"]:
+                assert book_1[f"{side}_price_{i}"] == book_2[f"{side}_price_{i}"], "Book price levels must be the same!"
+        return book_2 - book_1
 
     def get_last_snapshot(self, timestamp: datetime):
         return self.database.get_last_snapshot(timestamp, exchange=self.exchange, ticker=self.ticker)
@@ -229,7 +235,7 @@ class SimpleOrderbookSimulator:
         history: pd.DataFrame,
         message_size: Optional[int] = None,
     ):
-        recent = sum((history.external_id == incoming_message.external_id) & (history.event_type == "submission"))
+        recent = sum((history.external_id == incoming_message.external_id) & (history.message_type == "submission"))
         if not recent:
             message_size = incoming_message.size if message_size is None else message_size
             for our_message in messages_to_fill:
@@ -280,10 +286,10 @@ class SimpleOrderbookSimulator:
         return historical_db.get_book_deltas(start_date, end_date, exchange, ticker).set_index("timestamp")
 
     @staticmethod
-    def _get_events(
+    def _get_messages(
         historical_db: HistoricalDatabase, start_date: datetime, end_date: datetime, exchange: str, ticker: str
     ) -> pd.DataFrame:
-        return historical_db.get_events(start_date, end_date, exchange, ticker).set_index("timestamp")
+        return historical_db.get_messages(start_date, end_date, exchange, ticker).set_index("timestamp")
 
     # TODO: write test
     @staticmethod

@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 
 
-class EventType(Enum):
+class MessageType(Enum):
     SUBMISSION = 1
     CANCELLATION = 2
     DELETION = 3
@@ -20,7 +20,7 @@ class EventType(Enum):
 class OrderbookMessage:
     _id: str
     datetime: datetime
-    event_type: str
+    message_type: str
     ticker: str
     size: float
     price: float
@@ -31,7 +31,7 @@ class OrderbookMessage:
         return {
             "_id": self._id,
             "datetime": self.datetime,
-            "event_type": self.event_type,
+            "message_type": self.message_type,
             "ticker": self.ticker,
             "size": self.size,
             "price": self.price,
