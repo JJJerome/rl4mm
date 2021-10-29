@@ -8,7 +8,7 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import sessionmaker
 
 from RL4MM.database.PostgresEngine import PostgresEngine
-from RL4MM.database.models import Base, Book, Event
+from RL4MM.database.models import Base, Book, Message
 
 
 class HistoricalDatabase:
@@ -17,9 +17,9 @@ class HistoricalDatabase:
         self.session_maker = sessionmaker(bind=self.engine)
         Base.metadata.create_all(bind=self.engine)
 
-    def insert_events(self, events: List[Event]) -> None:
+    def insert_messages(self, messages: List[Message]) -> None:
         session = self.session_maker()
-        session.add_all(events)
+        session.add_all(messages)
         session.commit()
         session.close()
 
@@ -86,20 +86,20 @@ class HistoricalDatabase:
         else:
             return pd.DataFrame()
 
-    def get_events(self, start_date: datetime, end_date: datetime, exchange: str, ticker: str) -> pd.DataFrame:
+    def get_messages(self, start_date: datetime, end_date: datetime, exchange: str, ticker: str) -> pd.DataFrame:
         session = self.session_maker()
-        events = (
-            session.query(Event)
-            .filter(Event.exchange == exchange)
-            .filter(Event.ticker == ticker)
-            .filter(Event.timestamp.between(start_date, end_date))
-            .order_by(Event.timestamp.asc())
+        messages = (
+            session.query(Message)
+            .filter(Message.exchange == exchange)
+            .filter(Message.ticker == ticker)
+            .filter(Message.timestamp.between(start_date, end_date))
+            .order_by(Message.timestamp.asc())
             .all()
         )
         session.close()
-        events_dict = [t.__dict__ for t in events]
-        if len(events_dict) > 0:
-            return pd.DataFrame(events_dict).drop(columns=["_sa_instance_state"])
+        messages_dict = [t.__dict__ for t in messages]
+        if len(messages_dict) > 0:
+            return pd.DataFrame(messages_dict).drop(columns=["_sa_instance_state"])
         else:
             return pd.DataFrame()
 

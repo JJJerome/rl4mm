@@ -6,8 +6,8 @@ from sqlalchemy.ext.declarative.api import DeclarativeMeta
 Base: DeclarativeMeta = declarative_base()
 
 
-class Event(Base):
-    __tablename__ = "events"
+class Message(Base):
+    __tablename__ = "messages"
 
     id = Column(String, primary_key=True)
     timestamp = Column(DateTime, nullable=False, index=True)
@@ -17,7 +17,7 @@ class Event(Base):
     size = Column(Float, nullable=False)
     price = Column(Float, nullable=False)
     external_id = Column(String, nullable=True)
-    event_type = Column(String, nullable=True)
+    message_type = Column(String, nullable=True)
 
     def __repr__(self):
         class_name = self.__class__.__name__

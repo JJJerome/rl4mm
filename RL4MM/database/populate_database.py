@@ -14,7 +14,7 @@ from urllib.request import urlopen
 from zipfile import ZipFile
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.database.models import Book, Event
+from RL4MM.database.models import Book, Message
 from RL4MM.database.PostgresEngine import PostgresEngine
 
 logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S")
@@ -43,11 +43,11 @@ def populate_database(
             messages = reformat_message_data(messages, trading_date)
             messages = add_internal_index(messages, ticker, trading_date, exchange)
             books = rescale_book_data(books)
-            event_list, book_list = get_event_and_book_lists(messages, books, exchange, ticker)
-            logging.info(f"Inserting book and event data for {ticker} on {trading_date} into database.")
+            message_list, book_list = get_message_and_book_lists(messages, books, exchange, ticker)
+            logging.info(f"Inserting book and message data for {ticker} on {trading_date} into database.")
             try:
                 database.insert_books(book_list)
-                database.insert_events(event_list)
+                database.insert_messages(message_list)
             except IntegrityError:
                 logging.warning(f"Data for {ticker} on {trading_date} already exists in database and so was not added.")
     logging.info(f"Successfully added data for tickers {tickers} into database.")
@@ -105,15 +105,15 @@ def reformat_message_data(messages: DataFrame, trading_date: str) -> DataFrame:
     messages.drop(["trading_date", "time"], axis=1, inplace=True)
     type_dict = get_external_internal_type_dict()
     messages.type.replace(type_dict.keys(), type_dict.values(), inplace=True)
-    messages.direction.replace([-1, 1], ["sell", "buy"], inplace=True)
+    messages.direction.replace([-1, 1], ["ask", "bid"], inplace=True)
     messages["price"] /= 10000
     return messages
 
 
 def rescale_book_data(books: DataFrame) -> DataFrame:
-    for event_type in ["ask", "bid"]:
+    for message_type in ["ask", "bid"]:
         for i in range(10):
-            books[event_type + "_price_" + str(i)] /= 10000
+            books[message_type + "_price_" + str(i)] /= 10000
     return books
 
 
@@ -124,6 +124,7 @@ def get_external_internal_type_dict():
         3: "deletion",
         4: "execution_visible",
         5: "execution_hidden",
+        6: "cross_trade",
         7: "trading_halt",
     }
 
@@ -133,11 +134,11 @@ def add_internal_index(dataframe: DataFrame, ticker: str, trading_date: str, exc
     return dataframe
 
 
-def get_event_and_book_lists(messages: DataFrame, books: DataFrame, exchange: str, ticker: str) -> [Event, Book]:
-    event_list, book_list = list(), list()
+def get_message_and_book_lists(messages: DataFrame, books: DataFrame, exchange: str, ticker: str) -> [Message, Book]:
+    message_list, book_list = list(), list()
     for message in messages.itertuples():
-        event_list.append(
-            Event(
+        message_list.append(
+            Message(
                 id=message.internal_index,
                 timestamp=message.timestamp,
                 exchange=exchange,
@@ -146,7 +147,7 @@ def get_event_and_book_lists(messages: DataFrame, books: DataFrame, exchange: st
                 size=message.size,
                 price=message.price,
                 external_id=message.external_id,
-                event_type=message.type,
+                message_type=message.type,
             )
         )
         book_list.append(
@@ -158,7 +159,7 @@ def get_event_and_book_lists(messages: DataFrame, books: DataFrame, exchange: st
                 data=books.iloc[message.Index].to_json(),
             )
         )
-    return event_list, book_list
+    return message_list, book_list
 
 
 if __name__ == "__main__":
