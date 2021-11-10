@@ -16,7 +16,7 @@ class AddTouchAgent(Agent):
         return [
             OrderbookMessage(
                 _id=-1,
-                datetime=datetime,
+                timestamp=timestamp,
                 message_type="submission",
                 ticker=self.ticker,
                 size=self.order_size,

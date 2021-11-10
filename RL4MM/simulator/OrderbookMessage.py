@@ -19,7 +19,7 @@ class MessageType(Enum):
 @dataclass
 class OrderbookMessage:
     _id: str
-    datetime: datetime
+    timestamp: datetime
     message_type: str
     ticker: str
     size: float
@@ -30,7 +30,7 @@ class OrderbookMessage:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "_id": self._id,
-            "datetime": self.datetime,
+            "datetime": self.DATETIME,
             "message_type": self.message_type,
             "ticker": self.ticker,
             "size": self.size,
