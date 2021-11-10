@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import chain
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 import pandas as pd
 
@@ -19,7 +19,7 @@ from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 @dataclass
 class OrderbookMessage:
     _id: str
-    datetime: datetime
+    timestamp: datetime
     message_type: str
     ticker: str
     size: float
@@ -30,7 +30,7 @@ class OrderbookMessage:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "_id": self._id,
-            "datetime": self.datetime,
+            "datetime": self.timestamp,
             "message_type": self.message_type,
             "ticker": self.ticker,
             "size": self.size,
@@ -59,9 +59,22 @@ class Orderbook:
         }
 
 
+class ResultsDict(TypedDict):
+    messages_to_fill: List[OrderbookMessage]
+    filled_messages: List[OrderbookMessage]
+    orderbook: pd.DataFrame
+    midprice_change: float
+
+
 class OrderbookSimulator(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def simulate_step(self, *kwargs) -> Tuple[List[OrderbookMessage], List[OrderbookMessage], pd.DataFrame]:
+    def simulate_step(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        messages_to_fill: List[OrderbookMessage],
+        start_book: Optional[pd.Series] = None,
+    ) -> ResultsDict:
         """Returns the quantity traded given an order start and end date, as well as the resulting orderbook state."""
         pass
 
@@ -79,6 +92,7 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
         slippage: int = 0,
         levels: int = 10,
         database: HistoricalDatabase = None,
+        message_duration: int = 2,
     ) -> None:
 
         self.exchange = exchange
@@ -86,6 +100,7 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
         self.slippage = slippage
         self.levels = levels
         self.database = database or HistoricalDatabase()
+        self.message_duration = message_duration
 
     def simulate_step(
         self,
@@ -94,48 +109,18 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
         messages_to_fill: List[OrderbookMessage],
         start_book: Optional[pd.Series] = None,
     ) -> Tuple[List[OrderbookMessage], List[OrderbookMessage], pd.DataFrame]:
-        """
-        Order is placed on the touch
-
-        Example: resting limit sell on best ask
-
-        - Register queue position
-        - Count market trades at order price
-
-        - If next best ask > best ask, then:
-            - Order is filled
-            - State = next state + order quantity at resting next best ask
-
-        - If next best ask == best ask, then:
-            - If market trades at order price < queue position, then:
-                - Order is not filled
-                - State = next state + order quantity at order price
-            - If market trades at order price >= queue position, then:
-                - Order is filled
-                - State = next state + order quantity at order price
-
-        - If next best ask < best ask, then:
-            - If market trades at order price < queue position, then:
-                - Order is not filled
-                - State = next state + order quantity at order price
-            - If market trades at order price >= queue position, then:
-                - Order is filled
-                - State = next state + order quantity at best ask price
-        """
 
         # TODO: replace all occurrences of "messages" with "messages".
         slip_start = start_date + timedelta(microseconds=self.slippage)
-        if start_book is not None:
-            book = start_book
-            initial_book_delta = self.get_book_delta(start_book, book)
-        else:
-            book = self.get_last_snapshot(slip_start)
-            initial_book_delta = 0
+        if start_book is None:
+            start_book = self.get_last_snapshot(slip_start)
+        book = start_book
+        initial_book_delta = self.get_book_delta(start_book, book)
         filled_messages = list()
         history = self.database.get_messages(slip_start, end_date, self.exchange, self.ticker)
         if len(history) == 0:
-            terminal_book = self.database.get_last_snapshot(end_date, exchange=self.exchange, ticker=self.ticker)
-            return messages_to_fill, filled_messages, terminal_book
+            end_book = self.database.get_last_snapshot(end_date, exchange=self.exchange, ticker=self.ticker)
+            return messages_to_fill, filled_messages, end_book
         history.set_index("timestamp", inplace=True)
         assert sum(history.exchange != self.exchange) == 0, f"Some messages do not come from {self.exchange}!"
         assert sum(history.ticker != self.ticker) == 0, f"Some messages do not correspond to the ticker {self.ticker}!"
@@ -199,9 +184,19 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
                                 message, messages_to_fill, history, size_on_ask
                             )
 
+        # Remove old messages
+        old_messages = list()
+        for message in messages_to_fill:
+            message_age = end_date - message.timestamp
+            window_size = end_date - start_date
+            if message_age / window_size >= self.message_duration:
+                old_messages.append(message)
+        for old_message in old_messages:
+            messages_to_fill.remove(old_message)
+
         # TODO: think about this...
-        terminal_book = self.database.get_last_snapshot(end_date, exchange=self.exchange, ticker=self.ticker)
-        terminal_book_df = self.convert_book_to_df(terminal_book)
+        end_book = self.database.get_last_snapshot(end_date, exchange=self.exchange, ticker=self.ticker)
+        terminal_book_df = self.convert_book_to_df(end_book)
         for message in messages_to_fill:
             if message.queue_position > 0:
                 terminal_book_df.loc[terminal_book_df["price"] == message.price, "size"] += message.size
@@ -213,8 +208,18 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
                 pass
         for message in filled_messages:
             terminal_book_df.loc[f"{message.side}_0", "size"] += message.size
+        end_book = self.convert_df_to_book(book_df=terminal_book_df) + initial_book_delta
 
-        return messages_to_fill, filled_messages, self.convert_df_to_book(book_df=terminal_book_df) + initial_book_delta
+        results = ResultsDict(
+            {
+                "messages_to_fill": messages_to_fill,
+                "filled_messages": filled_messages,
+                "orderbook": end_book,
+                "midprice_change": self.get_midprice_change(start_book, end_book),
+            }
+        )
+
+        return results
 
     @classmethod
     def get_book_delta(cls, book_1: pd.Series, book_2: pd.Series):
@@ -226,6 +231,12 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
 
     def get_last_snapshot(self, timestamp: datetime):
         return self.database.get_last_snapshot(timestamp, exchange=self.exchange, ticker=self.ticker)
+
+    @staticmethod
+    def get_midprice_change(start_book: pd.DataFrame, end_book: pd.DataFrame):
+        start_midprice = (start_book["ask_price_0"] + start_book["bid_price_0"]) / 2
+        end_midprice = (end_book["ask_price_0"] + end_book["bid_price_0"]) / 2
+        return end_midprice - start_midprice
 
     @classmethod
     def update_queue_positions(
@@ -243,32 +254,6 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
                     our_message.queue_position -= message_size
         return cls.get_best_queue_positions(messages_to_fill)
 
-    @classmethod
-    def _aggregate_orderbook_and_queue(
-        cls, ts_idx: int, orderbooks, snapshots: pd.DataFrame, deltas: pd.DataFrame, end_date: datetime, levels: int
-    ) -> None:
-        orderbooks_to_add: Dict[datetime, Dict[float, float]] = {}
-        ts = snapshots.index[ts_idx]
-        next_ts = snapshots.index[ts_idx + 1] if ts_idx + 1 < len(snapshots.index) else end_date
-        orderbooks_to_add[ts] = {
-            float(k): float(v)
-            for k, v in (
-                list(snapshots.at[ts, "data"]["bid"].items())
-                + [(price, -size) for price, size in snapshots.at[ts, "data"]["ask"].items()]
-            )
-        }
-        last_timestamp = ts
-        for timestamp, row in deltas.loc[ts:next_ts].iterrows():
-            next_orderbook = deepcopy(orderbooks_to_add[last_timestamp])
-            for price, size in row["data"]["bid"].items():
-                next_orderbook[float(price)] = size
-            for price, size in row["data"]["ask"].items():
-                next_orderbook[float(price)] = -size
-            orderbooks_to_add[timestamp] = next_orderbook
-            last_timestamp = timestamp
-        for ts, ob in orderbooks_to_add.items():
-            orderbooks[ts] = cls._get_best_levels(ob, levels)
-
     @staticmethod
     def _get_book_snapshots(
         historical_db: HistoricalDatabase, start_date: datetime, end_date: datetime, exchange: str, ticker: str
@@ -278,18 +263,6 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
         return historical_db.get_book_snapshots(snapshot.at[0, "timestamp"], end_date, exchange, ticker).set_index(
             "timestamp"
         )
-
-    @staticmethod
-    def _get_book_deltas(
-        historical_db: HistoricalDatabase, start_date: datetime, end_date: datetime, exchange: str, ticker: str
-    ) -> pd.DataFrame:
-        return historical_db.get_book_deltas(start_date, end_date, exchange, ticker).set_index("timestamp")
-
-    @staticmethod
-    def _get_messages(
-        historical_db: HistoricalDatabase, start_date: datetime, end_date: datetime, exchange: str, ticker: str
-    ) -> pd.DataFrame:
-        return historical_db.get_messages(start_date, end_date, exchange, ticker).set_index("timestamp")
 
     # TODO: write test
     @staticmethod
