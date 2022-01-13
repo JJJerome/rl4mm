@@ -78,11 +78,6 @@ class OrderbookSimulator(metaclass=abc.ABCMeta):
         """Returns the quantity traded given an order start and end date, as well as the resulting orderbook state."""
         pass
 
-    def simulate_trading(
-        self, start_date: datetime, end_date: datetime, step_size: timedelta, agent: Agent
-    ) -> Tuple[List[OrderbookMessage], List[OrderbookMessage], pd.DataFrame]:
-        raise NotImplementedError
-
 
 class HistoricalOrderbookSimulator(OrderbookSimulator):
     def __init__(
@@ -94,7 +89,7 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
         database: HistoricalDatabase = None,
         message_duration: int = 2,
     ) -> None:
-
+        assert exchange == "NASDAQ", "Currently the only exchange we can simulate is NASDAQ!"
         self.exchange = exchange
         self.ticker = ticker
         self.slippage = slippage
@@ -106,7 +101,7 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
         self,
         start_date: datetime,
         end_date: datetime,
-        messages_to_fill: List[OrderbookMessage],
+        messages_to_fill: List[OrderbookMessage] = list(),
         start_book: Optional[pd.Series] = None,
     ) -> Tuple[List[OrderbookMessage], List[OrderbookMessage], pd.DataFrame]:
 
