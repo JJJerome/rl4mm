@@ -1,9 +1,7 @@
 import abc
-from abc import ABC
 
 import numpy as np
 
-from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import chain
@@ -12,7 +10,6 @@ from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 import pandas as pd
 
-from RL4MM.agents.Agent import Agent
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 
 
