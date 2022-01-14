@@ -3,3 +3,5 @@
 *.pyc
 *.xml
 *.iml
+/notebooks/.ipynb_checkpoints/
+*.ipynb
