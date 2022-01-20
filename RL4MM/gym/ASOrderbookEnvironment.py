@@ -22,24 +22,36 @@ INITIAL_STOCK_PRICE = 100.0
 class ASOrderbookEnvironment(gym.Env):
     metadata = {"render.modes": ["human"]}
 
-    def __init__(self, episode_length: float = 1.0, n_steps: int = 200, reward_function: RewardFunction = None):
+    def __init__(
+        self,
+        episode_length: float = 1.0,
+        n_steps: int = 200,
+        reward_function: RewardFunction = None,
+        continuous_observation_space: bool = False,  # This permits us to use out of the box algos from Stable-baselines
+    ):
         super(ASOrderbookEnvironment, self).__init__()
         self.episode_length = episode_length
         self.n_steps = n_steps
         self.reward_function = reward_function or PnL()
+        self.continuous_observation_space = continuous_observation_space
 
         self.action_space = Box(
             low=0.0, high=np.inf, shape=(2, 1), dtype=np.float32
         )  # agent chooses spread on bid and ask
         # observation space is (stock price, cash, inventory, step_number)
-        self.observation_space = Tuple(
-            (
-                Box(low=0.0, high=np.inf, shape=(1, 1)),
-                Box(low=0.0, high=np.inf, shape=(1, 1)),
-                Discrete(MAX_INVENTORY),
-                Discrete(n_steps),
+        if continuous_observation_space:
+            self.observation_space = Box(
+                low=np.zeros(4), high=np.array([np.inf, np.inf, MAX_INVENTORY, n_steps]), dtype=np.float64
             )
-        )
+        else:
+            self.observation_space = Tuple(
+                (
+                    Box(low=0.0, high=np.inf, shape=(1, 1)),
+                    Box(low=0.0, high=np.inf, shape=(1, 1)),
+                    Discrete(MAX_INVENTORY),
+                    Discrete(n_steps),
+                )
+            )
         self.state = []
         self.dt = self.episode_length / self.n_steps
 
@@ -76,11 +88,13 @@ class ASOrderbookEnvironment(gym.Env):
             next_state[1] += action[0, 0] + action[1, 0]
         return next_state
 
-    @staticmethod
-    def _convert_internal_state_to_obs(state: list):
-        return (
-            np.array([[state[0]]], dtype=np.float32),
-            np.array([[state[1]]], dtype=np.float32),
-            state[2],
-            state[3],
-        )
+    def _convert_internal_state_to_obs(self, state: list):
+        if self.continuous_observation_space:
+            return np.array(state, dtype=np.float64)
+        else:
+            return (
+                np.array([[state[0]]], dtype=np.float32),
+                np.array([[state[1]]], dtype=np.float32),
+                state[2],
+                state[3],
+            )
