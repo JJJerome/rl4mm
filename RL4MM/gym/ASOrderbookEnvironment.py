@@ -35,9 +35,7 @@ class ASOrderbookEnvironment(gym.Env):
         self.reward_function = reward_function or PnL()
         self.continuous_observation_space = continuous_observation_space
 
-        self.action_space = Box(
-            low=0.0, high=np.inf, shape=(2, 1), dtype=np.float32
-        )  # agent chooses spread on bid and ask
+        self.action_space = Box(low=0.0, high=np.inf, shape=(2,))  # agent chooses spread on bid and ask
         # observation space is (stock price, cash, inventory, step_number)
         if continuous_observation_space:
             self.observation_space = Box(
@@ -73,19 +71,19 @@ class ASOrderbookEnvironment(gym.Env):
         next_state = deepcopy(self.state)
         next_state[0] += DRIFT * self.dt + VOLATILITY * sqrt(self.dt) * np.random.normal()
         next_state[3] += 1
-        fill_prob_bid, fill_prob_ask = RATE_OF_ARRIVAL * np.exp(tuple(-FILL_EXPONENT * a for a in action)) * self.dt
+        fill_prob_bid, fill_prob_ask = RATE_OF_ARRIVAL * np.exp(-FILL_EXPONENT * action) * self.dt
         unif_bid, unif_ask = np.random.random(2)
         if unif_bid > fill_prob_bid and unif_ask > fill_prob_ask:  # neither the agent's bid nor their ask is filled
             pass
         if unif_bid < fill_prob_bid and unif_ask > fill_prob_ask:  # only bid filled
             # Note that market order gets filled THEN asset midprice changes
-            next_state[1] -= self.state[0] - action[0, 0]
+            next_state[1] -= self.state[0] - action[0]
             next_state[2] += 1
         if unif_bid > fill_prob_bid and unif_ask < fill_prob_ask:  # only ask filled
-            next_state[1] += self.state[0] + action[1, 0]
+            next_state[1] += self.state[0] + action[1]
             next_state[2] -= 1
         if unif_bid < fill_prob_bid and unif_ask < fill_prob_ask:  # both bid and ask filled
-            next_state[1] += action[0, 0] + action[1, 0]
+            next_state[1] += action[0] + action[1]
         return next_state
 
     def _convert_internal_state_to_obs(self, state: list):

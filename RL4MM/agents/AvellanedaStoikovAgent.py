@@ -39,4 +39,4 @@ class AvellanedaStoikovAgent:
     def _get_action(self, inventory: int, time: NonNegativeFloat):
         bid_half_spread = self._get_price_adjustment(inventory, time) + self._get_spread(time) / 2
         ask_half_spread = -self._get_price_adjustment(inventory, time) + self._get_spread(time) / 2
-        return np.array([[bid_half_spread], [ask_half_spread]])
+        return np.array([bid_half_spread, ask_half_spread])
