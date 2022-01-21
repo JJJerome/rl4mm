@@ -3,13 +3,13 @@ from tqdm import tqdm
 
 import pandas as pd
 
-from RL4MM.agents.Agent import Agent
+from RL4MM.agents.StaleAgent import StaleAgent
 from RL4MM.simulator.OrderbookSimulator import OrderbookSimulator, HistoricalOrderbookSimulator
 
 
 class Backtester:
     def __init__(
-        self, agent: Agent, simulator: OrderbookSimulator = None, initial_portfolio: dict = {"cash": 0, "stock": 0}
+        self, agent: StaleAgent, simulator: OrderbookSimulator = None, initial_portfolio: dict = {"cash": 0, "stock": 0}
     ) -> None:
         self.agent = agent
         self.simulator = simulator or self._get_default_simulator()
