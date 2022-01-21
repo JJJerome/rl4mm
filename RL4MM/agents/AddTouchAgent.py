@@ -2,11 +2,11 @@ from datetime import datetime
 
 import pandas as pd
 
-from RL4MM.agents.Agent import Agent
+from RL4MM.agents.StaleAgent import StaleAgent
 from RL4MM.simulator.OrderbookSimulator import OrderbookMessage
 
 
-class AddTouchAgent(Agent):
+class AddTouchStaleAgent(StaleAgent):
     def __init__(self, ticker: str, order_size: int):
         self.ticker = ticker
         self.order_size = order_size

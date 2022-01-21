@@ -3,8 +3,11 @@ import warnings
 
 from pydantic import NonNegativeFloat, PositiveInt
 
+from RL4MM.agents.Agent import Agent
+from RL4MM.gym.AvellanedaStoikovEnvironment import AsState
 
-class AvellanedaStoikovAgent:
+
+class AvellanedaStoikovAgent(Agent):
     def __init__(
         self,
         risk_aversion: NonNegativeFloat = 0.1,
@@ -22,7 +25,9 @@ class AvellanedaStoikovAgent:
         self.rate_of_arrival = rate_of_arrival
         self.fill_exponent = fill_exponent
 
-    def get_action(self, inventory: int, time: NonNegativeFloat):
+    def get_action(self, state: AsState):
+        inventory = state[2]
+        time = state[3] * self.dt
         action = self._get_action(inventory, time)
         if min(action) < 0:
             warnings.warn("Avellaneda-Stoikov agent is quoting a negative spread")
