@@ -1,9 +1,6 @@
 import abc
-import numpy as np
-from typing import TypeVar
 
-State = TypeVar("State", int, np.ndarray, tuple)
-Action = TypeVar("Action", int, np.ndarray, tuple)
+from RL4MM.base import State, Action
 
 
 class RewardFunction(metaclass=abc.ABCMeta):
