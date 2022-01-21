@@ -1,9 +1,8 @@
 import abc
-from datetime import datetime
 
-import pandas as pd
+from RL4MM.base import State, Action
 
 
 class Agent(metaclass=abc.ABCMeta):
-    def generate_messages(self, timestamp: datetime, book: pd.Series):
+    def get_action(self, state: State) -> Action:
         pass
