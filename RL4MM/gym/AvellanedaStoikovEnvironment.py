@@ -28,13 +28,13 @@ class AvellanedaStoikovEnvironment(gym.Env):
 
     def __init__(
         self,
-        episode_length: float = 1.0,
+        terminal_time: float = 1.0,
         n_steps: int = 200,
         reward_function: RewardFunction = None,
         continuous_observation_space: bool = True,  # This permits us to use out of the box algos from Stable-baselines
     ):
         super(AvellanedaStoikovEnvironment, self).__init__()
-        self.episode_length = episode_length
+        self.terminal_time = terminal_time
         self.n_steps = n_steps
         self.reward_function = reward_function or PnL()
         self.continuous_observation_space = continuous_observation_space
@@ -55,7 +55,7 @@ class AvellanedaStoikovEnvironment(gym.Env):
                 )
             )
         self.state = np.array([])
-        self.dt = self.episode_length / self.n_steps
+        self.dt = self.terminal_time / self.n_steps
 
     def reset(self):
         self.state = np.array([INITIAL_STOCK_PRICE, INITIAL_CASH, INITIAL_INVENTORY, 0])
