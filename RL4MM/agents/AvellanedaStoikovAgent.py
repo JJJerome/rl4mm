@@ -37,6 +37,8 @@ class AvellanedaStoikovAgent(Agent):
         return inventory * self.risk_aversion * self.volatility ** 2 * (self.terminal_time - time)
 
     def _get_spread(self, time: NonNegativeFloat) -> float:
+        if self.risk_aversion == 0:
+            return 2 / self.fill_exponent  # Limit as risk aversion -> 0
         volatility_aversion_component = self.risk_aversion * self.volatility ** 2 * (self.terminal_time - time)
         fill_exponent_component = 2 / self.risk_aversion * np.log(1 + self.risk_aversion / self.fill_exponent)
         return volatility_aversion_component + fill_exponent_component
