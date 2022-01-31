@@ -1,5 +1,7 @@
 import gym
 
+import numpy as np
+
 from RL4MM.agents.Agent import Agent
 from RL4MM.base import State, Action
 
