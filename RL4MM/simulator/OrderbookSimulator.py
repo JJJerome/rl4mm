@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import chain
 
-from typing import Any, Dict, List, Optional, Tuple, TypedDict
+from typing import Any, Dict, List, Optional, TypedDict
 
 import pandas as pd
 
@@ -79,8 +79,8 @@ class OrderbookSimulator(metaclass=abc.ABCMeta):
 class HistoricalOrderbookSimulator(OrderbookSimulator):
     def __init__(
         self,
-        exchange: str,
-        ticker: str,
+        exchange: str = "NASDAQ",
+        ticker: str = "MSFT",
         slippage: int = 0,
         levels: int = 10,
         database: HistoricalDatabase = None,
@@ -100,9 +100,8 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
         end_date: datetime,
         messages_to_fill: List[OrderbookMessage] = list(),
         start_book: Optional[pd.Series] = None,
-    ) -> Tuple[List[OrderbookMessage], List[OrderbookMessage], pd.DataFrame]:
+    ) -> ResultsDict:
 
-        # TODO: replace all occurrences of "messages" with "messages".
         slip_start = start_date + timedelta(microseconds=self.slippage)
         if start_book is None:
             start_book = self.get_last_snapshot(slip_start)
