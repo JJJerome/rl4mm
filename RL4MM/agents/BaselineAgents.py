@@ -7,11 +7,12 @@ from RL4MM.base import State, Action
 
 
 class RandomAgent(Agent):
-    def __init__(self, env: gym.Env):
-        self.env = env
+    def __init__(self, action_space: gym.spaces.Space, seed: int = None):
+        self.action_space = action_space
+        self.action_space.seed(seed)
 
     def get_action(self, state: State) -> Action:
-        return self.env.action_space.sample()
+        return self.action_space.sample()
 
 
 class FixedSpreadAgent(Agent):
