@@ -1,9 +1,8 @@
 from sqlalchemy import Column, DateTime, Float, JSON, String
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.declarative.api import DeclarativeMeta
 
 
-Base: DeclarativeMeta = declarative_base()
+Base = declarative_base()
 
 
 class Message(Base):
