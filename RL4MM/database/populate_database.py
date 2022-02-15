@@ -1,7 +1,9 @@
-from typing import List
+from typing import List, Tuple
 
 import logging
 import shutil
+import ssl
+
 
 from io import BytesIO
 from itertools import chain
@@ -17,7 +19,11 @@ from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.models import Book, Message
 from RL4MM.database.PostgresEngine import PostgresEngine
 
-logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S")
+logging.basicConfig(
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    level=logging.INFO,
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 def populate_database(
@@ -76,7 +82,7 @@ def make_temporary_data_folder(ticker: str, trading_date: str, levels: int) -> P
     return temp_data_path
 
 
-def get_book_and_message_paths(data_path: Path, ticker: str, trading_date: str, levels: int) -> List[Path]:
+def get_book_and_message_paths(data_path: Path, ticker: str, trading_date: str, levels: int) -> Tuple[Path, Path]:
     book_path = data_path / f"{ticker}_{trading_date}_34200000_57600000_orderbook_{levels}.csv"
     message_path = data_path / f"{ticker}_{trading_date}_34200000_57600000_message_{levels}.csv"
     return book_path, message_path
@@ -85,6 +91,7 @@ def get_book_and_message_paths(data_path: Path, ticker: str, trading_date: str, 
 def get_lobster_data(ticker: str, trading_date: str, levels: int) -> List[DataFrame]:
     temp_data_path = make_temporary_data_folder(ticker, trading_date, levels)
     zip_url = f"https://lobsterdata.com/info/sample/LOBSTER_SampleFile_{ticker}_{trading_date}_{levels}.zip"
+    ssl._create_default_https_context = ssl._create_unverified_context  # This is a hack, and not ideal.
     with urlopen(zip_url) as zip_resp:
         with ZipFile(BytesIO(zip_resp.read())) as zip_file:
             zip_file.extractall(temp_data_path)
@@ -134,7 +141,9 @@ def add_internal_index(dataframe: DataFrame, ticker: str, trading_date: str, exc
     return dataframe
 
 
-def get_message_and_book_lists(messages: DataFrame, books: DataFrame, exchange: str, ticker: str) -> [Message, Book]:
+def get_message_and_book_lists(
+    messages: DataFrame, books: DataFrame, exchange: str, ticker: str
+) -> Tuple[List[Message], List[Book]]:
     message_list, book_list = list(), list()
     for message in messages.itertuples():
         message_list.append(
@@ -164,6 +173,8 @@ def get_message_and_book_lists(messages: DataFrame, books: DataFrame, exchange: 
 
 if __name__ == "__main__":
     logging.basicConfig(
-        format="%(asctime)s %(levelname)-8s %(message)s", level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S"
+        format="%(asctime)s %(levelname)-8s %(message)s",
+        level=logging.INFO,
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
     populate_database()
