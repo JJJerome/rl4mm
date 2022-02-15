@@ -11,7 +11,7 @@ def generate_trajectory(env: gym.Env, agent: Agent, seed: int = None):
         np.random.seed(seed)
     obs = env.reset()
     observations = obs.reshape(1, observation_dimension)
-    action = agent.get_action(obs)
+    action: np.ndarray = agent.get_action(obs)
     actions = action.reshape(1, action_dimension)
     rewards = []
     while True:
