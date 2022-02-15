@@ -1,5 +1,3 @@
-from typing import TypeVar
-
 import gym
 import numpy as np
 
@@ -8,7 +6,6 @@ from gym.spaces import Box, Discrete, Tuple
 from math import sqrt
 
 from RL4MM.rewards.RewardFunctions import RewardFunction, PnL
-from RL4MM.base import State, Action
 
 # Coefficients from the original Avellaneda-Stoikov paper. TODO: make the framework flexible enough to permit RARL.
 DRIFT = 0.0
@@ -20,8 +17,6 @@ INITIAL_CASH = 100.0
 INITIAL_INVENTORY = 0
 INITIAL_STOCK_PRICE = 100.0
 
-AsState = TypeVar("AsState", bound=State)
-
 
 class AvellanedaStoikovEnvironment(gym.Env):
     metadata = {"render.modes": ["human"]}
@@ -32,17 +27,21 @@ class AvellanedaStoikovEnvironment(gym.Env):
         n_steps: int = 200,
         reward_function: RewardFunction = None,
         continuous_observation_space: bool = True,  # This permits us to use out of the box algos from Stable-baselines
+        seed: int = None,
     ):
         super(AvellanedaStoikovEnvironment, self).__init__()
         self.terminal_time = terminal_time
         self.n_steps = n_steps
         self.reward_function = reward_function or PnL()
         self.continuous_observation_space = continuous_observation_space
+        self.rng = np.random.default_rng(seed)
 
         self.action_space = Box(low=0.0, high=np.inf, shape=(2,))  # agent chooses spread on bid and ask
         # observation space is (stock price, cash, inventory, step_number)
         self.observation_space = Box(
-            low=np.zeros(4), high=np.array([np.inf, np.inf, MAX_INVENTORY, n_steps]), dtype=np.float64
+            low=np.zeros(4),
+            high=np.array([np.inf, np.inf, MAX_INVENTORY, n_steps]),
+            dtype=np.float64,
         )
 
         if not continuous_observation_space:
@@ -54,14 +53,14 @@ class AvellanedaStoikovEnvironment(gym.Env):
                     Discrete(n_steps),
                 )
             )
-        self.state = np.array([])
+        self.state: np.ndarray = np.array([])
         self.dt = self.terminal_time / self.n_steps
 
     def reset(self):
         self.state = np.array([INITIAL_STOCK_PRICE, INITIAL_CASH, INITIAL_INVENTORY, 0])
         return self._convert_internal_state_to_obs(self.state)
 
-    def step(self, action: Action):
+    def step(self, action: np.ndarray):
         next_state = self._get_next_state(action)
         reward = self.reward_function.calculate(self.state, action, next_state)
         self.state = next_state
@@ -71,12 +70,12 @@ class AvellanedaStoikovEnvironment(gym.Env):
     def render(self, mode="human"):
         pass
 
-    def _get_next_state(self, action: Action) -> State:
+    def _get_next_state(self, action: np.ndarray) -> np.ndarray:
         next_state = deepcopy(self.state)
-        next_state[0] += DRIFT * self.dt + VOLATILITY * sqrt(self.dt) * np.random.normal()
+        next_state[0] += DRIFT * self.dt + VOLATILITY * sqrt(self.dt) * self.rng.normal()
         next_state[3] += 1
         fill_prob_bid, fill_prob_ask = RATE_OF_ARRIVAL * np.exp(-FILL_EXPONENT * action) * self.dt
-        unif_bid, unif_ask = np.random.random(2)
+        unif_bid, unif_ask = self.rng.random(2)
         if unif_bid > fill_prob_bid and unif_ask > fill_prob_ask:  # neither the agent's bid nor their ask is filled
             pass
         if unif_bid < fill_prob_bid and unif_ask > fill_prob_ask:  # only bid filled

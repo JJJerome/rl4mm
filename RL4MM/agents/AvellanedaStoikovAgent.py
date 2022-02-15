@@ -4,7 +4,6 @@ import warnings
 from pydantic import NonNegativeFloat, PositiveInt
 
 from RL4MM.agents.Agent import Agent
-from RL4MM.gym.AvellanedaStoikovEnvironment import AsState
 
 
 class AvellanedaStoikovAgent(Agent):
@@ -25,7 +24,7 @@ class AvellanedaStoikovAgent(Agent):
         self.rate_of_arrival = rate_of_arrival
         self.fill_exponent = fill_exponent
 
-    def get_action(self, state: AsState):
+    def get_action(self, state: np.ndarray):
         inventory = state[2]
         time = state[3] * self.dt
         action = self._get_action(inventory, time)
