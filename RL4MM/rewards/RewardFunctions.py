@@ -34,7 +34,7 @@ class InventoryAdjustedPnL(RewardFunction):
         self.n_steps = n_steps
         self.inventory_aversion_exponent = inventory_aversion_exponent
 
-    def calculate(self, current_state: State, action: Action, next_state: State) -> float:
+    def calculate(self, current_state, action, next_state) -> float:
         if current_state[3] == self.n_steps - 1:
             return (
                 self.pnl_reward.calculate(current_state, action, next_state)

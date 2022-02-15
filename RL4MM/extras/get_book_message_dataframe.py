@@ -1,6 +1,10 @@
 import pandas as pd
 
-from RL4MM.database.populate_database import get_lobster_data, reformat_message_data, rescale_book_data
+from RL4MM.database.populate_database import (
+    get_lobster_data,
+    reformat_message_data,
+    rescale_book_data,
+)
 
 
 def get_book_message_dataframe(

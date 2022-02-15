@@ -30,5 +30,9 @@ class MidpriceChange(Feature):
     def _discretise(self, feature_value: float) -> float:
         rounding_factor = 2 * self.max_change / (self.values_taken - 1)
         return np.maximum(
-            np.minimum(np.round(feature_value / rounding_factor) * rounding_factor, self.max_change), -self.max_change
+            np.minimum(
+                np.round(feature_value / rounding_factor) * rounding_factor,
+                self.max_change,
+            ),
+            -self.max_change,
         )

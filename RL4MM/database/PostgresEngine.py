@@ -16,14 +16,23 @@ class PostgresConfig(TypedDict):
 
 class PostgresEngine:
     def __init__(
-        self, host: str = None, port: int = None, database: str = None, user: str = None, password: str = None
+        self,
+        host: str = None,
+        port: int = None,
+        database: str = None,
+        user: str = None,
+        password: str = None,
     ):
         self.config = self.__get_config(host, port, database, user, password)
         self.engine = create_engine(self._construct_url(self.config), pool_size=10, max_overflow=20)
 
     @staticmethod
     def __get_config(
-        host: str = None, port: int = None, database: str = None, user: str = None, password: str = None
+        host: str = None,
+        port: int = None,
+        database: str = None,
+        user: str = None,
+        password: str = None,
     ) -> PostgresConfig:
         setup_environment_variables()
         return PostgresConfig(

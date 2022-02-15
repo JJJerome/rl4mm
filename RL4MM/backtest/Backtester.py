@@ -1,22 +1,36 @@
+from typing import Dict
+
 from datetime import datetime, timedelta
 from tqdm import tqdm
 
 import pandas as pd
 
 from RL4MM.agents.StaleAgent import StaleAgent
-from RL4MM.simulator.OrderbookSimulator import OrderbookSimulator, HistoricalOrderbookSimulator
+from RL4MM.simulator.OrderbookSimulator import (
+    OrderbookSimulator,
+    StaleHistoricalOrderbookSimulator,
+)
 
 
 class Backtester:
     def __init__(
-        self, agent: StaleAgent, simulator: OrderbookSimulator = None, initial_portfolio: dict = {"cash": 0, "stock": 0}
+        self,
+        agent: StaleAgent,
+        simulator: OrderbookSimulator = None,
+        initial_portfolio: Dict = {"cash": 0, "stock": 0},
     ) -> None:
         self.agent = agent
         self.simulator = simulator or self._get_default_simulator()
         self.initial_portfolio = initial_portfolio
-        self.results = dict()
+        self.results: Dict = dict()
 
-    def run(self, start_date: datetime, end_date: datetime, step_size: timedelta, start_book: pd.Series) -> None:
+    def run(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        step_size: timedelta,
+        start_book: pd.Series,
+    ) -> None:
         messages_to_fill = list()
         filled_messages = list()
         book = start_book
@@ -40,7 +54,7 @@ class Backtester:
 
     @staticmethod
     def _get_default_simulator():
-        return HistoricalOrderbookSimulator(exchange="NASDAQ", ticker="MSFT")
+        return StaleHistoricalOrderbookSimulator(exchange="NASDAQ", ticker="MSFT")
 
     @staticmethod
     def _get_daterange(start_date: datetime, end_date: datetime, step_size: timedelta):

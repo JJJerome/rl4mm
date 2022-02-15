@@ -1,15 +1,15 @@
+import numpy as np
+
 from RL4MM.agents.Agent import Agent
 
 from stable_baselines3.common.base_class import BaseAlgorithm
-
-from RL4MM.base import State, Action
 
 
 class SBAgent(Agent):
     def __init__(self, model: BaseAlgorithm):
         self.model = model
 
-    def get_action(self, state: State) -> Action:
+    def get_action(self, state: np.ndarray) -> np.ndarray:
         return self.model.predict(state)[0]
 
     def train(self, total_timesteps: int = 100000):

@@ -1,8 +1,10 @@
+from typing import Any
+
 from sqlalchemy import Column, DateTime, Float, JSON, String
 from sqlalchemy.ext.declarative import declarative_base
 
 
-Base = declarative_base()
+Base = declarative_base()  # type: Any
 
 
 class Message(Base):
