@@ -31,7 +31,7 @@ class StochasticMidpriceModel(MidpriceModel):
     def __init__(
         self, process: BaseProcess = None, initial_value: float = 1.0, is_multiplicative: bool = False, seed: int = None
     ):
-        self.process = process or BrownianMotion(rng=np.random.default_rng(seed))
+        self.process = process or BrownianMotion(rng=np.random.default_rng(seed), scale=2.0)  # As in Avellaneda-Stoikov
         self.initial_value = initial_value
         self.is_multiplicative = is_multiplicative
 

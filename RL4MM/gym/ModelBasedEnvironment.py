@@ -65,9 +65,9 @@ class ModelBasedEnvironment(gym.Env):
 
     def step(self, action: np.ndarray):
         next_obs = self._get_next_obs(action)
-        reward = self.reward_function.calculate(self.obs, action, next_obs)
+        done = isclose(next_obs[3], self.terminal_time)  # due to floating point arithmetic
+        reward = self.reward_function.calculate(self.obs, action, next_obs, done)
         self.obs = next_obs
-        done = isclose(self.obs[3], self.terminal_time)  # due to floating point arithmetic
         return next_obs, reward, done, {}
 
     def render(self, mode="human"):
