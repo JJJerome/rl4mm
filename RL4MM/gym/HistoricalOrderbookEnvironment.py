@@ -9,7 +9,7 @@ from gym.utils import seeding
 
 from RL4MM.features.Feature import Feature
 from RL4MM.simulator.OrderbookSimulator import (
-    HistoricalOrderbookSimulator,
+    StaleHistoricalOrderbookSimulator,
     OrderbookSimulator,
     ResultsDict,
     OrderbookMessage,
@@ -43,7 +43,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.initial_portfolio = initial_portfolio or {"cash": 1000, "stock": 0}
         self.portfolio = self.initial_portfolio
         self.now = min_date
-        self.underlying_state = None
+        self.underlying_state: ResultsDict = None
         self.current_step = 0
         # Actions can be (0,0), (0,1), (1,0), (1,1). Here, we are only posting orders of size one at the touch.
         self.action_space = Tuple((Discrete(2), Discrete(2)))
@@ -93,7 +93,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         return (feature.calculate(results) for feature in self.features)
 
     def _convert_action_to_message(self, action):
-        if not isinstance(self.simulator, HistoricalOrderbookSimulator):
+        if not isinstance(self.simulator, StaleHistoricalOrderbookSimulator):
             raise NotImplementedError
         ticker = self.simulator.ticker
         our_messages = list()

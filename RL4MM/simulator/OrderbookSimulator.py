@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import chain
 
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -56,11 +56,23 @@ class Orderbook:
         }
 
 
-class ResultsDict(TypedDict):
+@dataclass
+class ResultsDict:
     messages_to_fill: List[OrderbookMessage]
     filled_messages: List[OrderbookMessage]
     orderbook: pd.DataFrame
     midprice_change: float
+
+    @staticmethod
+    def from_constituents(messages_to_fill, filled_messages, orderbook, midprice_change):
+        return ResultsDict(
+            {
+                "messages_to_fill": messages_to_fill,
+                "filled_messages": filled_messages,
+                "orderbook": orderbook,
+                "midprice_change": midprice_change,
+            }
+        )
 
 
 class OrderbookSimulator(metaclass=abc.ABCMeta):
@@ -76,7 +88,8 @@ class OrderbookSimulator(metaclass=abc.ABCMeta):
         pass
 
 
-class HistoricalOrderbookSimulator(OrderbookSimulator):
+# flake8: noqa: C901
+class StaleHistoricalOrderbookSimulator(OrderbookSimulator):
     def __init__(
         self,
         exchange: str = "NASDAQ",
@@ -151,7 +164,10 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
                         for our_message in messages_to_fill:
                             if our_message.price == best_bid:
                                 our_message.queue_position -= message.size
-                                size_on_bid = max(size_on_bid, our_message.queue_position + our_message.size)
+                                size_on_bid = max(
+                                    size_on_bid,
+                                    our_message.queue_position + our_message.size,
+                                )
                                 if our_message.queue_position + our_message.size <= 0:
                                     messages_to_fill.remove(our_message)
                                     filled_messages.append(our_message)
@@ -166,7 +182,10 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
                         for our_message in messages_to_fill:
                             if our_message.price == best_ask:
                                 our_message.queue_position -= message.size
-                                size_on_ask = max(size_on_ask, our_message.queue_position + our_message.size)
+                                size_on_ask = max(
+                                    size_on_ask,
+                                    our_message.queue_position + our_message.size,
+                                )
                                 if our_message.queue_position + our_message.size <= 0:
                                     messages_to_fill.remove(our_message)
                                     filled_messages.append(our_message)
@@ -247,7 +266,11 @@ class HistoricalOrderbookSimulator(OrderbookSimulator):
 
     @staticmethod
     def _get_book_snapshots(
-        historical_db: HistoricalDatabase, start_date: datetime, end_date: datetime, exchange: str, ticker: str
+        historical_db: HistoricalDatabase,
+        start_date: datetime,
+        end_date: datetime,
+        exchange: str,
+        ticker: str,
     ) -> pd.DataFrame:
         snapshot = historical_db.get_last_snapshot(start_date, exchange, ticker)
         assert len(snapshot) == 1, f"No snapshot exists before {start_date}."

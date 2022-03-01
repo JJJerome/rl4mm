@@ -4,7 +4,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from RL4MM.simulator.OrderbookSimulator import HistoricalOrderbookSimulator
+from RL4MM.simulator.OrderbookSimulator import StaleHistoricalOrderbookSimulator
 
 book_dict = dict()
 book_dict.update({f"ask_price_{i}": 100 + i for i in range(10)})
@@ -23,5 +23,5 @@ class TestHistoricalOrderBookSimulator(TestCase):
         expected = pd.Series(np.zeros(40, dtype="int64"), index=BOOK_1.index)
         expected["bid_size_0"] = 20 - 10
         expected["ask_size_1"] = 5 - 10
-        actual = HistoricalOrderbookSimulator.get_book_delta(BOOK_1, BOOK_2)
+        actual = StaleHistoricalOrderbookSimulator.get_book_delta(BOOK_1, BOOK_2)
         assert_series_equal(actual, expected)
