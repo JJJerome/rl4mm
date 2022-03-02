@@ -5,17 +5,8 @@ from copy import deepcopy
 from gym.spaces import Box
 from math import sqrt, isclose
 
+from RL4MM.gym.models import Action
 from RL4MM.rewards.RewardFunctions import RewardFunction, PnL
-
-# Coefficients from the original Avellaneda-Stoikov paper.
-DRIFT = 0.0
-VOLATILITY = 2.0
-RATE_OF_ARRIVAL = 140
-FILL_EXPONENT = 1.5
-MAX_INVENTORY = 100
-INITIAL_CASH = 100.0
-INITIAL_INVENTORY = 0
-INITIAL_STOCK_PRICE = 100.0
 
 
 class AvellanedaStoikovEnvironment(gym.Env):
@@ -51,6 +42,8 @@ class AvellanedaStoikovEnvironment(gym.Env):
         self.initial_stock_price = initial_stock_price
         self.continuous_observation_space = continuous_observation_space
         self.rng = np.random.default_rng(seed)
+        self.dt = self.terminal_time / self.n_steps
+        self.max_inventory_exceeded_penalty = self.initial_stock_price * self.volatility * self.dt * 10
 
         self.action_space = Box(low=0.0, high=np.inf, shape=(2,))  # agent chooses spread on bid and ask
         # observation space is (stock price, cash, inventory, step_number)
@@ -60,37 +53,42 @@ class AvellanedaStoikovEnvironment(gym.Env):
             dtype=np.float64,
         )
         self.state: np.ndarray = np.array([])
-        self.dt = self.terminal_time / self.n_steps
 
     def reset(self):
-        self.state = np.array([INITIAL_STOCK_PRICE, INITIAL_CASH, INITIAL_INVENTORY, 0])
+        self.state = np.array([self.initial_stock_price, self.initial_cash, self.initial_inventory, 0])
         return self.state
 
-    def step(self, action: np.ndarray):
+    def step(self, action: Action):
         next_state = self._get_next_state(action)
         done = isclose(next_state[3], self.terminal_time)  # due to floating point arithmetic
         reward = self.reward_function.calculate(self.state, action, next_state, done)
+        if abs(next_state[2]) > self.max_inventory:
+            reward -= self.max_inventory_exceeded_penalty
         self.state = next_state
         return self.state, reward, done, {}
 
     def render(self, mode="human"):
         pass
 
-    def _get_next_state(self, action: np.ndarray) -> np.ndarray:
+    def _get_next_state(self, action: Action) -> np.ndarray:
+        action = Action(*action)  # for SB learning algo
         next_state = deepcopy(self.state)
         next_state[0] += self.drift * self.dt + self.volatility * sqrt(self.dt) * self.rng.normal()
         next_state[3] += self.dt
-        fill_prob_bid, fill_prob_ask = self.arrival_rate * np.exp(-self.fill_exponent * action) * self.dt
+        fill_prob_bid, fill_prob_ask = self.fill_prob(action.bid), self.fill_prob(action.ask)
         unif_bid, unif_ask = self.rng.random(2)
         if unif_bid > fill_prob_bid and unif_ask > fill_prob_ask:  # neither the agent's bid nor their ask is filled
             pass
         if unif_bid < fill_prob_bid and unif_ask > fill_prob_ask:  # only bid filled
             # Note that market order gets filled THEN asset midprice changes
-            next_state[1] -= self.state[0] - action[0]
+            next_state[1] -= self.state[0] - action.bid
             next_state[2] += 1
         if unif_bid > fill_prob_bid and unif_ask < fill_prob_ask:  # only ask filled
-            next_state[1] += self.state[0] + action[1]
+            next_state[1] += self.state[0] + action.ask
             next_state[2] -= 1
         if unif_bid < fill_prob_bid and unif_ask < fill_prob_ask:  # both bid and ask filled
-            next_state[1] += action[0] + action[1]
+            next_state[1] += action.bid + action.ask
         return next_state
+
+    def fill_prob(self, half_spread: float) -> float:
+        return min(self.arrival_rate * np.exp(-self.fill_exponent * half_spread) * self.dt, 1)
