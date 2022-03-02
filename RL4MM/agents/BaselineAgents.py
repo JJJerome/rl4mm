@@ -22,3 +22,10 @@ class FixedSpreadAgent(Agent):
 
     def get_action(self, state: State):
         return np.array([self.half_spread - self.offset, self.half_spread + self.offset])
+
+
+class HumanAgent(Agent):
+    def get_action(self, state: np.ndarray):
+        bid = float(input(f"Current state is {state}. How large do you want to set midprice-bid? "))
+        ask = float(input(f"Current state is {state}. How large do you want to set ask-midprice? "))
+        return np.array([bid, ask])
