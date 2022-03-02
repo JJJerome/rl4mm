@@ -7,7 +7,7 @@ from math import sqrt, isclose
 
 from RL4MM.rewards.RewardFunctions import RewardFunction, PnL
 
-# Coefficients from the original Avellaneda-Stoikov paper. TODO: make the framework flexible enough to permit RARL.
+# Coefficients from the original Avellaneda-Stoikov paper.
 DRIFT = 0.0
 VOLATILITY = 2.0
 RATE_OF_ARRIVAL = 140
@@ -55,7 +55,7 @@ class AvellanedaStoikovEnvironment(gym.Env):
         self.action_space = Box(low=0.0, high=np.inf, shape=(2,))  # agent chooses spread on bid and ask
         # observation space is (stock price, cash, inventory, step_number)
         self.observation_space = Box(
-            low=np.zeros(4),
+            low=np.array([0, -np.inf, -self.max_inventory, 0]),
             high=np.array([np.inf, np.inf, self.max_inventory, terminal_time]),
             dtype=np.float64,
         )
