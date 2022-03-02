@@ -3,7 +3,8 @@ import gym
 import numpy as np
 
 from RL4MM.agents.Agent import Agent
-from RL4MM.base import State, Action
+from RL4MM.base import State
+from RL4MM.gym.models import Action
 
 
 class RandomAgent(Agent):
@@ -20,12 +21,12 @@ class FixedSpreadAgent(Agent):
         self.half_spread = half_spread
         self.offset = offset
 
-    def get_action(self, state: State):
-        return np.array([self.half_spread - self.offset, self.half_spread + self.offset])
+    def get_action(self, state: State) -> Action:
+        return Action(bid=self.half_spread - self.offset, ask=self.half_spread + self.offset)
 
 
 class HumanAgent(Agent):
     def get_action(self, state: np.ndarray):
-        bid = float(input(f"Current state is {state}. How large do you want to set midprice-bid? "))
-        ask = float(input(f"Current state is {state}. How large do you want to set ask-midprice? "))
-        return np.array([bid, ask])
+        bid = float(input(f"Current state is {state}. How large do you want to set midprice-bid half spread? "))
+        ask = float(input(f"Current state is {state}. How large do you want to set ask-midprice half spread? "))
+        return Action(bid=bid, ask=ask)

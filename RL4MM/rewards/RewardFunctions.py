@@ -4,7 +4,8 @@ import numpy as np
 
 from pydantic import NonNegativeFloat, PositiveFloat
 
-from RL4MM.base import State, Action
+from RL4MM.base import State
+from RL4MM.gym.models import Action
 
 
 class RewardFunction(metaclass=abc.ABCMeta):

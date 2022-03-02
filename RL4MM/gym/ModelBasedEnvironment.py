@@ -7,8 +7,9 @@ from copy import deepcopy
 from gym.spaces import Box
 from math import isclose
 
+from RL4MM.gym.models import Action
 from RL4MM.rewards.RewardFunctions import RewardFunction, PnL
-from RL4MM.gym.models import (
+from RL4MM.gym.probability_models import (
     MidpriceModel,
     StochasticMidpriceModel,
     FillProbabilityFunction,
@@ -63,7 +64,7 @@ class ModelBasedEnvironment(gym.Env):
         self.obs = np.array([next(self.trajectory), self.initial_cash, self.initial_inventory, 0])
         return self.obs
 
-    def step(self, action: np.ndarray):
+    def step(self, action: Action):
         next_obs = self._get_next_obs(action)
         done = isclose(next_obs[3], self.terminal_time)  # due to floating point arithmetic
         reward = self.reward_function.calculate(self.obs, action, next_obs, done)
@@ -73,7 +74,7 @@ class ModelBasedEnvironment(gym.Env):
     def render(self, mode="human"):
         pass
 
-    def _get_next_obs(self, action: np.ndarray) -> np.ndarray:
+    def _get_next_obs(self, action: Action) -> np.ndarray:
         next_obs = deepcopy(self.obs)
         next_obs[0] = next(self.trajectory)
         next_obs[3] += self.dt
