@@ -1,5 +1,5 @@
 import warnings
-from collections import deque
+from collections import deque, OrderedDict
 from dataclasses import dataclass
 from typing import Optional, List
 
@@ -9,21 +9,34 @@ from RL4MM.orderbook.models import Orderbook, Order, OrderType
 
 @dataclass
 class Exchange:
-    orderbook: Orderbook
-    order_id_convertor: OrderIdConvertor
     ticker: str
+    orderbook: Orderbook = None  # type: ignore
     name: str = "NASDAQ"
 
     def __post_init__(self):
+        self.orderbook = self.orderbook or self.get_empty_orderbook()
         assert self.orderbook["ticker"] == self.ticker, "The Exchange orderbook's ticker must agree with the Exchange."
+        self.order_id_convertor = OrderIdConvertor()
 
-    def submit_order(self, order: Order):
+    def process_order(self, order: Order):
+        if order.type == OrderType.SUBMISSION:
+            return self.submit_order(order)
+        elif order.type == OrderType.EXECUTION:
+            return self.execute_order(order)
+        elif order.type == OrderType.CANCELLATION:
+            return self.cancel_order(order)
+        elif order.type == OrderType.DELETION:
+            return self.delete_order(order)
+        else:
+            pass  # Here, we are currently ignoring hidden orders!!
+
+    def submit_order(self, order: Order) -> List[Order]:
         order = self.order_id_convertor.add_internal_id_to_order_and_track(order)
         try:
             self.orderbook[order.direction][order.price].append(order)
         except KeyError:
             self.orderbook[order.direction][order.price] = deque([order])
-        return order
+        return [order]
 
     def execute_order(self, order: Order) -> List[Order]:
         self._assert_order_type(order, OrderType.EXECUTION)
@@ -42,17 +55,17 @@ class Exchange:
                     self.order_id_convertor.remove_external_order_id(order.external_id)  # Stop tracking order_id
         return executed_orders
 
-    def cancel_order(self, order: Order) -> Optional[Order]:
+    def cancel_order(self, order: Order) -> List[Order]:
         self._assert_order_type(order, OrderType.CANCELLATION)
         queue_position = self._find_queue_position(order)
         if not queue_position:
             if self.orderbook[order.direction][order.price][0].internal_id == -1:  # Initial orders remaining in level
                 queue_position = 0
             else:  # trying to cancel order that has already been filled
-                return None
-        return self._partially_remove_order_with_queue_position(order, queue_position)
+                return list()
+        return [self._partially_remove_order_with_queue_position(order, queue_position)]
 
-    def delete_order(self, order: Order) -> Optional[Order]:
+    def delete_order(self, order: Order) -> List[Order]:
         self._assert_order_type(order, OrderType.DELETION)
         queue_position = self._find_queue_position(order)
         if queue_position is not None:
@@ -63,8 +76,18 @@ class Exchange:
                 if self.orderbook[order.direction][order.price][0].size == 0:
                     self.orderbook[order.direction][order.price].popleft()
             else:
-                return None
-        return order
+                return list()
+        return [order]
+
+    def initialise_orderbook_from_orders(self, orders: List[Order]) -> List[Order]:
+        assert all(order.internal_id == -1 for order in orders)  # all internal_ids of orders in the initial book are -1
+        assert len(orders) == len(set([order.price for order in orders]))  # check that each order has a unique price
+        for order in orders:
+            self.orderbook[order.direction][order.price] = deque([order])
+        return orders
+
+    def get_empty_orderbook(self):
+        return Orderbook(bid=OrderedDict(deque()), ask=OrderedDict(deque()), ticker=self.ticker)
 
     def _find_queue_position(self, order: Order) -> Optional[int]:
         internal_id = self.order_id_convertor.get_internal_order_id(order)
