@@ -14,7 +14,7 @@ from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 
 
 @dataclass
-class OrderbookMessage:
+class StaleOrderbookMessage:
     _id: str
     timestamp: datetime
     message_type: str
@@ -38,7 +38,7 @@ class OrderbookMessage:
 
 
 @dataclass
-class Orderbook:
+class StaleOrderbook:
     datetime: datetime
     bids: Dict[float, int]
     asks: Dict[float, int]
@@ -58,8 +58,8 @@ class Orderbook:
 
 @dataclass
 class ResultsDict:
-    messages_to_fill: List[OrderbookMessage]
-    filled_messages: List[OrderbookMessage]
+    messages_to_fill: List[StaleOrderbookMessage]
+    filled_messages: List[StaleOrderbookMessage]
     orderbook: pd.DataFrame
     midprice_change: float
 
@@ -81,7 +81,7 @@ class OrderbookSimulator(metaclass=abc.ABCMeta):
         self,
         start_date: datetime,
         end_date: datetime,
-        messages_to_fill: List[OrderbookMessage],
+        messages_to_fill: List[StaleOrderbookMessage],
         start_book: Optional[pd.Series] = None,
     ) -> ResultsDict:
         """Returns the quantity traded given an order start and end date, as well as the resulting orderbook state."""
@@ -111,7 +111,7 @@ class StaleHistoricalOrderbookSimulator(OrderbookSimulator):
         self,
         start_date: datetime,
         end_date: datetime,
-        messages_to_fill: List[OrderbookMessage] = list(),
+        messages_to_fill: List[StaleOrderbookMessage] = list(),
         start_book: Optional[pd.Series] = None,
     ) -> ResultsDict:
 
@@ -251,7 +251,7 @@ class StaleHistoricalOrderbookSimulator(OrderbookSimulator):
     @classmethod
     def update_queue_positions(
         cls,
-        incoming_message: OrderbookMessage,
+        incoming_message: StaleOrderbookMessage,
         messages_to_fill: List,
         history: pd.DataFrame,
         message_size: Optional[int] = None,
