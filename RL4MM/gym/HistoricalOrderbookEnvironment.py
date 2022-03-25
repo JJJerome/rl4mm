@@ -12,7 +12,7 @@ from RL4MM.simulator.OrderbookSimulator import (
     StaleHistoricalOrderbookSimulator,
     OrderbookSimulator,
     ResultsDict,
-    OrderbookMessage,
+    StaleOrderbookMessage,
 )
 
 NASDAQ_START_DELTA = timedelta(hours=9, minutes=30)
@@ -100,7 +100,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         for i, side in enumerate(["bid", "ask"]):
             if action[i] == 1:
                 our_messages.append(
-                    OrderbookMessage(
+                    StaleOrderbookMessage(
                         _id="-1",
                         timestamp=self.now,
                         message_type="submission",
@@ -115,8 +115,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
     def _update_portfolio(self, filled_messages):
         for message in filled_messages:
             if message.side == "ask":
-                self.portfolio["stock"] -= message.size
-                self.portfolio["cash"] += message.size * message.price
+                self.portfolio["stock"] -= message.volume
+                self.portfolio["cash"] += message.volume * message.price
             if message.side == "bid":
-                self.portfolio["stock"] += message.size
-                self.portfolio["cash"] -= message.size * message.price
+                self.portfolio["stock"] += message.volume
+                self.portfolio["cash"] -= message.volume * message.price

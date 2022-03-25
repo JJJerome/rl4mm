@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 
 from RL4MM.agents.StaleAgent import StaleAgent
-from RL4MM.simulator.OrderbookSimulator import OrderbookMessage
+from RL4MM.simulator.OrderbookSimulator import StaleOrderbookMessage
 
 
 class AddTouchStaleAgent(StaleAgent):
@@ -14,7 +14,7 @@ class AddTouchStaleAgent(StaleAgent):
     def generate_messages(self, timestamp: datetime, book: pd.Series):
         touch_prices = self._get_touch_prices(book)
         return [
-            OrderbookMessage(
+            StaleOrderbookMessage(
                 _id=-1,
                 timestamp=timestamp,
                 message_type="submission",

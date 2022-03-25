@@ -38,11 +38,11 @@ class HistoricalBacktestAnalyser(BacktestAnalyser):
         portfolio = initial_portfolio.copy()
         for message in results["filled messages"]:
             if message.side == "ask":
-                portfolio["stock"] -= message.size
-                portfolio["cash"] += message.size * message.price
+                portfolio["stock"] -= message.volume
+                portfolio["cash"] += message.volume * message.price
             if message.side == "bid":
-                portfolio["stock"] += message.size
-                portfolio["cash"] -= message.size * message.price
+                portfolio["stock"] += message.volume
+                portfolio["cash"] -= message.volume * message.price
 
         ticker = results["filled messages"][0].ticker
         for message in results["filled messages"]:
