@@ -21,8 +21,7 @@ class Message(Base):
     message_type = Column(String, nullable=True)
 
     def __repr__(self):
-        class_name = self.__class__.__name__
-        return f"{class_name}({self.ticker}, {self.timestamp})"
+        return f"{self.__class__.__name__}_{self.id}"
 
 
 class Book(Base):
@@ -35,5 +34,4 @@ class Book(Base):
     data = Column(JSON, nullable=False)
 
     def __repr__(self):
-        class_name = self.__class__.__name__
-        return f"{class_name}({self.ticker}, {self.timestamp})"
+        return f"{self.__class__.__name__}_{self.id}"
