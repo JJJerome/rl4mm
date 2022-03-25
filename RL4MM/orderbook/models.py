@@ -1,9 +1,9 @@
-from typing import Deque, Literal, OrderedDict, TypedDict, Optional
-
-from enum import Enum
+from typing import Literal, TypedDict, Optional
 
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
+from sortedcontainers.sorteddict import SortedDict
 
 
 class OrderType(Enum):
@@ -17,7 +17,7 @@ class OrderType(Enum):
 class Order:
     timestamp: datetime
     price: float
-    size: int
+    volume: int
     direction: Literal["bid", "ask"]
     type: OrderType
     ticker: str
@@ -27,6 +27,6 @@ class Order:
 
 
 class Orderbook(TypedDict):
-    bid: OrderedDict[float, Deque[Order]]
-    ask: OrderedDict[float, Deque[Order]]
+    bid: SortedDict  # Note that SortedDict does not currently support typing. Type is SortedDict[float, Deque[Order]].
+    ask: SortedDict
     ticker: str
