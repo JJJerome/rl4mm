@@ -22,7 +22,7 @@ EXTERNAL_TEST_SUBMISSION.is_external = True
 INTERNAL_TEST_CANCELLATION = copy(INTERNAL_TEST_SUBMISSION)
 INTERNAL_TEST_CANCELLATION.timestamp += timedelta(minutes=1)
 INTERNAL_TEST_CANCELLATION.internal_id = 1
-INTERNAL_TEST_CANCELLATION.size = 5
+INTERNAL_TEST_CANCELLATION.volume = 5
 
 EXTERNAL_TEST_CANCELLATION = copy(INTERNAL_TEST_CANCELLATION)
 EXTERNAL_TEST_CANCELLATION.external_id = 123
@@ -39,11 +39,6 @@ class TestOrderIdConvertor(TestCase):
         self.UPDATED_EXTERNAL_ORDER = self.convertor.add_internal_id_to_order_and_track(EXTERNAL_TEST_SUBMISSION)
         self.assertEqual(self.UPDATED_INTERNAL_ORDER.internal_id, 1)
         self.assertEqual(self.UPDATED_EXTERNAL_ORDER.internal_id, 2)
-
-    def test_get_internal_order_id_fails(self):
-        with self.assertRaises(NameError):
-            self.convertor.get_internal_order_id(INTERNAL_TEST_SUBMISSION)
-            self.convertor.get_internal_order_id(EXTERNAL_TEST_SUBMISSION)
 
     def test_get_internal_order_id(self):
         self.test_add_internal_id_to_order_and_track()  # We need to add the orders before looking them up.
