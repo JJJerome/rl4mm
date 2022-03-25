@@ -1,4 +1,5 @@
 from copy import copy
+from typing import Optional
 
 from RL4MM.orderbook.models import Order, OrderType
 
@@ -15,17 +16,17 @@ class OrderIdConvertor:
         new_order = copy(order)
         new_order.internal_id = self.counter
         if order.is_external:
-            new_order.internal_id = self.counter
             self.external_to_internal_lookup[order.external_id] = self.counter
         return new_order
 
-    def get_internal_order_id(self, order: Order) -> int:
-        if not order.internal_id:
-            raise NameError(f"Order {order} does not currently have and internal order ID!")
-        elif order.is_external:
-            return self.external_to_internal_lookup[order.external_id]
-        else:
+    def get_internal_order_id(self, order: Order) -> Optional[int]:
+        if not order.is_external:
             return order.internal_id
+        elif order.is_external:
+            try:
+                return self.external_to_internal_lookup[order.external_id]
+            except KeyError:
+                return None
 
     def remove_external_order_id(self, external_id: int) -> None:
         del self.external_to_internal_lookup[external_id]

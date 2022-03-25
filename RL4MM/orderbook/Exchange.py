@@ -1,10 +1,13 @@
 import warnings
-from collections import deque, OrderedDict
+from collections import deque
 from dataclasses import dataclass
+from sortedcontainers import SortedDict
 from typing import Optional, List
 
 from RL4MM.orderbook.OrderIDConvertor import OrderIdConvertor
 from RL4MM.orderbook.models import Orderbook, Order, OrderType
+
+from datetime import datetime
 
 
 @dataclass
@@ -12,6 +15,7 @@ class Exchange:
     ticker: str
     orderbook: Orderbook = None  # type: ignore
     name: str = "NASDAQ"
+    order_id_convertor: OrderIdConvertor = None  # type: ignore
 
     def __post_init__(self):
         self.orderbook = self.orderbook or self.get_empty_orderbook()
@@ -28,7 +32,7 @@ class Exchange:
         elif order.type == OrderType.DELETION:
             return self.delete_order(order)
         else:
-            pass  # Here, we are currently ignoring hidden orders!!
+            raise NotImplementedError
 
     def submit_order(self, order: Order) -> List[Order]:
         order = self.order_id_convertor.add_internal_id_to_order_and_track(order)
@@ -41,17 +45,24 @@ class Exchange:
     def execute_order(self, order: Order) -> List[Order]:
         self._assert_order_type(order, OrderType.EXECUTION)
         executed_orders = list()
-        remaining_size = order.size
-        while remaining_size > 0:
-            best_limit_order = self.orderbook[order.direction][order.price][0]
-            if remaining_size < best_limit_order.size:
-                executed_orders.append(self._partially_remove_order_with_queue_position(order, 0))
-                remaining_size = 0
-            elif remaining_size >= best_limit_order.size:
+        remaining_volume = order.volume
+        while remaining_volume > 0:
+            if order.direction == "bid":
+                best_price = next(reversed(self.orderbook[order.direction]))  # best price is highest
+            elif order.direction == "ask":
+                best_price = next(iter(self.orderbook[order.direction].keys()))  # best price is lowest
+            best_limit_order = self.orderbook[order.direction][best_price][0]
+            if remaining_volume < best_limit_order.volume:
+                executed_order = self._partially_remove_order_with_queue_position(order, 0)
+                executed_orders.append(executed_order)
+                remaining_volume = 0
+            elif remaining_volume >= best_limit_order.volume:
                 self.orderbook[order.direction][order.price].popleft()
+                if not self.orderbook[order.direction][order.price]:
+                    del self.orderbook[order.direction][order.price]  # If price level is empty, delete from orderbook
                 executed_orders.append(best_limit_order)
-                remaining_size -= best_limit_order.size
-                if order.external_id is not None:
+                remaining_volume -= best_limit_order.volume
+                if best_limit_order.is_external and best_limit_order.internal_id != -1:
                     self.order_id_convertor.remove_external_order_id(order.external_id)  # Stop tracking order_id
         return executed_orders
 
@@ -73,24 +84,26 @@ class Exchange:
         else:
             if self.orderbook[order.direction][order.price][0].internal_id == -1:  # Initial orders remaining in level
                 self._partially_remove_order_with_queue_position(order, 0)
-                if self.orderbook[order.direction][order.price][0].size == 0:
+                if self.orderbook[order.direction][order.price][0].volume == 0:
                     self.orderbook[order.direction][order.price].popleft()
             else:
                 return list()
         return [order]
 
     def initialise_orderbook_from_orders(self, orders: List[Order]) -> List[Order]:
-        assert all(order.internal_id == -1 for order in orders)  # all internal_ids of orders in the initial book are -1
-        assert len(orders) == len(set([order.price for order in orders]))  # check that each order has a unique price
+        assert all(order.internal_id == -1 for order in orders), "internal_ids of orders in the initial book must be -1"
+        assert len(orders) == len(set([order.price for order in orders])), "each order must have a unique price"
         for order in orders:
             self.orderbook[order.direction][order.price] = deque([order])
         return orders
 
     def get_empty_orderbook(self):
-        return Orderbook(bid=OrderedDict(deque()), ask=OrderedDict(deque()), ticker=self.ticker)
+        return Orderbook(bid=SortedDict(), ask=SortedDict(), ticker=self.ticker)
 
     def _find_queue_position(self, order: Order) -> Optional[int]:
-        internal_id = self.order_id_convertor.get_internal_order_id(order)
+        internal_id = order.internal_id or self.order_id_convertor.get_internal_order_id(order)
+        if internal_id is None and order.is_external:  # This is due to the external order being submitted before start
+            return None
         book_level = self.orderbook[order.direction][order.price]
         left, right = 0, len(book_level) - 1
         while left <= right:
@@ -106,7 +119,7 @@ class Exchange:
         return None
 
     def _partially_remove_order_with_queue_position(self, order: Order, queue_position: int):
-        self.orderbook[order.direction][order.price][queue_position].size -= order.size
+        self.orderbook[order.direction][order.price][queue_position].volume -= order.volume
         return order
 
     @staticmethod
