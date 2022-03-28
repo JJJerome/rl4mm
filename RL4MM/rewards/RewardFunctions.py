@@ -59,3 +59,16 @@ class InventoryAdjustedPnL(RewardFunction):
             self.pnl_reward.calculate(current_state, action, next_state)
             - inventory_aversion * abs(next_state[2]) ** self.inventory_exponent
         )
+
+
+# class ExpectedPnL(RewardFunction):
+#     def __init__(self):
+#         drift: float = (0.0,)
+#         volatility: float = (2.0,)
+#         arrival_rate: float = (140.0,)
+#         fill_exponent: float = (1.5,)
+#
+#     def calculate(self, current_state, action, next_state, is_terminal_step=False) -> float:
+#         current_market_value = current_state[1] + current_state[0] * current_state[2]
+#         next_market_value = next_state[1] + next_state[0] * next_state[2]
+#         return next_market_value - current_market_value
