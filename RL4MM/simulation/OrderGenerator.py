@@ -2,7 +2,7 @@ import abc
 from datetime import datetime
 
 
-class OrderGenerator(abc.ABCMeta):
+class MessageGenerator(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def generate_orders(cls, start: datetime, end: datetime):
+    def generate_messages(self, start_date: datetime, end_date: datetime):
         pass
