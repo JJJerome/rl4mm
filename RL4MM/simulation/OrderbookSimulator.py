@@ -15,7 +15,7 @@ class OutputDict(TypedDict):
     filled_orders: List[Order]
 
 
-class HistoricalOrderbookSimulator:
+class OrderbookSimulator:
     def __init__(
         self,
         ticker: str = "MSFT",
@@ -56,20 +56,7 @@ class HistoricalOrderbookSimulator:
         start_series = self.database.get_last_snapshot(start_date, exchange=self.exchange.name, ticker=self.ticker)
         assert len(start_series) > 0, f"There is no data before the episode start time: {start_date}"
         initial_orders = self._get_initial_orders_from_series(start_series)
-
         return self.exchange.initialise_orderbook_from_orders(initial_orders)
-
-    @staticmethod
-    def _get_order_from_external_message(message: pd.Series):
-        return Order(
-            timestamp=message.timestamp,
-            price=message.price,
-            volume=message.volume,
-            direction=message.direction,
-            type=OrderType(message.message_type),
-            ticker=message.ticker,
-            external_id=message.external_id,
-        )
 
     def _get_initial_orders_from_series(self, series: pd.DataFrame):
         initial_orders = []
