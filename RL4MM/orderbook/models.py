@@ -23,6 +23,7 @@ class Order:
     ticker: str
     internal_id: Optional[int] = None
     external_id: Optional[int] = None
+    participant_id: Optional[str] = None
     is_external: bool = True
 
 

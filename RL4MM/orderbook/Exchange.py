@@ -1,5 +1,6 @@
 import warnings
 from collections import deque
+from copy import copy
 from dataclasses import dataclass
 from sortedcontainers import SortedDict
 from typing import Optional, List
@@ -7,22 +8,21 @@ from typing import Optional, List
 from RL4MM.orderbook.OrderIDConvertor import OrderIdConvertor
 from RL4MM.orderbook.models import Orderbook, Order, OrderType
 
-from datetime import datetime
-
 
 @dataclass
 class Exchange:
-    ticker: str
+    ticker: str = "MSFT"
     orderbook: Orderbook = None  # type: ignore
-    name: str = "NASDAQ"
-    order_id_convertor: OrderIdConvertor = None  # type: ignore
 
     def __post_init__(self):
         self.orderbook = self.orderbook or self.get_empty_orderbook()
         assert self.orderbook["ticker"] == self.ticker, "The Exchange orderbook's ticker must agree with the Exchange."
         self.order_id_convertor = OrderIdConvertor()
+        self.name = "NASDAQ"
 
     def process_order(self, order: Order):
+        if order.external_id == 10213347:
+            print("boop")
         if order.type == OrderType.SUBMISSION:
             return self.submit_order(order)
         elif order.type == OrderType.EXECUTION:
@@ -53,17 +53,19 @@ class Exchange:
                 best_price = next(iter(self.orderbook[order.direction].keys()))  # best price is lowest
             best_limit_order = self.orderbook[order.direction][best_price][0]
             if remaining_volume < best_limit_order.volume:
-                executed_order = self._partially_remove_order_with_queue_position(order, 0)
+                executed_order = self._partially_remove_order(best_price, order.direction, 0, remaining_volume)
                 executed_orders.append(executed_order)
                 remaining_volume = 0
             elif remaining_volume >= best_limit_order.volume:
-                self.orderbook[order.direction][order.price].popleft()
-                if not self.orderbook[order.direction][order.price]:
-                    del self.orderbook[order.direction][order.price]  # If price level is empty, delete from orderbook
+                self.orderbook[order.direction][best_price].popleft()
+                if not self.orderbook[order.direction][best_price]:
+                    del self.orderbook[order.direction][best_price]  # If price level is empty, delete from orderbook
                 executed_orders.append(best_limit_order)
                 remaining_volume -= best_limit_order.volume
-                if best_limit_order.is_external and best_limit_order.internal_id != -1:
+                if best_limit_order.is_external:
                     self.order_id_convertor.remove_external_order_id(order.external_id)  # Stop tracking order_id
+        if 10213347 in {order.external_id for order in executed_orders}:
+            print("boop")
         return executed_orders
 
     def cancel_order(self, order: Order) -> List[Order]:
@@ -74,28 +76,40 @@ class Exchange:
                 queue_position = 0
             else:  # trying to cancel order that has already been filled
                 return list()
-        return [self._partially_remove_order_with_queue_position(order, queue_position)]
+        return [self._partially_remove_order(order.price, order.direction, queue_position, order.volume)]
 
     def delete_order(self, order: Order) -> List[Order]:
         self._assert_order_type(order, OrderType.DELETION)
         queue_position = self._find_queue_position(order)
-        if queue_position is not None:
-            del self.orderbook[order.direction][order.price][queue_position]
-        else:
-            if self.orderbook[order.direction][order.price][0].internal_id == -1:  # Initial orders remaining in level
-                self._partially_remove_order_with_queue_position(order, 0)
+        if queue_position is None:
+            try:
+                oldest_order = self.orderbook[order.direction][order.price][0].internal_id
+            except KeyError:
+                return list()
+            if oldest_order == -1:  # Initial orders remaining in level
+                self._partially_remove_order(order.price, order.direction, 0, order.volume)
                 if self.orderbook[order.direction][order.price][0].volume == 0:
                     self.orderbook[order.direction][order.price].popleft()
             else:
-                return list()
+                return list()  # If non-existent order is "deleted", nothing happens
+        elif queue_position == 0:
+            self.orderbook[order.direction][order.price].popleft()
+        elif queue_position > 0:
+            del self.orderbook[order.direction][order.price][queue_position]
+            if order.is_external:
+                self.order_id_convertor.remove_external_order_id(order.external_id)  # Stop tracking order_id
+        else:
+            raise NotImplementedError
+        if len(self.orderbook[order.direction][order.price]) == 0:
+            self.orderbook[order.direction].pop(order.price)
         return [order]
 
-    def initialise_orderbook_from_orders(self, orders: List[Order]) -> List[Order]:
+    def get_initial_orderbook_from_orders(self, orders: List[Order]) -> List[Order]:
         assert all(order.internal_id == -1 for order in orders), "internal_ids of orders in the initial book must be -1"
-        assert len(orders) == len(set([order.price for order in orders])), "each order must have a unique price"
+        orderbook = self.get_empty_orderbook()
         for order in orders:
-            self.orderbook[order.direction][order.price] = deque([order])
-        return orders
+            orderbook[order.direction][order.price] = deque([order])
+        return orderbook
 
     def get_empty_orderbook(self):
         return Orderbook(bid=SortedDict(), ask=SortedDict(), ticker=self.ticker)
@@ -118,9 +132,13 @@ class Exchange:
         warnings.warn(f"No order found with internal_id = {internal_id}")
         return None
 
-    def _partially_remove_order_with_queue_position(self, order: Order, queue_position: int):
-        self.orderbook[order.direction][order.price][queue_position].volume -= order.volume
-        return order
+    def _partially_remove_order(
+        self, order_price: float, order_direction: str, queue_position: int, volume_to_remove: int
+    ):
+        self.orderbook[order_direction][order_price][queue_position].volume -= volume_to_remove
+        removed_order = copy(self.orderbook[order_direction][order_price][queue_position])
+        removed_order.volume = volume_to_remove
+        return removed_order
 
     @staticmethod
     def _assert_order_type(order: Order, order_type: OrderType):
