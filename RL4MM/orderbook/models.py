@@ -7,10 +7,10 @@ from sortedcontainers.sorteddict import SortedDict
 
 
 class OrderType(Enum):
-    SUBMISSION = "submission"
+    LIMIT = "limit"
+    MARKET = "market"
     CANCELLATION = "cancellation"
     DELETION = "deletion"
-    EXECUTION = "execution_visible"
 
 
 @dataclass

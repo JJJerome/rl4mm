@@ -1,22 +1,22 @@
 import pandas as pd
 import plotly.express as px
 
-from RL4MM.orderbook.Exchange import Exchange
+from RL4MM.orderbook.models import Orderbook
 
 
-def visualise_orderbook(orderbook: Exchange):
-    price_volume_dict = {
-        price: (sum([order.volume for order in orders]), "bid") for price, orders in orderbook.orderbook["bid"].items()
-    }
-    price_volume_dict.update(
-        {
-            price: (sum([order.volume for order in orders]), "ask")
-            for price, orders in orderbook.orderbook["ask"].items()
-        }
-    )
-    price_volume_df = pd.DataFrame(price_volume_dict).T
-    price_volume_df.reset_index(inplace=True)
-    price_volume_df.columns = ["price", "size", "direction"]
-    price_volume_df = price_volume_df.convert_dtypes(float, int, str)
-    fig = px.bar(price_volume_df, x="price", y="size", color="direction")
+def visualise_orderbook(orderbook: Orderbook, n_levels: int = 10):
+    df = convert_orderbook_to_dataframe(orderbook, n_levels)
+    fig = px.bar(df, x="price", y="volume", color="direction")  # , title=f"Orderbook at {x.name}")
     fig.show()
+
+
+def convert_orderbook_to_dataframe(orderbook: Orderbook, n_levels: int = 10):
+    order_dict = {}
+    for side in ["bid", "ask"]:
+        prices = reversed(orderbook[side]) if side == "bid" else orderbook[side]
+        for level, price in enumerate(prices):
+            if level >= n_levels:
+                break
+            order_dict[side + str(level)] = (side, price, sum(order.volume for order in orderbook[side][price]))
+    df = pd.DataFrame(order_dict).T
+    return df.rename(columns={0: "direction", 1: "price", 2: "volume"})
