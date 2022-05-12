@@ -1,5 +1,3 @@
-from typing import List
-
 import gym
 
 import numpy as np
@@ -12,15 +10,13 @@ class ReduceStateSizeWrapper(gym.Wrapper):
     :param env: (gym.Env) Gym environment that will be wrapped
     """
 
-    def __init__(self, env, state_subset: List = [-2]):
+    def __init__(self, env):
         # Call the parent constructor, so we can access self.env later
         super(ReduceStateSizeWrapper, self).__init__(env)
         assert type(env.observation_space) == gym.spaces.box.Box
-        self.state_subset = state_subset
-
         self.observation_space = gym.spaces.box.Box(
-            low=env.observation_space.low[state_subset],
-            high=env.observation_space.high[state_subset],
+            low=env.observation_space.low[2:],
+            high=env.observation_space.high[2:],
             dtype=np.float64,
         )
 
@@ -29,7 +25,7 @@ class ReduceStateSizeWrapper(gym.Wrapper):
         Reset the environment
         """
         obs = self.env.reset()
-        return obs[self.state_subset]
+        return obs[2:]
 
     def step(self, action):
         """
@@ -37,7 +33,7 @@ class ReduceStateSizeWrapper(gym.Wrapper):
         :return: (np.ndarray, float, bool, dict) observation, reward, is the episode over?, additional informations
         """
         obs, reward, done, info = self.env.step(action)
-        return obs[self.state_subset], reward, done, info
+        return obs[2:], reward, done, info
 
 
 class NormaliseASObservation(gym.Wrapper):

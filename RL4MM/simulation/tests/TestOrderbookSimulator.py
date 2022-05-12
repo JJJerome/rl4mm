@@ -4,7 +4,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from RL4MM.simulator.OrderbookSimulator import StaleHistoricalOrderbookSimulator
+from RL4MM.simulation.StaleOrderbookSimulator import StaleHistoricalOrderbookSimulator
 
 book_dict = dict()
 book_dict.update({f"ask_price_{i}": 100 + i for i in range(10)})

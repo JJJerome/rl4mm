@@ -29,7 +29,10 @@ class OrderIdConvertor:
                 return None
 
     def remove_external_order_id(self, external_id: int) -> None:
-        del self.external_to_internal_lookup[external_id]
+        try:
+            del self.external_to_internal_lookup[external_id]
+        except KeyError:
+            pass  # If order_id is not present, we ignore it
 
     def reset(self):
         self.external_to_internal_lookup = dict()
