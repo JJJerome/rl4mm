@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 
 from RL4MM.features.Feature import Feature
-from RL4MM.simulator.OrderbookSimulator import ResultsDict
+from RL4MM.simulation.StaleOrderbookSimulator import ResultsDict
 
 
 class MidpriceChange(Feature):

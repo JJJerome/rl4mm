@@ -6,7 +6,7 @@ from tqdm import tqdm
 import pandas as pd
 
 from RL4MM.agents.StaleAgent import StaleAgent
-from RL4MM.simulator.OrderbookSimulator import (
+from RL4MM.simulation.StaleOrderbookSimulator import (
     OrderbookSimulator,
     StaleHistoricalOrderbookSimulator,
 )

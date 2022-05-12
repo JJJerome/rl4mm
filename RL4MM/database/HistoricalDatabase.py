@@ -25,10 +25,10 @@ class HistoricalDatabase:
         session.close()
 
     def insert_books(self, books: List[Book]) -> None:
-        session = self.session_maker()
-        session.add_all(books)
-        session.commit()
-        session.close()
+        with self.session_maker() as session:
+            session.add_all(books)
+            session.commit()
+            session.close()
 
     def get_last_snapshot(self, timestamp: datetime, exchange: str, ticker: str) -> pd.DataFrame:
         session = self.session_maker()

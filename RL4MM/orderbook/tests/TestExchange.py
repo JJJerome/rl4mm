@@ -56,7 +56,7 @@ class TestExchange(TestCase):
         exchange = Exchange()
         initial_orders = [copy(SUBMISSION_1), copy(SUBMISSION_3)]
         with self.assertRaises(AssertionError):
-            exchange.initialise_orderbook_from_orders(initial_orders)
+            exchange.get_initial_orderbook_from_orders(initial_orders)
         for order in initial_orders:
             order.internal_id = -1
         # expected_orderbook = Orderbook()

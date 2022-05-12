@@ -8,7 +8,7 @@ from gym.spaces import Discrete, Tuple
 from gym.utils import seeding
 
 from RL4MM.features.Feature import Feature
-from RL4MM.simulator.OrderbookSimulator import (
+from RL4MM.simulation.StaleOrderbookSimulator import (
     StaleHistoricalOrderbookSimulator,
     OrderbookSimulator,
     ResultsDict,

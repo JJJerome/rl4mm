@@ -1,3 +1,4 @@
+from collections import deque
 from datetime import datetime
 
 import pandas as pd
@@ -8,22 +9,24 @@ from RL4MM.simulation.OrderGenerator import OrderGenerator
 
 
 class HistoricalOrderGenerator(OrderGenerator):
-    def __init__(self, ticker: str = "MSFT", database: HistoricalDatabase = None ):
+    name = "historical"
+
+    def __init__(self, ticker: str = "MSFT", database: HistoricalDatabase = None):
         self.ticker = ticker
         self.database = database or HistoricalDatabase()
         self.exchange_name = "NASDAQ"  # Here, we are only using LOBSTER data for now
 
-    def generate_messages(self, start_date: datetime, end_date: datetime):
+    def generate_orders(self, start_date: datetime, end_date: datetime):
         messages = self.database.get_messages(start_date, end_date, self.exchange_name, self.ticker)
-        messages = self._remove_hidden_executions(messages)
-
+        messages = self._remove_hidden_executions(messages)  # Ignore hidden executions as they don't affect the book
+        return deque(messages.apply(self._get_order_from_message, axis=1))
 
     @staticmethod
     def _remove_hidden_executions(messages: pd.DataFrame):
-        return messages[messages.message_type != "execution_hidden"]
+        return messages[~messages.message_type.isin(["execution_hidden", "cross_trade"])]
 
     @staticmethod
-    def _get_order_from_external_message(message: pd.Series):
+    def _get_order_from_message(message: pd.Series):
         return Order(
             timestamp=message.timestamp,
             price=message.price,
@@ -33,4 +36,3 @@ class HistoricalOrderGenerator(OrderGenerator):
             ticker=message.ticker,
             external_id=message.external_id,
         )
-
