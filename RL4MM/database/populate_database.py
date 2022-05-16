@@ -1,8 +1,7 @@
 import os
 from functools import partial
-from typing import List, Tuple, Optional
+from typing import Tuple, Optional
 
-import gc
 import glob
 import logging
 import pandas as pd
@@ -18,8 +17,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from urllib.request import urlopen
 from zipfile import ZipFile
-
-from tqdm import tqdm
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.models import Book, Message
