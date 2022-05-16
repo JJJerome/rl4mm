@@ -4,7 +4,7 @@ from typing import Deque, Dict, List, Optional, TypedDict
 import pandas as pd
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.orderbook.models import Order, OrderType, Orderbook
+from RL4MM.orderbook.models import Orderbook, Order, LimitOrder
 from RL4MM.orderbook.Exchange import Exchange
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderGenerator import OrderGenerator
@@ -14,7 +14,7 @@ N_LEVELS = 200
 
 class OutputDict(TypedDict):
     orderbook: Orderbook
-    filled_orders: List[Order]
+    filled_orders: List[LimitOrder]
 
 
 class OrderbookSimulator:
@@ -84,12 +84,11 @@ class OrderbookSimulator:
         for direction in ["bid", "ask"]:
             for level in range(N_LEVELS):
                 initial_orders.append(
-                    Order(
+                    LimitOrder(
                         timestamp=series.name,
                         price=series[f"{direction}_price_{level}"],
                         volume=series[f"{direction}_volume_{level}"],
                         direction=direction,
-                        type=OrderType.LIMIT,
                         ticker=self.exchange.ticker,
                         internal_id=-1,
                     )

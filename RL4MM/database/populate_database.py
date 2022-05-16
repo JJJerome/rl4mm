@@ -40,15 +40,15 @@ def populate_database(
     book_snapshot_freq: str = "S",
 ):
     create_tables()
-    is_sample_data = path_to_lobster_data is None
-    if is_sample_data:
+    if path_to_lobster_data is None:
         path_to_lobster_data = _make_temporary_data_path()
+    is_sample_data = path_to_lobster_data is None
     book_cols, message_cols = get_book_and_message_columns(n_levels)
     for ticker in tickers:
         for trading_date in trading_dates:
             if is_sample_data:
                 download_lobster_sample_data(ticker, trading_date, n_levels, path_to_lobster_data)
-            book_path, message_path = get_book_and_message_paths(path_to_lobster_data, ticker, trading_date, n_levels)
+            book_path, message_path = _get_book_and_message_paths(path_to_lobster_data, ticker, trading_date, n_levels)
             messages = get_messages(message_path, trading_date, message_cols)
             books = get_book_snapshots(book_path, book_cols, messages, book_snapshot_freq, n_levels)
             logging.info(f"Converting message and book data for {ticker} on {trading_date} into internal format.")
@@ -66,7 +66,7 @@ def populate_database(
                     shutil.rmtree(path_to_lobster_data)
 
 
-def _make_temporary_data_path():
+def _make_temporary_data_path() -> str:
     with suppress(FileExistsError):
         os.mkdir("temporary_data")
     return "temporary_data"
@@ -104,7 +104,7 @@ def get_book_snapshots(book_path: Path, book_cols: list, messages: pd.DataFrame,
 
 
 def _convert_messages_and_books_to_internal(
-    messages: pd.DataFrame, books: pd.DataFrame, ticker: str, trading_date: str, n_levels: str
+    messages: pd.DataFrame, books: pd.DataFrame, ticker: str, trading_date: str, n_levels: int
 ):
     message_convertor = partial(
         get_message_from_series,
@@ -127,13 +127,13 @@ def get_book_and_message_columns(n_levels: int = 10):
     return book_cols, message_cols
 
 
-def get_book_and_message_paths(data_path: str, ticker: str, trading_date: str, n_levels: int) -> Tuple[Path, Path]:
+def _get_book_and_message_paths(data_path: str, ticker: str, trading_date: str, n_levels: int) -> Tuple[Path, Path]:
     try:
         book_path = glob.glob(data_path + "/" + f"{ticker}_{trading_date}_*_orderbook_{n_levels}.csv")[0]
         message_path = glob.glob(data_path + "/" + f"{ticker}_{trading_date}_*_message_{n_levels}.csv")[0]
     except IndexError:
         raise FileNotFoundError(f"Level {n_levels} data for ticker {ticker} on {trading_date} not found in {data_path}")
-    return book_path, message_path
+    return Path(book_path), Path(message_path)
 
 
 def reformat_message_data(messages: pd.DataFrame, trading_date: str) -> pd.DataFrame:

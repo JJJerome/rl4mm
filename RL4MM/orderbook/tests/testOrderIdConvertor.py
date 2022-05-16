@@ -3,14 +3,14 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 
 from RL4MM.orderbook.OrderIDConvertor import OrderIdConvertor
-from RL4MM.orderbook.models import Order, OrderType
+from RL4MM.orderbook.models import LimitOrder
 
-INTERNAL_TEST_SUBMISSION = Order(
+INTERNAL_TEST_SUBMISSION = LimitOrder(
     timestamp=datetime(2020, 1, 1, 12, 0),
     price=100,
     volume=10,
     direction="bid",
-    type=OrderType.LIMIT,
+    internal_id=None,
     external_id=None,
     ticker="MSFT",
     is_external=False,

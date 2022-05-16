@@ -64,9 +64,9 @@ class TestExchange(TestCase):
         for order in LIMIT_1, LIMIT_2, LIMIT_3, LIMIT_4:
             exchange.submit_order(order)
         count = 1
-        for side in ["bid", "ask"]:
-            for level in exchange.orderbook[side].keys():
-                for order in exchange.orderbook[side][level]:
+        for direction in ["bid", "ask"]:
+            for level in exchange.orderbook[direction].keys():  # type: ignore
+                for order in exchange.orderbook[direction][level]:  # type: ignore
                     self.assertEqual(count, order.internal_id)
                     count += 1
         for count, order in enumerate([LIMIT_1, LIMIT_2, LIMIT_3, submission_4]):

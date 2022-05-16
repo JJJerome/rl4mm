@@ -2,29 +2,39 @@ from typing import Literal, TypedDict, Optional
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from sortedcontainers.sorteddict import SortedDict
-
-
-class OrderType(Enum):
-    LIMIT = "limit"
-    MARKET = "market"
-    CANCELLATION = "cancellation"
-    DELETION = "deletion"
 
 
 @dataclass
 class Order:
     timestamp: datetime
-    price: Optional[float]
-    volume: Optional[int]
     direction: Literal["bid", "ask"]
-    type: OrderType
     ticker: str
-    internal_id: Optional[int] = None
-    external_id: Optional[int] = None
-    participant_id: Optional[str] = None
-    is_external: bool = True
+    internal_id: Optional[int]
+    external_id: Optional[int]
+    is_external: bool
+
+
+@dataclass
+class MarketOrder(Order):
+    volume: int
+
+
+@dataclass
+class LimitOrder(Order):
+    price: float
+    volume: int
+
+
+@dataclass
+class Deletion(Order):
+    price: float
+    volume: Optional[int]  # This is due to deletions for historical orders from the initial order book needing a volume
+
+
+@dataclass
+class Cancellation(Deletion):
+    volume: int
 
 
 class Orderbook(TypedDict):

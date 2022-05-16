@@ -1,7 +1,7 @@
 from copy import copy
 from typing import Optional
 
-from RL4MM.orderbook.models import Order, OrderType
+from RL4MM.orderbook.models import Order, LimitOrder
 
 
 class OrderIdConvertor:
@@ -9,9 +9,7 @@ class OrderIdConvertor:
         self.external_to_internal_lookup = dict()
         self.counter = 0
 
-    def add_internal_id_to_order_and_track(self, order: Order) -> Order:
-        if order.type != OrderType.LIMIT:
-            raise TypeError("Only submissions can be tracked. Order IDs for other order types are already present.")
+    def add_internal_id_to_order_and_track(self, order: LimitOrder) -> LimitOrder:
         self.counter += 1
         new_order = copy(order)
         new_order.internal_id = self.counter
