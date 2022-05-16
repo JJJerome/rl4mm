@@ -8,9 +8,10 @@ from RL4MM.orderbook.models import Order, OrderType
 INTERNAL_TEST_SUBMISSION = Order(
     timestamp=datetime(2020, 1, 1, 12, 0),
     price=100,
-    size=10,
+    volume=10,
     direction="bid",
-    type=OrderType.SUBMISSION,
+    type=OrderType.LIMIT,
+    external_id=None,
     ticker="MSFT",
     is_external=False,
 )
@@ -29,7 +30,7 @@ EXTERNAL_TEST_CANCELLATION.external_id = 123
 EXTERNAL_TEST_CANCELLATION.is_external = True
 
 
-class TestOrderIdConvertor(TestCase):
+class testOrderIdConvertor(TestCase):
     def setUp(self) -> None:
         self.convertor = OrderIdConvertor()
 
@@ -49,6 +50,6 @@ class TestOrderIdConvertor(TestCase):
 
     def test_remove_external_order_id(self):
         self.test_add_internal_id_to_order_and_track()  # We need to add the orders before removing their keys
-        self.convertor.remove_external_order_id(external_id=EXTERNAL_TEST_SUBMISSION.external_id)
+        self.convertor.remove_external_order_id(external_id=EXTERNAL_TEST_SUBMISSION.external_id)  # type: ignore
         with self.assertRaises(KeyError):
             self.convertor.external_to_internal_lookup[EXTERNAL_TEST_SUBMISSION.external_id]
