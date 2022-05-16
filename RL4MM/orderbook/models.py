@@ -16,8 +16,8 @@ class OrderType(Enum):
 @dataclass
 class Order:
     timestamp: datetime
-    price: float
-    volume: int
+    price: Optional[float]
+    volume: Optional[int]
     direction: Literal["bid", "ask"]
     type: OrderType
     ticker: str
