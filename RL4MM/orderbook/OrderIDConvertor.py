@@ -10,7 +10,7 @@ class OrderIdConvertor:
         self.counter = 0
 
     def add_internal_id_to_order_and_track(self, order: Order) -> Order:
-        if order.type != OrderType.SUBMISSION:
+        if order.type != OrderType.LIMIT:
             raise TypeError("Only submissions can be tracked. Order IDs for other order types are already present.")
         self.counter += 1
         new_order = copy(order)

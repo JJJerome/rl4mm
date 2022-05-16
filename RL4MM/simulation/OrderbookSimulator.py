@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Deque, Dict, List, Optional, Tuple, TypedDict
+from typing import Deque, Dict, List, Optional, TypedDict
 
 import pandas as pd
 
@@ -89,7 +89,7 @@ class OrderbookSimulator:
                         price=series[f"{direction}_price_{level}"],
                         volume=series[f"{direction}_volume_{level}"],
                         direction=direction,
-                        type=OrderType.SUBMISSION,
+                        type=OrderType.LIMIT,
                         ticker=self.exchange.ticker,
                         internal_id=-1,
                     )
