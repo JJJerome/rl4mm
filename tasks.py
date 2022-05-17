@@ -5,7 +5,7 @@ MODULES_TO_CHECK = ["RL4MM", "*.py"]
 MODULES_TO_CHECK_STR = " ".join(MODULES_TO_CHECK)
 BLACK_PATHS_TO_IGNORE = []
 BLACK_PATHS_TO_IGNORE_STR = " ".join(BLACK_PATHS_TO_IGNORE)
-MYPY_PATHS_TO_IGNORE = ["RL4MM/simulator/", "RL4MM/features/"]
+MYPY_PATHS_TO_IGNORE = ["RL4MM/simulation/OrderbookSimulator", "RL4MM/features/"]
 MYPY_EXCLUSION_STR = ""
 for path in MYPY_PATHS_TO_IGNORE:
     MYPY_EXCLUSION_STR += " --exclude " + path

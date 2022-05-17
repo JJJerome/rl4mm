@@ -30,7 +30,7 @@ class OrderbookMessage:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "_id": self._id,
-            "datetime": self.DATETIME,
+            "datetime": self.timestamp,
             "message_type": self.message_type,
             "ticker": self.ticker,
             "size": self.size,
