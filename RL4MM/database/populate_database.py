@@ -1,3 +1,4 @@
+import argparse
 import os
 from functools import partial
 from typing import Tuple, Optional
@@ -18,6 +19,8 @@ from sqlalchemy.orm import sessionmaker
 from urllib.request import urlopen
 from zipfile import ZipFile
 
+from tqdm import tqdm
+
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.models import Book, Message
 from RL4MM.database.PostgresEngine import PostgresEngine
@@ -29,6 +32,7 @@ logging.basicConfig(
 )
 
 EXCHANGE = "NASDAQ"
+BATCH_SIZE = 10000
 
 
 def populate_database(
@@ -49,17 +53,27 @@ def populate_database(
             if is_sample_data:
                 download_lobster_sample_data(ticker, trading_date, n_levels, path_to_lobster_data)
             book_path, message_path = _get_book_and_message_paths(path_to_lobster_data, ticker, trading_date, n_levels)
-            messages = get_messages(message_path, trading_date, message_cols)
-            books = get_book_snapshots(book_path, book_cols, messages, book_snapshot_freq, n_levels)
-            logging.info(f"Converting message and book data for {ticker} on {trading_date} into internal format.")
-            messages, books = _convert_messages_and_books_to_internal(messages, books, ticker, trading_date, n_levels)
-            try:
-                logging.info("Inserting books into database.")
-                database.insert_books(books)
-                logging.info("Inserting messages into database.")
-                database.insert_messages(messages)
-            except IntegrityError:
-                logging.warning(f"Data for {ticker} on {trading_date} already in database and so not re-added.")
+            n_messages = count_lines(message_path)
+            for messages in tqdm(
+                pd.read_csv(
+                    message_path, header=None, names=message_cols, usecols=[0, 1, 2, 3, 4, 5], chunksize=BATCH_SIZE
+                ),
+                total=n_messages // BATCH_SIZE + 1,
+                desc=f"Adding data for {ticker} on {trading_date} into database!",
+            ):
+                messages = reformat_message_data(messages, trading_date)
+                books = get_book_snapshots(book_path, book_cols, messages, book_snapshot_freq, n_levels, n_messages)
+                # logging.info(f"Converting message and book data for {ticker} on {trading_date} into internal format.")
+                messages, books = _convert_messages_and_books_to_internal(
+                    messages, books, ticker, trading_date, n_levels
+                )
+                try:
+                    # logging.info("Inserting books into database.")
+                    database.insert_books(books)
+                    # logging.info("Inserting messages into database.")
+                    database.insert_messages(messages)
+                except IntegrityError:
+                    logging.warning(f"Data for {ticker} on {trading_date} already in database and so not re-added.")
             logging.info(f"Data for {ticker} on {trading_date} successfully added to database.")
             if is_sample_data:
                 with suppress(FileNotFoundError):
@@ -90,29 +104,43 @@ def create_tables():
     session.close()
 
 
-def get_messages(message_path: Path, trading_date: str, message_cols: str):
-    messages = pd.read_csv(message_path, header=None, names=message_cols, usecols=[0, 1, 2, 3, 4, 5])
-    return reformat_message_data(messages, trading_date)
-
-
-def get_book_snapshots(book_path: Path, book_cols: list, messages: pd.DataFrame, snapshot_freq: str, n_levels: int):
+def get_book_snapshots(
+    book_path: Path,
+    book_cols: list,
+    messages: pd.DataFrame,
+    snapshot_freq: str,
+    n_levels: int,
+    total_daily_messages: int,
+):
     interval_series = get_interval_series(messages, snapshot_freq)
-    rows_to_skip = messages[~messages.index.isin(interval_series.index)].index
+    first_index, last_index = messages.iloc[[0, -1]].index
+    rows_to_skip = (
+        list(range(0, first_index))
+        + list(messages[~messages.index.isin(interval_series.index)].index)
+        + list(range(last_index + 1, total_daily_messages))
+    )
     books = pd.read_csv(book_path, nrows=len(interval_series), skiprows=rows_to_skip, header=None, names=book_cols)
     books = rescale_book_data(books, n_levels)
     return pd.concat([pd.Series(interval_series.values, name="timestamp"), books], axis=1)
 
 
+def count_lines(file_name):
+    for line_count, line in enumerate(open(file_name, "r")):
+        pass
+    return line_count
+
+
 def _convert_messages_and_books_to_internal(
     messages: pd.DataFrame, books: pd.DataFrame, ticker: str, trading_date: str, n_levels: int
 ):
+    start_index = messages.iloc[0].name
     message_convertor = partial(
         get_message_from_series,
-        **{"ticker": ticker, "trading_date": trading_date, "n_levels": n_levels},
+        **{"ticker": ticker, "trading_date": trading_date, "n_levels": n_levels, "start_index": start_index},
     )
     books_to_internal = partial(
         get_book_from_series,
-        **{"ticker": ticker, "trading_date": trading_date, "n_levels": n_levels},
+        **{"ticker": ticker, "trading_date": trading_date, "n_levels": n_levels, "start_index": start_index},
     )
     messages = messages.apply(message_convertor, axis=1).values
     books = books.apply(books_to_internal, axis=1).values
@@ -150,13 +178,13 @@ def reformat_message_data(messages: pd.DataFrame, trading_date: str) -> pd.DataF
 
 
 def get_interval_series(messages: pd.DataFrame, freq: str = "S"):
-    trading_date = datetime.combine(messages.timestamp[0].date(), datetime.min.time())
+    trading_date = datetime.combine(messages.timestamp.iloc[0].date(), datetime.min.time())
     start_date = trading_date + timedelta(hours=9, minutes=30)
     end_date = trading_date + timedelta(hours=16, minutes=0)
     target_times = pd.date_range(start_date, end_date, freq=freq)
     unique_timestamps = messages.timestamp.drop_duplicates(keep="last")
     mask = pd.DatetimeIndex(unique_timestamps).get_indexer(target_times[1:], method="ffill")
-    mask = unique_timestamps.iloc[mask].index
+    mask = unique_timestamps.iloc[mask[mask > 0]].index.unique() - messages.iloc[0].name
     return messages.timestamp.iloc[mask].drop_duplicates()
 
 
@@ -170,11 +198,11 @@ def rescale_book_data(books: pd.DataFrame, n_levels: int = 10) -> pd.DataFrame:
 
 def get_external_internal_type_dict():
     return {
-        1: "submission",
+        1: "limit",
         2: "cancellation",
         3: "deletion",
-        4: "execution_visible",
-        5: "execution_hidden",
+        4: "market",
+        5: "market_hidden",
         6: "cross_trade",
         7: "trading_halt",
     }
@@ -184,10 +212,10 @@ def generate_internal_index(index: int, ticker: str, trading_date: str, n_levels
     return f"L{str(n_levels).zfill(3)}_{EXCHANGE}_{ticker}_{trading_date}_" + str(index)
 
 
-def get_message_from_series(message: pd.Series, ticker: str, trading_date: str, n_levels: int):
+def get_message_from_series(message: pd.Series, ticker: str, trading_date: str, n_levels: int, start_index: int):
     # TODO: Can we accelerate this and the below?
     return Message(
-        id=generate_internal_index(message.name, ticker, trading_date, n_levels),
+        id=generate_internal_index(message.name + start_index, ticker, trading_date, n_levels),
         timestamp=message.timestamp,
         exchange=EXCHANGE,
         ticker=ticker,
@@ -199,9 +227,9 @@ def get_message_from_series(message: pd.Series, ticker: str, trading_date: str, 
     )
 
 
-def get_book_from_series(book: pd.Series, ticker: str, trading_date: str, n_levels: int):
+def get_book_from_series(book: pd.Series, ticker: str, trading_date: str, n_levels: int, start_index: int):
     return Book(
-        id=generate_internal_index(book.name, ticker, trading_date, n_levels),
+        id=generate_internal_index(book.name + start_index, ticker, trading_date, n_levels),
         timestamp=book.timestamp,
         exchange=EXCHANGE,
         ticker=ticker,
@@ -209,10 +237,33 @@ def get_book_from_series(book: pd.Series, ticker: str, trading_date: str, n_leve
     )
 
 
+parser = argparse.ArgumentParser(description="Populate a postgres database with LOBSTER data")
+parser.add_argument("--ticker", action="store", type=str, default="MSFT", help="the ticker to add")
+parser.add_argument("--trading_date", action="store", type=str, default="2012-06-21", help="the date to add")
+parser.add_argument("--n_levels", action="store", type=int, default=200, help="the number of orderbook levels")
+parser.add_argument(
+    "--path_to_lobster_data",
+    action="store",
+    type=Optional[str],
+    default=None,
+    help="the path to the folder containing the LOBSTER message and book data",
+)
+parser.add_argument(
+    "--book_snapshot_freq",
+    action="store",
+    type=str,
+    default="S",
+    help="the frequency of book snapshots added to database",
+)
+
+
 if __name__ == "__main__":
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)-8s %(message)s",
-        level=logging.INFO,
-        datefmt="%Y-%m-%d %H:%M:%S",
+    args = parser.parse_args()
+
+    populate_database(
+        tickers=(args.ticker,),
+        trading_dates=(args.trading_date,),
+        n_levels=args.n_levels,
+        path_to_lobster_data=args.path_to_lobster_data,
+        book_snapshot_freq=args.book_snapshot_freq,
     )
-    populate_database()
