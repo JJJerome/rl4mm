@@ -7,6 +7,8 @@ from sortedcontainers.sorteddict import SortedDict
 
 @dataclass
 class Order:
+    """Base class for Orders."""
+
     timestamp: datetime
     direction: Literal["bid", "ask"]
     ticker: str
@@ -41,3 +43,14 @@ class Orderbook(TypedDict):
     bid: SortedDict  # Note that SortedDict does not currently support typing. Type is SortedDict[float, Deque[Order]].
     ask: SortedDict
     ticker: str
+
+
+class OrderDict(TypedDict):
+    timestamp: datetime
+    price: Optional[float]
+    volume: Optional[int]
+    direction: Literal["bid", "ask"]
+    ticker: str
+    internal_id: Optional[int]
+    external_id: Optional[int]
+    is_external: bool

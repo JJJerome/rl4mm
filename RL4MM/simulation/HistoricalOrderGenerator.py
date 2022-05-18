@@ -1,19 +1,13 @@
 from collections import deque
 from datetime import datetime
-from typing import Deque
+from typing import Deque, Literal
 
 import pandas as pd
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.orderbook.models import Order, OrderType
+from RL4MM.orderbook.create_order import create_order
+from RL4MM.orderbook.models import Order, OrderDict
 from RL4MM.simulation.OrderGenerator import OrderGenerator
-
-LOBSTER_MESSAGE_TYPE_DICT = {
-    "submission": OrderType.LIMIT,
-    "execution_visible": OrderType.MARKET,
-    "cancellation": OrderType.CANCELLATION,
-    "deletion": OrderType.DELETION,
-}
 
 
 class HistoricalOrderGenerator(OrderGenerator):
@@ -34,25 +28,21 @@ class HistoricalOrderGenerator(OrderGenerator):
         return messages[messages.message_type != "execution_hidden"]
 
     def _get_order_from_external_message(self, message: pd.Series):
-        return Order(
+        order_dict = OrderDict(
             timestamp=message.timestamp,
             price=message.price,
             volume=message.volume,
             direction=self._get_order_direction_from_lobster_message_direction(message.direction, message.message_type),
-            type=self._get_order_type_from_lobster_message_type(message.message_type),
             ticker=message.ticker,
+            internal_id=None,
             external_id=message.external_id,
+            is_external=True,
         )
+        return create_order(order_type=message.message_type, order_dict=order_dict)
 
     @staticmethod
-    def _get_order_type_from_lobster_message_type(message_type: str) -> OrderType:
-        return LOBSTER_MESSAGE_TYPE_DICT[message_type]
-
-    @staticmethod
-    def _get_order_direction_from_lobster_message_direction(direction: str, message_type: str):
+    def _get_order_direction_from_lobster_message_direction(direction: str, message_type: str) -> Literal["bid", "ask"]:
         if message_type != "execution_visible":
-            return direction
-        elif direction == "ask":
-            return "bid"
-        elif direction == "bid":
-            return "ask"
+            return direction  # type: ignore
+        else:
+            return "bid" if direction == "ask" else "ask"  # type: ignore
