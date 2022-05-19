@@ -30,6 +30,18 @@ class HistoricalDatabase:
             session.commit()
             session.close()
 
+    def insert_books_from_dicts(self, book_dicts: List[dict]) -> None:
+        with self.session_maker() as session:
+            session.bulk_insert_mappings(Book, book_dicts)
+            session.commit()
+            session.close()
+
+    def insert_messages_from_dicts(self, message_dicts: List[dict]) -> None:
+        with self.session_maker() as session:
+            session.bulk_insert_mappings(Message, message_dicts)
+            session.commit()
+            session.close()
+
     def get_last_snapshot(self, timestamp: datetime, exchange: str, ticker: str) -> pd.DataFrame:
         session = self.session_maker()
         snapshot = (
