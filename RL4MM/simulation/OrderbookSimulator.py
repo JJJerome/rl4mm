@@ -46,6 +46,8 @@ class OrderbookSimulator:
         orders += external_orders
         filled_orders = []
         for order in orders:
+            if order.external_id == 17049303:
+                print(order.external_id)
             filled = self.exchange.process_order(order)
             filled_orders.append(filled)
         self.now_is = until
@@ -91,6 +93,8 @@ class OrderbookSimulator:
                         direction=direction,
                         ticker=self.exchange.ticker,
                         internal_id=-1,
+                        external_id=None,
+                        is_external=False,
                     )
                 )
         return initial_orders

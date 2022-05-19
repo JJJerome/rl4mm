@@ -25,7 +25,7 @@ class HistoricalOrderGenerator(OrderGenerator):
 
     @staticmethod
     def _remove_hidden_executions(messages: pd.DataFrame):
-        return messages[messages.message_type != "execution_hidden"]
+        return messages[messages.message_type != "market_hidden"]
 
     def _get_order_from_external_message(self, message: pd.Series):
         order_dict = OrderDict(
