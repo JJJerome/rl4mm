@@ -7,3 +7,4 @@
 /.idea/
 /data/
 /experiments/
+*.ipynb_checkpoints/*
