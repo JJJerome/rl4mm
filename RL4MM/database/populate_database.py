@@ -1,7 +1,7 @@
 import argparse
 import os
 from functools import partial
-from typing import Tuple, Optional
+from typing import Tuple
 
 import glob
 import logging
@@ -10,7 +10,6 @@ import shutil
 import ssl
 
 from contextlib import suppress
-from datetime import datetime, timedelta
 from io import BytesIO
 from itertools import chain
 from pathlib import Path
@@ -41,15 +40,16 @@ def populate_database(
     trading_dates: Tuple[str] = ("2012-06-21",),
     n_levels: int = 10,
     database: HistoricalDatabase = HistoricalDatabase(),
-    path_to_lobster_data: Optional[str] = None,
+    path_to_lobster_data: str = "",
     book_snapshot_freq: str = "S",
-    max_rows: Optional[int] = None,
-    batch_size:int = 1000000,
+    max_rows: int = 1000000000,
+    batch_size: int = 1000000,
 ):
     create_tables()
-    if path_to_lobster_data is None:
+    is_sample_data = False
+    if path_to_lobster_data == "":
         path_to_lobster_data = _make_temporary_data_path()
-    is_sample_data = path_to_lobster_data is None
+        is_sample_data = True
     book_cols, message_cols = get_book_and_message_columns(n_levels)
     for ticker in tickers:
         for trading_date in trading_dates:
@@ -66,11 +66,11 @@ def populate_database(
                     chunksize=batch_size,
                     nrows=max_rows,
                 ),
-                total=n_messages // batch_size + 1,
-                desc=f"Adding data for {ticker} on {trading_date} into database!",
+                total=min(n_messages, max_rows) // batch_size + 1,
+                desc=f"Adding data for {ticker} on {trading_date} into database",
             ):
                 messages = reformat_message_data(messages, trading_date)
-                books = get_book_snapshots(book_path, book_cols, messages, book_snapshot_freq, n_levels, n_messages, max_rows)
+                books = get_book_snapshots(book_path, book_cols, messages, book_snapshot_freq, n_levels, n_messages)
                 # logging.info(f"Converting message and book data for {ticker} on {trading_date} into internal format.")
                 message_dict, book_dict = _convert_messages_and_books_to_dicts(
                     messages, books, ticker, trading_date, n_levels
@@ -119,10 +119,9 @@ def get_book_snapshots(
     snapshot_freq: str,
     n_levels: int,
     total_daily_messages: int,
-    max_rows:Optional[int]=None
 ):
-    interval_series = get_interval_series(messages, snapshot_freq, max_rows)
     first_index, last_index = messages.iloc[[0, -1]].index
+    interval_series = get_interval_series(messages, snapshot_freq)
     rows_to_skip = (
         list(range(0, first_index))
         + list(messages[~messages.index.isin(interval_series.index)].index)
@@ -174,10 +173,10 @@ def _convert_messages_and_books_to_dicts(
 
 
 def get_book_and_message_columns(n_levels: int = 10):
-    price_cols = list(chain(*[("ask_price_{0},bid_price_{0}".format(i)).split(",") for i in range(n_levels)]))
-    volume_cols = list(chain(*[("ask_volume_{0},bid_volume_{0}".format(i)).split(",") for i in range(n_levels)]))
+    price_cols = list(chain(*[("sell_price_{0},buy_price_{0}".format(i)).split(",") for i in range(n_levels)]))
+    volume_cols = list(chain(*[("sell_volume_{0},buy_volume_{0}".format(i)).split(",") for i in range(n_levels)]))
     book_cols = list(chain(*zip(price_cols, volume_cols)))
-    message_cols = ["time", "type", "external_id", "volume", "price", "direction"]
+    message_cols = ["time", "message_type", "external_id", "volume", "price", "direction"]
     return book_cols, message_cols
 
 
@@ -196,19 +195,25 @@ def reformat_message_data(messages: pd.DataFrame, trading_date: str) -> pd.DataF
     messages["timestamp"] = messages.trading_date.add(messages.time)
     messages.drop(["trading_date", "time"], axis=1, inplace=True)
     type_dict = get_external_internal_type_dict()
-    messages.type.replace(type_dict.keys(), type_dict.values(), inplace=True)
-    messages.direction.replace([-1, 1], ["ask", "bid"], inplace=True)
+    messages.message_type.replace(type_dict.keys(), type_dict.values(), inplace=True)
+    update_direction(messages)
     messages["price"] /= 10000
     messages.astype({"external_id": int})
     return messages
 
 
-def get_interval_series(messages: pd.DataFrame, freq: str = "S", max_rows:Optional[int]=None):
-    trading_date = datetime.combine(messages.timestamp.iloc[0].date(), datetime.min.time())
-    start_date = trading_date + timedelta(hours=9, minutes=30)
-    end_date = trading_date + timedelta(hours=16, minutes=0)
-    if max_rows is not None:
-        end_date = start_date + pd.to_timedelta(str(2*max_rows/MAX_ORDERS_PER_SECOND)+"S")
+def update_direction(messages: pd.DataFrame) -> None:
+    messages.loc[(messages.direction == -1) & (messages.message_type != "market"), "direction"] = "sell"
+    messages.loc[(messages.direction == 1) & (messages.message_type == "market"), "direction"] = "sell"
+    messages.loc[(messages.direction == 1) & (messages.message_type != "market"), "direction"] = "buy"
+    messages.loc[(messages.direction == -1) & (messages.message_type == "market"), "direction"] = "buy"
+
+
+def get_interval_series(messages: pd.DataFrame, freq: str = "S"):
+    if freq is None:
+        return messages.timestamp
+    start_date = messages.iloc[0].timestamp
+    end_date = messages.iloc[-1].timestamp
     target_times = pd.date_range(start_date, end_date, freq=freq)
     unique_timestamps = messages.timestamp.drop_duplicates(keep="last")
     mask = pd.DatetimeIndex(unique_timestamps).get_indexer(target_times[1:], method="ffill")
@@ -218,7 +223,7 @@ def get_interval_series(messages: pd.DataFrame, freq: str = "S", max_rows:Option
 
 def rescale_book_data(books: pd.DataFrame, n_levels: int = 10) -> pd.DataFrame:
     # TODO: speed up by applying all at once
-    for message_type in ["ask", "bid"]:
+    for message_type in ["sell", "buy"]:
         for i in range(n_levels):
             books[message_type + "_price_" + str(i)] /= 10000
     return books
@@ -250,7 +255,7 @@ def _get_message_dict_from_series(message: pd.Series, ticker: str, trading_date:
         volume=message.volume,
         price=message.price,
         external_id=message.external_id,
-        message_type=message.type,
+        message_type=message.message_type,
     )
 
 
@@ -275,7 +280,7 @@ def get_message_from_series(message: pd.Series, ticker: str, trading_date: str, 
         volume=message.volume,
         price=message.price,
         external_id=message.external_id,
-        message_type=message.type,
+        message_type=message.message_type,
     )
 
 
@@ -296,8 +301,8 @@ parser.add_argument("--n_levels", action="store", type=int, default=200, help="t
 parser.add_argument(
     "--path_to_lobster_data",
     action="store",
-    type=Optional[str],
-    default=None,
+    type=str,
+    default="",
     help="the path to the folder containing the LOBSTER message and book data",
 )
 parser.add_argument(
@@ -310,7 +315,7 @@ parser.add_argument(
 parser.add_argument(
     "--max_rows",
     action="store",
-    type=Optional[int],
+    type=int,
     default=None,
     help="the frequency of book snapshots added to database",
 )
