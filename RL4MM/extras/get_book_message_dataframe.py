@@ -2,7 +2,7 @@ from typing import Optional
 
 import pandas as pd
 
-from RL4MM.database.populate_database import (
+from populate_database import (
     download_lobster_sample_data,
     reformat_message_data,
     rescale_book_data,

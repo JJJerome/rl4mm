@@ -42,7 +42,7 @@ def populate_database(
     database: HistoricalDatabase = HistoricalDatabase(),
     path_to_lobster_data: str = "",
     book_snapshot_freq: str = "S",
-    max_rows: int = 1000000000,
+    max_rows: int = 99999999999,
     batch_size: int = 1000000,
 ):
     create_tables()
@@ -316,10 +316,16 @@ parser.add_argument(
     "--max_rows",
     action="store",
     type=int,
-    default=None,
+    default=99999999999,
     help="the frequency of book snapshots added to database",
 )
-
+parser.add_argument(
+    "--batch_size",
+    action="store",
+    type=int,
+    default=100000,
+    help="the frequency of book snapshots added to database",
+)
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -331,4 +337,5 @@ if __name__ == "__main__":
         path_to_lobster_data=args.path_to_lobster_data,
         book_snapshot_freq=args.book_snapshot_freq,
         max_rows=args.max_rows,
+        batch_size=args.batch_size
     )
