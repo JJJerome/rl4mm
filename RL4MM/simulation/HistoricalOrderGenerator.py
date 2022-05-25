@@ -1,6 +1,6 @@
 from collections import deque
 from datetime import datetime
-from typing import Deque, Literal
+from typing import Deque
 
 import pandas as pd
 
@@ -21,28 +21,23 @@ class HistoricalOrderGenerator(OrderGenerator):
     def generate_orders(self, start_date: datetime, end_date: datetime) -> Deque[Order]:
         messages = self.database.get_messages(start_date, end_date, self.exchange_name, self.ticker)
         messages = self._remove_hidden_executions(messages)
-        return deque(self._get_order_from_external_message(m) for m in messages.itertuples())
+        return deque(get_order_from_external_message(m) for m in messages.itertuples())
 
     @staticmethod
     def _remove_hidden_executions(messages: pd.DataFrame):
+        assert "cross_trade" not in messages.message_type.unique(), "Trying to step forward before initial cross-trade!"
         return messages[messages.message_type != "market_hidden"]
 
-    def _get_order_from_external_message(self, message: pd.Series):
-        order_dict = OrderDict(
-            timestamp=message.timestamp,
-            price=message.price,
-            volume=message.volume,
-            direction=self._get_order_direction_from_lobster_message_direction(message.direction, message.message_type),
-            ticker=message.ticker,
-            internal_id=None,
-            external_id=message.external_id,
-            is_external=True,
-        )
-        return create_order(order_type=message.message_type, order_dict=order_dict)
 
-    @staticmethod
-    def _get_order_direction_from_lobster_message_direction(direction: str, message_type: str) -> Literal["bid", "ask"]:
-        if message_type != "execution_visible":
-            return direction  # type: ignore
-        else:
-            return "bid" if direction == "ask" else "ask"  # type: ignore
+def get_order_from_external_message(message: pd.Series):
+    order_dict = OrderDict(
+        timestamp=message.timestamp,
+        price=message.price,
+        volume=message.volume,
+        direction=message.direction,
+        ticker=message.ticker,
+        internal_id=None,
+        external_id=message.external_id,
+        is_external=True,
+    )
+    return create_order(order_type=message.message_type, order_dict=order_dict)
