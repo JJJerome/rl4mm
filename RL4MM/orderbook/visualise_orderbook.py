@@ -20,8 +20,8 @@ def visualise_orderbook(orderbook: Orderbook, n_levels: int = 10, tick_size: flo
 
 def convert_orderbook_to_dataframe(orderbook: Orderbook, n_levels: int = 10):
     order_dict = {}
-    for side in ["bid", "ask"]:
-        prices = reversed(orderbook[side]) if side == "bid" else orderbook[side]  # type: ignore
+    for side in ["buy", "sell"]:
+        prices = reversed(orderbook[side]) if side == "buy" else orderbook[side]  # type: ignore
         for level, price in enumerate(prices):
             if level >= n_levels:
                 break

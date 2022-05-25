@@ -87,15 +87,15 @@ class Exchange:
         return None
 
     def get_empty_orderbook(self):
-        return Orderbook(bid=SortedDict(), ask=SortedDict(), ticker=self.ticker)
+        return Orderbook(buy=SortedDict(), sell=SortedDict(), ticker=self.ticker)
 
     @property
     def best_ask_price(self):
-        return next(iter(self.orderbook["ask"].keys()), np.infty)
+        return next(iter(self.orderbook["sell"].keys()), np.infty)
 
     @property
     def best_bid_price(self):
-        return next(reversed(self.orderbook["bid"]), 0)
+        return next(reversed(self.orderbook["buy"]), 0)
 
     def get_initial_orderbook_from_orders(self, orders: List[LimitOrder]) -> Orderbook:
         assert all(order.internal_id == -1 for order in orders), "internal_ids of orders in the initial book must be -1"
@@ -105,8 +105,8 @@ class Exchange:
         return orderbook
 
     def _get_highest_priority_matching_order(self, order: Order):
-        opposite_direction = "ask" if order.direction == "bid" else "bid"
-        best_price = self.best_ask_price if opposite_direction == "ask" else self.best_bid_price
+        opposite_direction = "sell" if order.direction == "buy" else "buy"
+        best_price = self.best_ask_price if opposite_direction == "sell" else self.best_bid_price
         try:
             return self.orderbook[opposite_direction][best_price][0]  # type: ignore
         except KeyError:
@@ -115,9 +115,9 @@ class Exchange:
     def _does_order_cross_spread(self, order: Union[LimitOrder, MarketOrder]):
         if isinstance(order, MarketOrder):
             return True
-        if order.direction == "bid":
+        if order.direction == "buy":
             return order.price >= self.best_ask_price
-        if order.direction == "ask":
+        if order.direction == "sell":
             return order.price <= self.best_bid_price
 
     def _find_queue_position(self, order: Union[Cancellation, Deletion, LimitOrder]) -> Optional[int]:
@@ -139,7 +139,7 @@ class Exchange:
         return None
 
     def _reduce_order_with_queue_position(
-        self, order_price: float, order_direction: Literal["bid", "ask"], queue_position: int, volume_to_remove: int
+        self, order_price: float, order_direction: Literal["buy", "sell"], queue_position: int, volume_to_remove: int
     ) -> LimitOrder:
         order_to_partially_remove = self.orderbook[order_direction][order_price][queue_position]
         if volume_to_remove > order_to_partially_remove.volume:
@@ -152,7 +152,7 @@ class Exchange:
         self._clear_empty_orders_and_prices(order_price, order_direction, queue_position)
         return removed_order
 
-    def _clear_empty_orders_and_prices(self, price: float, direction: Literal["bid", "ask"], queue_position: int):
+    def _clear_empty_orders_and_prices(self, price: float, direction: Literal["buy", "sell"], queue_position: int):
         if self.orderbook[direction][price][queue_position].volume == 0:
             order_to_remove = self.orderbook[direction][price][queue_position]
             if order_to_remove.is_external:

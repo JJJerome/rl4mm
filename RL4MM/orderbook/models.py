@@ -10,7 +10,7 @@ class Order:
     """Base class for Orders."""
 
     timestamp: datetime
-    direction: Literal["bid", "ask"]
+    direction: Literal["buy", "sell"]
     ticker: str
     internal_id: Optional[int]
     external_id: Optional[int]
@@ -40,8 +40,8 @@ class Cancellation(Deletion):
 
 
 class Orderbook(TypedDict):
-    bid: SortedDict  # Note that SortedDict does not currently support typing. Type is SortedDict[float, Deque[Order]].
-    ask: SortedDict
+    buy: SortedDict  # Note that SortedDict does not currently support typing. Type is SortedDict[float, Deque[Order]].
+    sell: SortedDict
     ticker: str
 
 
@@ -49,7 +49,7 @@ class OrderDict(TypedDict):
     timestamp: datetime
     price: Optional[float]
     volume: Optional[int]
-    direction: Literal["bid", "ask"]
+    direction: Literal["buy", "sell"]
     ticker: str
     internal_id: Optional[int]
     external_id: Optional[int]

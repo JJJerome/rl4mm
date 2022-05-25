@@ -97,7 +97,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
             raise NotImplementedError
         ticker = self.simulator.ticker
         our_messages = list()
-        for i, side in enumerate(["bid", "ask"]):
+        for i, side in enumerate(["buy", "sell"]):
             if action[i] == 1:
                 our_messages.append(
                     StaleOrderbookMessage(
@@ -114,9 +114,9 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def _update_portfolio(self, filled_messages):
         for message in filled_messages:
-            if message.side == "ask":
+            if message.side == "sell":
                 self.portfolio["stock"] -= message.volume
                 self.portfolio["cash"] += message.volume * message.price
-            if message.side == "bid":
+            if message.side == "buy":
                 self.portfolio["stock"] += message.volume
                 self.portfolio["cash"] -= message.volume * message.price
