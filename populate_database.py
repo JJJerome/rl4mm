@@ -1,10 +1,12 @@
 import argparse
 import os
 from functools import partial
-from typing import Tuple
+from typing import Tuple, Optional
 
 import glob
 import logging
+
+import numpy as np
 import pandas as pd
 import shutil
 import ssl
@@ -13,6 +15,7 @@ from contextlib import suppress
 from io import BytesIO
 from itertools import chain
 from pathlib import Path
+
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from urllib.request import urlopen
@@ -21,7 +24,7 @@ from zipfile import ZipFile
 from tqdm import tqdm
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.database.models import Book, Message
+from RL4MM.database.models import Book
 from RL4MM.database.PostgresEngine import PostgresEngine
 
 logging.basicConfig(
@@ -36,12 +39,12 @@ MAX_ORDERS_PER_SECOND = 20000
 
 
 def populate_database(
-    tickers: Tuple[str] = ("AMZN",),
+    tickers: Tuple[str] = ("MSFT",),
     trading_dates: Tuple[str] = ("2012-06-21",),
-    n_levels: int = 10,
+    n_levels: int = 50,
     database: HistoricalDatabase = HistoricalDatabase(),
     path_to_lobster_data: str = "",
-    book_snapshot_freq: str = "S",
+    book_snapshot_freq: Optional[str] = None,
     max_rows: int = 99999999999,
     batch_size: int = 1000000,
 ):
@@ -50,13 +53,13 @@ def populate_database(
     if path_to_lobster_data == "":
         path_to_lobster_data = _make_temporary_data_path()
         is_sample_data = True
-    book_cols, message_cols = get_book_and_message_columns(n_levels)
+    book_cols, message_cols = _get_book_and_message_columns(n_levels)
     for ticker in tickers:
         for trading_date in trading_dates:
             if is_sample_data:
                 download_lobster_sample_data(ticker, trading_date, n_levels, path_to_lobster_data)
             book_path, message_path = _get_book_and_message_paths(path_to_lobster_data, ticker, trading_date, n_levels)
-            n_messages = count_lines(message_path)
+            n_messages = get_file_len(message_path)
             for messages in tqdm(
                 pd.read_csv(
                     message_path,
@@ -64,16 +67,16 @@ def populate_database(
                     names=message_cols,
                     usecols=[0, 1, 2, 3, 4, 5],
                     chunksize=batch_size,
-                    nrows=max_rows,
+                    nrows=min(n_messages, max_rows),
                 ),
-                total=min(n_messages, max_rows) // batch_size + 1,
+                total=np.ceil(min(n_messages, max_rows) / batch_size),
                 desc=f"Adding data for {ticker} on {trading_date} into database",
             ):
                 messages = reformat_message_data(messages, trading_date)
                 books = get_book_snapshots(book_path, book_cols, messages, book_snapshot_freq, n_levels, n_messages)
                 # logging.info(f"Converting message and book data for {ticker} on {trading_date} into internal format.")
                 message_dict, book_dict = _convert_messages_and_books_to_dicts(
-                    messages, books, ticker, trading_date, n_levels
+                    messages, books, ticker, trading_date, n_levels, book_snapshot_freq
                 )
                 try:
                     # logging.info("Inserting books into database.")
@@ -121,21 +124,28 @@ def get_book_snapshots(
     total_daily_messages: int,
 ):
     first_index, last_index = messages.iloc[[0, -1]].index
-    interval_series = get_interval_series(messages, snapshot_freq)
+    interval_series = _get_interval_series(messages, snapshot_freq)
     rows_to_skip = (
         list(range(0, first_index))
         + list(messages[~messages.index.isin(interval_series.index)].index)
         + list(range(last_index + 1, total_daily_messages))
     )
+
+    DEBUG_ROWS_TO_SKIP = list(range(0, first_index)) + list(range(last_index + 1, total_daily_messages))
     books = pd.read_csv(book_path, nrows=len(interval_series), skiprows=rows_to_skip, header=None, names=book_cols)
+    DEBUG_BOOKS = pd.read_csv(book_path, nrows=len(messages), skiprows=DEBUG_ROWS_TO_SKIP, header=None, names=book_cols)
     books = rescale_book_data(books, n_levels)
-    return pd.concat([pd.Series(interval_series.values, name="timestamp"), books], axis=1)
+    books = pd.concat([pd.Series(interval_series.values, name="timestamp"), books], axis=1)
+    DEBUG_BOOKS = rescale_book_data(DEBUG_BOOKS, n_levels)
+    DEBUG_BOOKS = pd.concat([messages.timestamp, DEBUG_BOOKS], axis=1)
+    return books
 
 
-def count_lines(file_name):
-    for line_count, line in enumerate(open(file_name, "r")):
-        pass
-    return line_count
+def get_file_len(filename):
+    with open(filename) as f:
+        for i, _ in enumerate(f):
+            pass
+    return i + 1
 
 
 def _convert_messages_and_books_to_internal(
@@ -156,23 +166,35 @@ def _convert_messages_and_books_to_internal(
 
 
 def _convert_messages_and_books_to_dicts(
-    messages: pd.DataFrame, books: pd.DataFrame, ticker: str, trading_date: str, n_levels: int
+    messages: pd.DataFrame, books: pd.DataFrame, ticker: str, trading_date: str, n_levels: int, freq: str
 ):
     start_index = messages.iloc[0].name
     message_convertor = partial(
         _get_message_dict_from_series,
-        **{"ticker": ticker, "trading_date": trading_date, "n_levels": n_levels, "start_index": start_index},
+        **{
+            "ticker": ticker,
+            "trading_date": trading_date,
+            "n_levels": n_levels,
+            "start_index": start_index,
+            "freq": freq,
+        },
     )
     books_to_internal = partial(
         _get_book_dict_from_series,
-        **{"ticker": ticker, "trading_date": trading_date, "n_levels": n_levels, "start_index": start_index},
+        **{
+            "ticker": ticker,
+            "trading_date": trading_date,
+            "n_levels": n_levels,
+            "start_index": start_index,
+            "freq": freq,
+        },
     )
     messages = messages.apply(message_convertor, axis=1).values
     books = books.apply(books_to_internal, axis=1).values
     return messages, books
 
 
-def get_book_and_message_columns(n_levels: int = 10):
+def _get_book_and_message_columns(n_levels: int = 50):
     price_cols = list(chain(*[("sell_price_{0},buy_price_{0}".format(i)).split(",") for i in range(n_levels)]))
     volume_cols = list(chain(*[("sell_volume_{0},buy_volume_{0}".format(i)).split(",") for i in range(n_levels)]))
     book_cols = list(chain(*zip(price_cols, volume_cols)))
@@ -190,9 +212,7 @@ def _get_book_and_message_paths(data_path: str, ticker: str, trading_date: str, 
 
 
 def reformat_message_data(messages: pd.DataFrame, trading_date: str) -> pd.DataFrame:
-    messages.time = pd.to_timedelta(messages.time, unit="s")
-    messages["trading_date"] = pd.to_datetime(trading_date)
-    messages["timestamp"] = messages.trading_date.add(messages.time)
+    messages["timestamp"] = _get_timestamps(messages, trading_date)
     messages.drop(["trading_date", "time"], axis=1, inplace=True)
     type_dict = get_external_internal_type_dict()
     messages.message_type.replace(type_dict.keys(), type_dict.values(), inplace=True)
@@ -202,6 +222,12 @@ def reformat_message_data(messages: pd.DataFrame, trading_date: str) -> pd.DataF
     return messages
 
 
+def _get_timestamps(messages: pd.DataFrame, trading_date: str) -> pd.Series:
+    messages.time = pd.to_timedelta(messages.time, unit="s")
+    messages["trading_date"] = pd.to_datetime(trading_date)
+    return messages.trading_date.add(messages.time)
+
+
 def update_direction(messages: pd.DataFrame) -> None:
     messages.loc[(messages.direction == -1) & (messages.message_type != "market"), "direction"] = "sell"
     messages.loc[(messages.direction == 1) & (messages.message_type == "market"), "direction"] = "sell"
@@ -209,15 +235,15 @@ def update_direction(messages: pd.DataFrame) -> None:
     messages.loc[(messages.direction == -1) & (messages.message_type == "market"), "direction"] = "buy"
 
 
-def get_interval_series(messages: pd.DataFrame, freq: str = "S"):
+def _get_interval_series(messages: pd.DataFrame, freq: str = "S"):
     if freq is None:
         return messages.timestamp
     start_date = messages.iloc[0].timestamp
     end_date = messages.iloc[-1].timestamp
-    target_times = pd.date_range(start_date, end_date, freq=freq)
+    target_times = pd.date_range(start_date.ceil(freq), end_date.ceil(freq), freq=freq)
     unique_timestamps = messages.timestamp.drop_duplicates(keep="last")
-    mask = pd.DatetimeIndex(unique_timestamps).get_indexer(target_times[1:], method="ffill")
-    mask = unique_timestamps.iloc[mask[mask > 0]].index.unique() - messages.iloc[0].name
+    mask = pd.DatetimeIndex(unique_timestamps).get_indexer(target_times, method="ffill")
+    mask = unique_timestamps.iloc[mask[mask >= 0]].index.unique()[:-1]
     return messages.timestamp.iloc[mask].drop_duplicates()
 
 
@@ -241,13 +267,15 @@ def get_external_internal_type_dict():
     }
 
 
-def generate_internal_index(index: int, ticker: str, trading_date: str, n_levels: int = 10):
-    return f"L{str(n_levels).zfill(3)}_{EXCHANGE}_{ticker}_{trading_date}_" + str(index)
+def generate_internal_index(index: int, ticker: str, trading_date: str, n_levels: int, freq: str):
+    return f"{freq}_L{str(n_levels).zfill(3)}_{EXCHANGE}_{ticker}_{trading_date}_" + str(index)
 
 
-def _get_message_dict_from_series(message: pd.Series, ticker: str, trading_date: str, n_levels: int, start_index: int):
+def _get_message_dict_from_series(
+    message: pd.Series, ticker: str, trading_date: str, n_levels: int, start_index: int, freq: str
+):
     return dict(
-        id=generate_internal_index(message.name + start_index, ticker, trading_date, n_levels),
+        id=generate_internal_index(message.name + start_index, ticker, trading_date, n_levels, freq),
         timestamp=message.timestamp,
         exchange=EXCHANGE,
         ticker=ticker,
@@ -259,34 +287,11 @@ def _get_message_dict_from_series(message: pd.Series, ticker: str, trading_date:
     )
 
 
-def _get_book_dict_from_series(book: pd.Series, ticker: str, trading_date: str, n_levels: int, start_index: int):
+def _get_book_dict_from_series(
+    book: pd.Series, ticker: str, trading_date: str, n_levels: int, start_index: int, freq: str
+):
     return dict(
-        id=generate_internal_index(book.name + start_index, ticker, trading_date, n_levels),
-        timestamp=book.timestamp,
-        exchange=EXCHANGE,
-        ticker=ticker,
-        data=book.drop("timestamp").to_json(),
-    )
-
-
-def get_message_from_series(message: pd.Series, ticker: str, trading_date: str, n_levels: int, start_index: int):
-    # TODO: Can we accelerate this and the below?
-    return Message(
-        id=generate_internal_index(message.name + start_index, ticker, trading_date, n_levels),
-        timestamp=message.timestamp,
-        exchange=EXCHANGE,
-        ticker=ticker,
-        direction=message.direction,
-        volume=message.volume,
-        price=message.price,
-        external_id=message.external_id,
-        message_type=message.message_type,
-    )
-
-
-def get_book_from_series(book: pd.Series, ticker: str, trading_date: str, n_levels: int, start_index: int):
-    return Book(
-        id=generate_internal_index(book.name + start_index, ticker, trading_date, n_levels),
+        id=generate_internal_index(book.name + start_index, ticker, trading_date, n_levels, freq),
         timestamp=book.timestamp,
         exchange=EXCHANGE,
         ticker=ticker,
@@ -337,5 +342,5 @@ if __name__ == "__main__":
         path_to_lobster_data=args.path_to_lobster_data,
         book_snapshot_freq=args.book_snapshot_freq,
         max_rows=args.max_rows,
-        batch_size=args.batch_size
+        batch_size=args.batch_size,
     )
