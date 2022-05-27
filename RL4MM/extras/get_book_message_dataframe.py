@@ -7,7 +7,7 @@ from populate_database import (
     reformat_message_data,
     rescale_book_data,
     _make_temporary_data_path,
-    get_book_and_message_columns,
+    _get_book_and_message_columns,
     _get_book_and_message_paths,
 )
 
@@ -22,7 +22,7 @@ def get_book_message_dataframe(
     if path_to_lobster_data is None:
         path_to_lobster_data = _make_temporary_data_path()
     is_sample_data = path_to_lobster_data is None
-    book_cols, message_cols = get_book_and_message_columns(n_levels)
+    book_cols, message_cols = _get_book_and_message_columns(n_levels)
     if is_sample_data:
         download_lobster_sample_data(ticker, trading_date, n_levels, path_to_lobster_data)
     book_path, message_path = _get_book_and_message_paths(path_to_lobster_data, ticker, trading_date, n_levels)

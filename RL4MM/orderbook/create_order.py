@@ -20,16 +20,16 @@ def _get_order_creator(order_type: str):
 def _create_market_order(order_dict: OrderDict):
     market_dict = dict(order_dict)
     market_dict.pop("price")
-    return MarketOrder(**market_dict)
+    return MarketOrder(**market_dict)  # type:ignore
 
 
 def _create_limit_order(order_dict: OrderDict):
-    return LimitOrder(**order_dict)
+    return LimitOrder(**order_dict)  # type:ignore
 
 
 def _create_cancellation(order_dict: OrderDict):
-    return Cancellation(**order_dict)
+    return Cancellation(**order_dict)  # type:ignore
 
 
 def _create_deletion(order_dict: OrderDict):
-    return Deletion(**order_dict)
+    return Deletion(**order_dict)  # type:ignore
