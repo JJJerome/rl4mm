@@ -6,10 +6,8 @@ import pandas as pd
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.orderbook.models import Orderbook, Order, LimitOrder
 from RL4MM.orderbook.Exchange import Exchange
-from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator, get_order_from_external_message
+from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderGenerator import OrderGenerator
-
-N_LEVELS = 200
 
 
 class OutputDict(TypedDict):
@@ -23,11 +21,13 @@ class OrderbookSimulator:
         ticker: str = "MSFT",
         exchange: Exchange = None,
         order_generators: List[OrderGenerator] = None,
+        n_levels: int = 50,
     ) -> None:
         self.exchange = exchange or Exchange(ticker)
         order_generators = order_generators or [HistoricalOrderGenerator(ticker)]
         self.order_generators = {gen.name: gen for gen in order_generators}
         self.now_is: datetime = None
+        self.n_levels = n_levels
 
     def reset_episode(self, start_date: datetime, start_book: Optional[Orderbook] = None):
         if not start_book:
@@ -53,7 +53,7 @@ class OrderbookSimulator:
         return {"orderbook": self.exchange.orderbook, "filled_orders": filled_orders}
 
     def get_historical_start_book(self, start_date: datetime):
-        hdb = HistoricalDatabase(n_levels=N_LEVELS)
+        hdb = HistoricalDatabase()
         start_series = hdb.get_last_snapshot(start_date, exchange=self.exchange.name, ticker=self.exchange.ticker)
         assert len(start_series) > 0, f"There is no data before the episode start time: {start_date}"
         initial_orders = self._get_initial_orders_from_start_book(start_series)
@@ -79,7 +79,7 @@ class OrderbookSimulator:
     def _get_initial_orders_from_start_book(self, series: pd.DataFrame):
         initial_orders = []
         for direction in ["buy", "sell"]:
-            for level in range(N_LEVELS):
+            for level in range(self.n_levels):
                 if series[f"{direction}_volume_{level}"] > 0:
                     initial_orders.append(
                         LimitOrder(

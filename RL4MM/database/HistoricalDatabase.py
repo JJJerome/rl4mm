@@ -12,10 +12,9 @@ from RL4MM.database.models import Base, Book, Message
 
 
 class HistoricalDatabase:
-    def __init__(self, engine: Engine = None, n_levels: int = 10) -> None:
+    def __init__(self, engine: Engine = None) -> None:
         self.engine = engine or PostgresEngine().engine
         self.session_maker = sessionmaker(bind=self.engine)
-        self.n_levels = n_levels
         Base.metadata.create_all(bind=self.engine)
 
     def insert_messages(self, messages: List[Message]) -> None:
