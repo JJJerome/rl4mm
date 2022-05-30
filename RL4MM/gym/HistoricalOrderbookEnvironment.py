@@ -21,6 +21,7 @@ ORDER_SIZE = 1
 
 
 class HistoricalOrderbookEnvironment(gym.Env):
+
     metadata = {"render.modes": ["human"]}
 
     def __init__(
@@ -120,3 +121,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
             if message.side == "buy":
                 self.portfolio["stock"] += message.volume
                 self.portfolio["cash"] -= message.volume * message.price
+
+    def render(self, mode="human"):
+        pass
