@@ -1,5 +1,6 @@
 /.env
 *.csv
+*.swp
 *.pyc
 *.xml
 *.iml
