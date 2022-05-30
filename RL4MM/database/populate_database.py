@@ -140,25 +140,8 @@ def get_file_len(filename):
     return i + 1
 
 
-def _convert_messages_and_books_to_internal(
-    messages: pd.DataFrame, books: pd.DataFrame, ticker: str, trading_date: str, n_levels: int
-):
-    start_index = messages.iloc[0].name
-    message_convertor = partial(
-        get_message_from_series,
-        **{"ticker": ticker, "trading_date": trading_date, "n_levels": n_levels, "start_index": start_index},
-    )
-    books_to_internal = partial(
-        get_book_from_series,
-        **{"ticker": ticker, "trading_date": trading_date, "n_levels": n_levels, "start_index": start_index},
-    )
-    messages = messages.apply(message_convertor, axis=1).values
-    books = books.apply(books_to_internal, axis=1).values
-    return messages, books
-
-
 def _convert_messages_and_books_to_dicts(
-    messages: pd.DataFrame, books: pd.DataFrame, ticker: str, trading_date: str, n_levels: int, freq: str
+    messages: pd.DataFrame, books: pd.DataFrame, ticker: str, trading_date: str, n_levels: int, freq: Optional[str]
 ):
     start_index = messages.iloc[0].name
     message_convertor = partial(
