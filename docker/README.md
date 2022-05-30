@@ -10,7 +10,7 @@ sh build_image.sh
 
 ## Running
 
-Run the start container script, and specify a port for jupyter notebook:
+Run the start container script (mounting ../, therefore mounting RL4MM), and specify a port for jupyter notebook:
 
 ```
 sh start_container.sh 8877
