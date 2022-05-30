@@ -74,14 +74,11 @@ def populate_database(
             ):
                 messages = reformat_message_data(messages, trading_date)
                 books = get_book_snapshots(book_path, book_cols, messages, book_snapshot_freq, n_levels, n_messages)
-                # logging.info(f"Converting message and book data for {ticker} on {trading_date} into internal format.")
                 message_dict, book_dict = _convert_messages_and_books_to_dicts(
                     messages, books, ticker, trading_date, n_levels, book_snapshot_freq
                 )
                 try:
-                    # logging.info("Inserting books into database.")
                     database.insert_books_from_dicts(book_dict)
-                    # logging.info("Inserting messages into database.")
                     database.insert_messages_from_dicts(message_dict)
                 except IntegrityError:
                     logging.warning(f"Data for {ticker} on {trading_date} already in database and so not re-added.")
@@ -119,7 +116,7 @@ def get_book_snapshots(
     book_path: Path,
     book_cols: list,
     messages: pd.DataFrame,
-    snapshot_freq: str,
+    snapshot_freq: Optional[str],
     n_levels: int,
     total_daily_messages: int,
 ):
@@ -130,14 +127,9 @@ def get_book_snapshots(
         + list(messages[~messages.index.isin(interval_series.index)].index)
         + list(range(last_index + 1, total_daily_messages))
     )
-
-    DEBUG_ROWS_TO_SKIP = list(range(0, first_index)) + list(range(last_index + 1, total_daily_messages))
     books = pd.read_csv(book_path, nrows=len(interval_series), skiprows=rows_to_skip, header=None, names=book_cols)
-    DEBUG_BOOKS = pd.read_csv(book_path, nrows=len(messages), skiprows=DEBUG_ROWS_TO_SKIP, header=None, names=book_cols)
     books = rescale_book_data(books, n_levels)
     books = pd.concat([pd.Series(interval_series.values, name="timestamp"), books], axis=1)
-    DEBUG_BOOKS = rescale_book_data(DEBUG_BOOKS, n_levels)
-    DEBUG_BOOKS = pd.concat([messages.timestamp, DEBUG_BOOKS], axis=1)
     return books
 
 
@@ -235,7 +227,7 @@ def update_direction(messages: pd.DataFrame) -> None:
     messages.loc[(messages.direction == -1) & (messages.message_type == "market"), "direction"] = "buy"
 
 
-def _get_interval_series(messages: pd.DataFrame, freq: str = "S"):
+def _get_interval_series(messages: pd.DataFrame, freq: Optional[str] = "S"):
     if freq is None:
         return messages.timestamp
     start_date = messages.iloc[0].timestamp
@@ -243,8 +235,8 @@ def _get_interval_series(messages: pd.DataFrame, freq: str = "S"):
     target_times = pd.date_range(start_date.ceil(freq), end_date.ceil(freq), freq=freq)
     unique_timestamps = messages.timestamp.drop_duplicates(keep="last")
     mask = pd.DatetimeIndex(unique_timestamps).get_indexer(target_times, method="ffill")
-    mask = unique_timestamps.iloc[mask[mask >= 0]].index.unique()[:-1]
-    return messages.timestamp.iloc[mask].drop_duplicates()
+    mask = unique_timestamps.iloc[mask[mask >= 0]].index.unique()
+    return messages.timestamp.loc[mask].drop_duplicates()
 
 
 def rescale_book_data(books: pd.DataFrame, n_levels: int = 10) -> pd.DataFrame:
