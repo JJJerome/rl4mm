@@ -16,6 +16,9 @@ class Order:
     external_id: Optional[int]
     is_external: bool
 
+    def __lt__(self, other):
+        return self.timestamp < other.timestamp
+
 
 @dataclass
 class MarketOrder(Order):

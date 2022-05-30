@@ -11,11 +11,11 @@ def convert_to_lobster_format(orderbook: Orderbook, n_levels: int = 10):
             half_book = reversed(half_book)
         for level, price in enumerate(half_book):
             if level < n_levels:
-                lobster_book[direction + "_price_" + str(level)] = price
+                lobster_book[direction + "_price_" + str(level)] = float(price)
                 volume = 0
                 for order in orderbook[direction][price]:  # type: ignore
                     volume += order.volume
-                lobster_book[direction + "_volume_" + str(level)] = volume
+                lobster_book[direction + "_volume_" + str(level)] = float(volume)
     return lobster_book
 
 

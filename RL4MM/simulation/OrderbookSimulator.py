@@ -22,12 +22,14 @@ class OrderbookSimulator:
         exchange: Exchange = None,
         order_generators: List[OrderGenerator] = None,
         n_levels: int = 50,
+        database: HistoricalDatabase = None,
     ) -> None:
         self.exchange = exchange or Exchange(ticker)
         order_generators = order_generators or [HistoricalOrderGenerator(ticker)]
         self.order_generators = {gen.name: gen for gen in order_generators}
-        self.now_is: datetime = None
+        self.now_is: datetime = datetime(2000, 1, 1)
         self.n_levels = n_levels
+        self.database = database or HistoricalDatabase()
 
     def reset_episode(self, start_date: datetime, start_book: Optional[Orderbook] = None):
         if not start_book:
@@ -53,20 +55,21 @@ class OrderbookSimulator:
         return {"orderbook": self.exchange.orderbook, "filled_orders": filled_orders}
 
     def get_historical_start_book(self, start_date: datetime):
-        hdb = HistoricalDatabase()
-        start_series = hdb.get_last_snapshot(start_date, exchange=self.exchange.name, ticker=self.exchange.ticker)
+        start_series = self.database.get_last_snapshot(
+            start_date, exchange=self.exchange.name, ticker=self.exchange.ticker
+        )
         assert len(start_series) > 0, f"There is no data before the episode start time: {start_date}"
         initial_orders = self._get_initial_orders_from_start_book(start_series)
         return self.exchange.get_initial_orderbook_from_orders(initial_orders)
 
     @staticmethod
-    def _compress_order_dict(order_dict: Dict[int, Deque[Order]]) -> List:
+    def _compress_order_dict(order_dict: Dict[str, Deque[Order]]) -> List:
         if len(order_dict) == 1:
             return list(list(order_dict.values())[0])
         else:
             orders = []
             while len(order_dict) > 0:
-                next_order_key = min(order_dict, key=order_dict.get)
+                next_order_key = min(order_dict, key=order_dict.get)  # type: ignore
                 orders.append(order_dict[next_order_key].popleft())
                 if len(order_dict[next_order_key]) == 0:
                     order_dict.pop(next_order_key)
@@ -86,7 +89,7 @@ class OrderbookSimulator:
                             timestamp=series.name,
                             price=series[f"{direction}_price_{level}"],
                             volume=series[f"{direction}_volume_{level}"],
-                            direction=direction,
+                            direction=direction,  # type: ignore
                             ticker=self.exchange.ticker,
                             internal_id=-1,
                             external_id=None,
