@@ -55,9 +55,8 @@ RUN chmod +x setup_psql.sh
 USER postgres
 RUN sh setup_psql.sh
 USER root
+COPY env /home/.env
 ##########################################
-RUN mkdir /home/RL4MM
-COPY env /home/RL4MM/.env
 WORKDIR /home
 COPY requirements.txt requirements.txt
 RUN pip3 install --upgrade -r requirements.txt
