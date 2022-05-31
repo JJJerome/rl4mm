@@ -53,7 +53,7 @@ class TestExchange(TestCase):
             order.internal_id = -1
         initial_orderbook = exchange.get_initial_orderbook_from_orders(initial_orders)
         expected = Orderbook(
-            buy=SortedDict({30.1: deque([initial_orders[0]]), 30.2: deque([initial_orders[1]])}),
+            buy=SortedDict({30.1 * 10000: deque([initial_orders[0]]), 30.2 * 10000: deque([initial_orders[1]])}),
             sell=SortedDict(),
             ticker=TICKER,
         )
@@ -85,16 +85,16 @@ class TestExchange(TestCase):
         exchange = Exchange(TICKER, deepcopy(orderbook))
         # Execute first order
         exchange.execute_order(MARKET_1)
-        orderbook["buy"].pop(30.2)
-        orderbook["buy"][30.1][0].volume -= MARKET_1.volume - LIMIT_3.volume
+        orderbook["buy"].pop(30.2 * 10000)
+        orderbook["buy"][30.1 * 10000][0].volume -= MARKET_1.volume - LIMIT_3.volume
         self.assertEqual(orderbook, exchange.orderbook)
         # Execute second order
         exchange.execute_order(MARKET_2)
-        orderbook["buy"][30.1].popleft()
+        orderbook["buy"][30.1 * 10000].popleft()
         self.assertEqual(orderbook, exchange.orderbook)
         # Execute third order
         exchange.execute_order(MARKET_3)
-        orderbook["sell"].pop(30.3)
+        orderbook["sell"].pop(30.3 * 10000)
         self.assertEqual(orderbook, exchange.orderbook)
 
     def test_cancel_order_basic(self):
@@ -102,7 +102,7 @@ class TestExchange(TestCase):
         modified_submission = deepcopy(submission_1)
         modified_submission.volume = 1000 - 200
         expected = Orderbook(
-            buy=SortedDict({30.1: deque([modified_submission])}),
+            buy=SortedDict({30.1 * 10000: deque([modified_submission])}),
             sell=SortedDict({}),
             ticker=TICKER,
         )
@@ -138,8 +138,8 @@ class TestExchange(TestCase):
         partially_filled_submission = copy(submission_5)
         partially_filled_submission.volume = LIMIT_5.volume - LIMIT_3.volume
         expected = Orderbook(
-            buy=SortedDict({30.1: deque([submission_1, submission_2])}),
-            sell=SortedDict({30.2: deque([partially_filled_submission]), 30.3: deque([submission_4])}),
+            buy=SortedDict({30.1 * 10000: deque([submission_1, submission_2])}),
+            sell=SortedDict({30.2 * 10000: deque([partially_filled_submission]), 30.3 * 10000: deque([submission_4])}),
             ticker=TICKER,
         )
         self.assertEqual(expected, exchange.orderbook)
@@ -147,8 +147,8 @@ class TestExchange(TestCase):
     @staticmethod
     def get_demo_orderbook():
         orderbook = Orderbook(
-            buy=SortedDict({30.1: deque([submission_1, submission_2]), 30.2: deque([submission_3])}),
-            sell=SortedDict({30.3: deque([submission_4])}),
+            buy=SortedDict({30.1 * 10000: deque([submission_1, submission_2]), 30.2 * 10000: deque([submission_3])}),
+            sell=SortedDict({30.3 * 10000: deque([submission_4])}),
             ticker=TICKER,
         )
         return deepcopy(orderbook)

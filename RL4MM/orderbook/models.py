@@ -27,13 +27,13 @@ class MarketOrder(Order):
 
 @dataclass
 class LimitOrder(Order):
-    price: float
+    price: int
     volume: int
 
 
 @dataclass
 class Deletion(Order):
-    price: float
+    price: int
     volume: Optional[int]  # This is due to deletions for historical orders from the initial order book needing a volume
 
 
@@ -43,14 +43,14 @@ class Cancellation(Deletion):
 
 
 class Orderbook(TypedDict):
-    buy: SortedDict  # Note that SortedDict does not currently support typing. Type is SortedDict[float, Deque[Order]].
+    buy: SortedDict  # SortedDict does not currently support typing. Type is SortedDict[int, Deque[Order]].
     sell: SortedDict
     ticker: str
 
 
 class OrderDict(TypedDict):
     timestamp: datetime
-    price: Optional[float]
+    price: Optional[int]
     volume: Optional[int]
     direction: Literal["buy", "sell"]
     ticker: str
