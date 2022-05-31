@@ -1,8 +1,8 @@
-#FROM nvidia/cuda:11.2.0-runtime-ubuntu20.04 as base
 FROM rayproject/ray:latest-gpu
 ARG DEBIAN_FRONTEND=noninteractive
 USER root
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC
+
 RUN apt-get -y update \
     && apt-get -y upgrade \
     && apt-get -y install \
@@ -22,22 +22,6 @@ RUN apt-get -y update \
     vim \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-### Python Upgrade
-#RUN apt-get -y purge python3.7
-#RUN apt-get -y autoremove
-#RUN add-apt-repository ppa:deadsnakes/ppa
-#RUN apt-get -y install python3.8 
-#RUN rm /usr/bin/python \
-    #&& rm /usr/bin/python3 
-    #&& ln -s /usr/bin/python3.8 /usr/bin/python  
-    #&& ln -s /usr/bin/python3.8 /usr/bin/python3 \
-    #&& rm /usr/local/bin/python 
-    #&& rm /usr/local/bin/python3 
-    #&& ln -s /usr/bin/python3.8 /usr/local/bin/python 
-    #&& ln -s /usr/bin/python3.8 /usr/local/bin/python3 \
-#    && apt-get install -y python3-pip python-dev python3.8-dev \ 
-#    && python3 -m pip install pip --upgrade
-####
 ##########################################
 # For installing postgresql and initiating
 RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
