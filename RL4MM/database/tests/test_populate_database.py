@@ -63,10 +63,10 @@ class Test_populate_database(TestCase):
             batch_size=1000,
         )
         messages = test_db.get_messages(
-            start_date=self.start_of_trading, end_date=self.end_of_trading, exchange="NASDAQ", ticker=self.ticker
+            start_date=self.start_of_trading, end_date=self.end_of_trading, ticker=self.ticker
         )
         books = test_db.get_book_snapshots(
-            start_date=self.start_of_trading, end_date=self.end_of_trading, exchange="NASDAQ", ticker=self.ticker
+            start_date=self.start_of_trading, end_date=self.end_of_trading, ticker=self.ticker
         )
         self.assertEqual(1000, len(messages))
         self.assertEqual(1000, len(books))

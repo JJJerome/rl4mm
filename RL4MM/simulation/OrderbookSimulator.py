@@ -55,9 +55,7 @@ class OrderbookSimulator:
         return {"orderbook": self.exchange.orderbook, "filled_orders": filled_orders}
 
     def get_historical_start_book(self, start_date: datetime):
-        start_series = self.database.get_last_snapshot(
-            start_date, exchange=self.exchange.name, ticker=self.exchange.ticker
-        )
+        start_series = self.database.get_last_snapshot(start_date, ticker=self.exchange.ticker)
         assert len(start_series) > 0, f"There is no data before the episode start time: {start_date}"
         initial_orders = self._get_initial_orders_from_start_book(start_series)
         return self.exchange.get_initial_orderbook_from_orders(initial_orders)
@@ -97,3 +95,7 @@ class OrderbookSimulator:
                         )
                     )
         return initial_orders
+
+    @property
+    def orderbook(self):
+        return self.exchange.orderbook

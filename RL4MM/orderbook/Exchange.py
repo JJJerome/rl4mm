@@ -139,7 +139,7 @@ class Exchange:
         return None
 
     def _reduce_order_with_queue_position(
-        self, order_price: float, order_direction: Literal["buy", "sell"], queue_position: int, volume_to_remove: int
+        self, order_price: int, order_direction: Literal["buy", "sell"], queue_position: int, volume_to_remove: int
     ) -> LimitOrder:
         order_to_partially_remove = self.orderbook[order_direction][order_price][queue_position]
         if volume_to_remove > order_to_partially_remove.volume:
@@ -152,7 +152,7 @@ class Exchange:
         self._clear_empty_orders_and_prices(order_price, order_direction, queue_position)
         return removed_order
 
-    def _clear_empty_orders_and_prices(self, price: float, direction: Literal["buy", "sell"], queue_position: int):
+    def _clear_empty_orders_and_prices(self, price: int, direction: Literal["buy", "sell"], queue_position: int):
         if self.orderbook[direction][price][queue_position].volume == 0:
             order_to_remove = self.orderbook[direction][price][queue_position]
             if order_to_remove.is_external:
