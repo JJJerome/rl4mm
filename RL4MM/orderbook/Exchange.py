@@ -8,7 +8,8 @@ from sortedcontainers import SortedDict
 from typing import Optional, List, Literal, Union
 
 from RL4MM.orderbook.OrderIDConvertor import OrderIdConvertor
-from RL4MM.orderbook.models import Orderbook, Order, LimitOrder, MarketOrder, Cancellation, Deletion
+from RL4MM.orderbook.create_order import create_order
+from RL4MM.orderbook.models import Orderbook, Order, LimitOrder, MarketOrder, Cancellation, Deletion, OrderDict
 
 
 class EmptyOrderbookError(Exception):
@@ -33,7 +34,7 @@ class Exchange:
         self.order_id_convertor = OrderIdConvertor()
         self.name = "NASDAQ"
 
-    def process_order(self, order: Order) -> Optional[List[LimitOrder]]:
+    def process_order(self, order: Order) -> Optional[List[Union[MarketOrder, LimitOrder]]]:
         if isinstance(order, LimitOrder):
             return self.submit_order(order)
         elif isinstance(order, MarketOrder):
@@ -44,7 +45,7 @@ class Exchange:
         else:
             raise NotImplementedError
 
-    def submit_order(self, order: LimitOrder) -> Optional[List[LimitOrder]]:
+    def submit_order(self, order: LimitOrder) -> Optional[List[Union[MarketOrder, LimitOrder]]]:
         if self._does_order_cross_spread(order):
             return self.execute_order(order)  # Execute against orders already in the book
         order = self.order_id_convertor.add_internal_id_to_order_and_track(order)
@@ -58,13 +59,13 @@ class Exchange:
                 orderbook[order.direction][order.price] = deque([order])
         return None
 
-    def execute_order(self, order: Union[MarketOrder, LimitOrder]) -> List[LimitOrder]:
-        executed_orders = list()
+    def execute_order(self, order: Union[MarketOrder, LimitOrder]) -> List[Union[MarketOrder, LimitOrder]]:
+        executed_internal_orders: List[Union[MarketOrder, LimitOrder]] = list()
         remaining_volume = order.volume
         while remaining_volume > 0 and self._does_order_cross_spread(order):
             best_limit_order = self._get_highest_priority_matching_order(order)
             if not order.is_external and not best_limit_order.is_external:  # Cannot fill our own order and so delete it
-                deletion = self._get_deletion_from_limit_order(best_limit_order)
+                deletion = Deletion(**copy(best_limit_order.__dict__))
                 self.process_order(deletion)
                 continue
             volume_to_execute = min(remaining_volume, best_limit_order.volume)
@@ -79,13 +80,21 @@ class Exchange:
                     volume_to_remove=volume_to_execute,
                     orderbook=orderbook,
                 )
-            executed_orders.append(executed_order)
+            if not executed_order.is_external:
+                executed_internal_orders.append(executed_order)
             remaining_volume -= volume_to_execute
         if remaining_volume > 0 and isinstance(order, LimitOrder):
             remaining_order = copy(order)
             remaining_order.volume = remaining_volume
             self.submit_order(remaining_order)  # submit a limit order with the remaining volume
-        return executed_orders
+        if not order.is_external:
+            if isinstance(order, LimitOrder):
+                executed_market_order: MarketOrder = create_order("market", OrderDict(order.__dict__))
+            else:
+                executed_market_order = copy(order)
+            executed_market_order.volume = order.volume - remaining_volume
+            executed_internal_orders.append(executed_market_order)
+        return executed_internal_orders
 
     def remove_order(self, order: Union[Cancellation, Deletion]) -> None:
         orderbooks_to_update = [self.central_orderbook]
