@@ -4,7 +4,7 @@ from RL4MM.orderbook.models import LimitOrder, Cancellation, Deletion, MarketOrd
 
 LIMIT_1 = LimitOrder(
     timestamp=datetime(2012, 6, 21, 12, 0),
-    price=30.1 * 10000,
+    price=int(30.1 * 10000),
     volume=1000,
     direction="buy",
     ticker="MSFT",
@@ -14,7 +14,7 @@ LIMIT_1 = LimitOrder(
 )
 LIMIT_2 = LimitOrder(
     timestamp=datetime(2012, 6, 21, 12, 1),
-    price=30.1 * 10000,
+    price=int(30.1 * 10000),
     volume=200,
     direction="buy",
     ticker="MSFT",
@@ -24,7 +24,7 @@ LIMIT_2 = LimitOrder(
 )
 LIMIT_3 = LimitOrder(
     timestamp=datetime(2012, 6, 21, 12, 1),
-    price=30.2 * 10000,
+    price=int(30.2 * 10000),
     volume=200,
     direction="buy",
     ticker="MSFT",
@@ -34,7 +34,7 @@ LIMIT_3 = LimitOrder(
 )
 LIMIT_4 = LimitOrder(
     timestamp=datetime(2012, 6, 21, 12, 1),
-    price=30.3 * 10000,
+    price=int(30.3 * 10000),
     volume=200,
     direction="sell",
     ticker="MSFT",
@@ -44,7 +44,7 @@ LIMIT_4 = LimitOrder(
 )
 LIMIT_5 = LimitOrder(
     timestamp=datetime(2012, 6, 21, 12, 1),
-    price=30.2 * 10000,
+    price=int(30.2 * 10000),
     volume=300,
     direction="sell",
     ticker="MSFT",
@@ -54,7 +54,7 @@ LIMIT_5 = LimitOrder(
 )
 CANCELLATION_1 = Cancellation(
     timestamp=datetime(2012, 6, 21, 12, 1),
-    price=30.1 * 10000,
+    price=int(30.1 * 10000),
     volume=200,
     direction="buy",
     ticker="MSFT",
@@ -64,7 +64,7 @@ CANCELLATION_1 = Cancellation(
 )
 CANCELLATION_2 = Cancellation(
     timestamp=datetime(2012, 6, 21, 12, 2),
-    price=30.1,
+    price=int(30.1 * 10000),
     volume=1100,
     direction="buy",
     ticker="MSFT",
@@ -74,7 +74,7 @@ CANCELLATION_2 = Cancellation(
 )
 CANCELLATION_3 = Cancellation(
     timestamp=datetime(2012, 6, 21, 12, 3),
-    price=30.1 * 10000,
+    price=int(30.1 * 10000),
     volume=200,
     direction="buy",
     ticker="MSFT",
@@ -84,7 +84,7 @@ CANCELLATION_3 = Cancellation(
 )
 DELETION_1 = Deletion(
     timestamp=datetime(2012, 6, 21, 12, 1),
-    price=30.1 * 10000,
+    price=int(30.1 * 10000),
     volume=1000,
     direction="buy",
     ticker="MSFT",
@@ -94,7 +94,7 @@ DELETION_1 = Deletion(
 )
 DELETION_2 = Deletion(
     timestamp=datetime(2012, 6, 21, 12, 2),
-    price=30.1 * 10000,
+    price=int(30.1 * 10000),
     volume=None,
     direction="buy",
     ticker="MSFT",
@@ -104,7 +104,7 @@ DELETION_2 = Deletion(
 )
 DELETION_3 = Deletion(
     timestamp=datetime(2012, 6, 21, 12, 3),
-    price=30.1 * 10000,
+    price=int(30.1 * 10000),
     volume=200,
     direction="buy",
     ticker="MSFT",
