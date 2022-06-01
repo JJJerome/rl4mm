@@ -46,13 +46,13 @@ class TestHistoricalOrderGenerator(TestCase):
         # Test agreement at the start of the episode
         self.simulator.reset_episode(start_of_episode)
         expected_book = self.test_db.get_last_snapshot(start_of_episode, self.ticker).to_dict()
-        actual_book = convert_to_lobster_format(self.simulator.exchange.orderbook, self.n_levels)
+        actual_book = convert_to_lobster_format(self.simulator.exchange.central_orderbook, self.n_levels)
         self.assertDictEqual(expected_book, actual_book)
         # Test agreement after 1 second
         time_1 = start_of_episode + timedelta(seconds=1)
         self.simulator.forward_step(time_1)
         expected_book = self.test_db.get_last_snapshot(time_1, self.ticker).to_dict()
-        actual_book = convert_to_lobster_format(self.simulator.exchange.orderbook, self.n_levels)
+        actual_book = convert_to_lobster_format(self.simulator.exchange.central_orderbook, self.n_levels)
         keys_to_drop = expected_book.keys() - actual_book.keys()
         for key in keys_to_drop:
             expected_book.pop(key)
@@ -60,7 +60,7 @@ class TestHistoricalOrderGenerator(TestCase):
         # Test agreement at end of episode
         self.simulator.forward_step(end_of_episode)
         expected_book = self.test_db.get_last_snapshot(end_of_episode, self.ticker).to_dict()
-        actual_book = convert_to_lobster_format(self.simulator.exchange.orderbook, self.n_levels)
+        actual_book = convert_to_lobster_format(self.simulator.exchange.central_orderbook, self.n_levels)
         keys_to_drop = expected_book.keys() - actual_book.keys()
         keys_to_drop = keys_to_drop.union({"buy_price_45", "buy_volume_45"})  # Here, orders come in at price levels not
         for key in keys_to_drop:  # in the book at start_of_episode, due to

@@ -104,12 +104,12 @@ DELETION_2 = Deletion(
 )
 DELETION_3 = Deletion(
     timestamp=datetime(2012, 6, 21, 12, 3),
-    price=int(30.1 * 10000),
-    volume=200,
-    direction="buy",
+    price=int(30.3 * 10000),
+    volume=None,
+    direction="sell",
     ticker="MSFT",
-    external_id=110,
-    internal_id=None,
+    external_id=None,
+    internal_id=2,
     is_external=False,
 )
 MARKET_1 = MarketOrder(
@@ -137,5 +137,5 @@ MARKET_3 = MarketOrder(
     ticker="MSFT",
     external_id=110,
     internal_id=None,
-    is_external=False,
+    is_external=True,
 )

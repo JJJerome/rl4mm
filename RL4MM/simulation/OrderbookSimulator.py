@@ -34,7 +34,7 @@ class OrderbookSimulator:
     def reset_episode(self, start_date: datetime, start_book: Optional[Orderbook] = None):
         if not start_book:
             start_book = self.get_historical_start_book(start_date)
-        self.exchange.orderbook = start_book
+        self.exchange.central_orderbook = start_book
         self.now_is = start_date
         return start_book
 
@@ -52,7 +52,7 @@ class OrderbookSimulator:
             if filled:
                 filled_orders += filled
         self.now_is = until
-        return {"orderbook": self.exchange.orderbook, "filled_orders": filled_orders}
+        return {"orderbook": self.exchange.central_orderbook, "filled_orders": filled_orders}
 
     def get_historical_start_book(self, start_date: datetime):
         start_series = self.database.get_last_snapshot(start_date, ticker=self.exchange.ticker)
@@ -91,11 +91,11 @@ class OrderbookSimulator:
                             ticker=self.exchange.ticker,
                             internal_id=-1,
                             external_id=None,
-                            is_external=False,
+                            is_external=True,
                         )
                     )
         return initial_orders
 
     @property
     def orderbook(self):
-        return self.exchange.orderbook
+        return self.exchange.central_orderbook
