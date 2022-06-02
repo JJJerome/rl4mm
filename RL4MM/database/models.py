@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import Column, DateTime, Float, Integer, JSON, String
+from sqlalchemy import Column, DateTime, Integer, JSON, String
 from sqlalchemy.ext.declarative import declarative_base
 
 
@@ -16,7 +16,7 @@ class Message(Base):
     ticker = Column(String, nullable=False, index=True)
     direction = Column(String, nullable=False)
     volume = Column(Integer, nullable=False)
-    price = Column(Float, nullable=False)
+    price = Column(Integer, nullable=False)
     external_id = Column(Integer, nullable=True)
     message_type = Column(String, nullable=True)
 

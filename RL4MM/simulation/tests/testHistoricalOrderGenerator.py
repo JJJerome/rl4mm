@@ -34,7 +34,7 @@ class TestHistoricalOrderGenerator(TestCase):
     def test_generate_orders(self):
         start_of_trading = datetime(2012, 6, 21, 9, 30)
         end_of_trading = datetime(2012, 6, 21, 16)
-        messages = self.test_db.get_messages(start_of_trading, end_of_trading, "NASDAQ", self.ticker)
+        messages = self.test_db.get_messages(start_of_trading, end_of_trading, self.ticker)
         n_hidden_executions = len(messages[messages.message_type == "market_hidden"])
         orders = self.generator.generate_orders(start_of_trading, end_of_trading)
         self.assertEqual(1000 - n_hidden_executions, len(orders))

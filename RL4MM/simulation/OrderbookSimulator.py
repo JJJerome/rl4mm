@@ -1,24 +1,13 @@
 from datetime import datetime
-#from typing import Deque, Dict, List, Optional, TypedDict
-import sys
-if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from typing import Deque, Dict, List, Optional, TypedDict
-else:
-    from typing import Deque, Dict, List, Optional
-    from typing_extensions import TypedDict
+from typing import Deque, Dict, List, Optional, Union
 
 import pandas as pd
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.orderbook.models import Orderbook, Order, LimitOrder
+from RL4MM.orderbook.models import Orderbook, Order, LimitOrder, MarketOrder
 from RL4MM.orderbook.Exchange import Exchange
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderGenerator import OrderGenerator
-
-class OutputDict(TypedDict):
-    orderbook: Orderbook
-    filled_orders: List[LimitOrder]
-
 
 class OrderbookSimulator:
     def __init__(
@@ -39,11 +28,13 @@ class OrderbookSimulator:
     def reset_episode(self, start_date: datetime, start_book: Optional[Orderbook] = None):
         if not start_book:
             start_book = self.get_historical_start_book(start_date)
-        self.exchange.orderbook = start_book
+        self.exchange.central_orderbook = start_book
         self.now_is = start_date
         return start_book
 
-    def forward_step(self, until: datetime, internal_orders: Optional[List[Order]] = None) -> OutputDict:
+    def forward_step(
+        self, until: datetime, internal_orders: Optional[List[Order]] = None
+    ) -> List[Union[MarketOrder, LimitOrder]]:
         assert (
             until > self.now_is
         ), f"The current time is {self.now_is.time()}, but we are trying to step forward in time until {until.time()}!"
@@ -51,18 +42,16 @@ class OrderbookSimulator:
         external_orders = self._compress_order_dict(order_dict)
         orders = internal_orders or list()
         orders += external_orders
-        filled_orders = []
+        filled_internal_orders = []
         for order in orders:
             filled = self.exchange.process_order(order)
             if filled:
-                filled_orders += filled
+                filled_internal_orders += filled
         self.now_is = until
-        return {"orderbook": self.exchange.orderbook, "filled_orders": filled_orders}
+        return filled_internal_orders
 
     def get_historical_start_book(self, start_date: datetime):
-        start_series = self.database.get_last_snapshot(
-            start_date, exchange=self.exchange.name, ticker=self.exchange.ticker
-        )
+        start_series = self.database.get_last_snapshot(start_date, ticker=self.exchange.ticker)
         assert len(start_series) > 0, f"There is no data before the episode start time: {start_date}"
         initial_orders = self._get_initial_orders_from_start_book(start_series)
         return self.exchange.get_initial_orderbook_from_orders(initial_orders)
@@ -98,7 +87,11 @@ class OrderbookSimulator:
                             ticker=self.exchange.ticker,
                             internal_id=-1,
                             external_id=None,
-                            is_external=False,
+                            is_external=True,
                         )
                     )
         return initial_orders
+
+    @property
+    def orderbook(self):
+        return self.exchange.central_orderbook

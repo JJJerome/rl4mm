@@ -1,4 +1,3 @@
-import argparse
 import os
 from functools import partial
 from typing import Tuple, Optional
@@ -13,7 +12,6 @@ import ssl
 
 from contextlib import suppress
 from io import BytesIO
-from itertools import chain
 from pathlib import Path
 
 from sqlalchemy.exc import IntegrityError
@@ -26,6 +24,7 @@ from tqdm import tqdm
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.models import Book
 from RL4MM.database.PostgresEngine import PostgresEngine
+from RL4MM.orderbook.helpers import get_book_columns
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(message)s",
@@ -128,7 +127,6 @@ def get_book_snapshots(
         + list(range(last_index + 1, total_daily_messages))
     )
     books = pd.read_csv(book_path, nrows=len(interval_series), skiprows=rows_to_skip, header=None, names=book_cols)
-    books = rescale_book_data(books, n_levels)
     books = pd.concat([pd.Series(interval_series.values, name="timestamp"), books], axis=1)
     return books
 
@@ -170,9 +168,7 @@ def _convert_messages_and_books_to_dicts(
 
 
 def _get_book_and_message_columns(n_levels: int = 50):
-    price_cols = list(chain(*[("sell_price_{0},buy_price_{0}".format(i)).split(",") for i in range(n_levels)]))
-    volume_cols = list(chain(*[("sell_volume_{0},buy_volume_{0}".format(i)).split(",") for i in range(n_levels)]))
-    book_cols = list(chain(*zip(price_cols, volume_cols)))
+    book_cols = get_book_columns(n_levels)
     message_cols = ["time", "message_type", "external_id", "volume", "price", "direction"]
     return book_cols, message_cols
 
@@ -192,7 +188,6 @@ def reformat_message_data(messages: pd.DataFrame, trading_date: str) -> pd.DataF
     type_dict = get_external_internal_type_dict()
     messages.message_type.replace(type_dict.keys(), type_dict.values(), inplace=True)
     update_direction(messages)
-    messages["price"] /= 10000
     messages.astype({"external_id": int})
     return messages
 
@@ -220,14 +215,6 @@ def _get_interval_series(messages: pd.DataFrame, freq: Optional[str] = "S"):
     mask = pd.DatetimeIndex(unique_timestamps).get_indexer(target_times, method="ffill")
     mask = unique_timestamps.iloc[mask[mask >= 0]].index.unique()
     return messages.timestamp.loc[mask].drop_duplicates()
-
-
-def rescale_book_data(books: pd.DataFrame, n_levels: int = 10) -> pd.DataFrame:
-    # TODO: speed up by applying all at once
-    for message_type in ["sell", "buy"]:
-        for i in range(n_levels):
-            books[message_type + "_price_" + str(i)] /= 10000
-    return books
 
 
 def get_external_internal_type_dict():
@@ -271,51 +258,4 @@ def _get_book_dict_from_series(
         exchange=EXCHANGE,
         ticker=ticker,
         data=book.drop("timestamp").to_json(),
-    )
-
-
-parser = argparse.ArgumentParser(description="Populate a postgres database with LOBSTER data")
-parser.add_argument("--ticker", action="store", type=str, default="MSFT", help="the ticker to add")
-parser.add_argument("--trading_date", action="store", type=str, default="2012-06-21", help="the date to add")
-parser.add_argument("--n_levels", action="store", type=int, default=200, help="the number of orderbook levels")
-parser.add_argument(
-    "--path_to_lobster_data",
-    action="store",
-    type=str,
-    default="",
-    help="the path to the folder containing the LOBSTER message and book data",
-)
-parser.add_argument(
-    "--book_snapshot_freq",
-    action="store",
-    type=str,
-    default="S",
-    help="the frequency of book snapshots added to database",
-)
-parser.add_argument(
-    "--max_rows",
-    action="store",
-    type=int,
-    default=99999999999,
-    help="the frequency of book snapshots added to database",
-)
-parser.add_argument(
-    "--batch_size",
-    action="store",
-    type=int,
-    default=100000,
-    help="the frequency of book snapshots added to database",
-)
-
-if __name__ == "__main__":
-    args = parser.parse_args()
-
-    populate_database(
-        tickers=(args.ticker,),
-        trading_dates=(args.trading_date,),
-        n_levels=args.n_levels,
-        path_to_lobster_data=args.path_to_lobster_data,
-        book_snapshot_freq=args.book_snapshot_freq,
-        max_rows=args.max_rows,
-        batch_size=args.batch_size,
     )

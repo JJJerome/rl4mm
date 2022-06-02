@@ -19,7 +19,7 @@ class HistoricalOrderGenerator(OrderGenerator):
         self.exchange_name = "NASDAQ"  # Here, we are only using LOBSTER data for now
 
     def generate_orders(self, start_date: datetime, end_date: datetime) -> Deque[Order]:
-        messages = self.database.get_messages(start_date, end_date, self.exchange_name, self.ticker)
+        messages = self.database.get_messages(start_date, end_date, self.ticker)
         messages = self._remove_hidden_executions(messages)
         return deque(get_order_from_external_message(m) for m in messages.itertuples())
 
