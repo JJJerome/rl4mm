@@ -1,4 +1,10 @@
-from typing import Literal, TypedDict, Optional
+import sys
+#from typing import Literal, TypedDict, Optional
+if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
+    from typing import Literal, TypedDict, Optional
+else:
+    from typing import Optional
+    from typing_extensions import  Literal, TypedDict
 
 from dataclasses import dataclass
 from datetime import datetime

@@ -1,5 +1,11 @@
 from datetime import datetime
-from typing import Deque, Dict, List, Optional, TypedDict
+#from typing import Deque, Dict, List, Optional, TypedDict
+import sys
+if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
+    from typing import Deque, Dict, List, Optional, TypedDict
+else:
+    from typing import Deque, Dict, List, Optional
+    from typing_extensions import TypedDict
 
 import pandas as pd
 
@@ -8,7 +14,6 @@ from RL4MM.orderbook.models import Orderbook, Order, LimitOrder
 from RL4MM.orderbook.Exchange import Exchange
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderGenerator import OrderGenerator
-
 
 class OutputDict(TypedDict):
     orderbook: Orderbook
