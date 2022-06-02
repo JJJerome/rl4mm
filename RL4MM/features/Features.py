@@ -13,6 +13,7 @@ class InternalState(TypedDict):
     cash: float
     asset_price: float
     book_snapshots: pd.DataFrame
+    proportion_of_episode_remaining: float
 
 
 class Feature(metaclass=abc.ABCMeta):
@@ -39,6 +40,9 @@ class Feature(metaclass=abc.ABCMeta):
     @staticmethod
     def clamp(number: float, min_value: float, max_value: float):
         return max(min(number, max_value), min_value)
+
+
+# Book features
 
 
 class Spread(Feature):
@@ -95,7 +99,29 @@ class MicroPrice(Feature):
     max_value = 1000 * 10000  # Here, we assume that stock prices are less than $1000
 
     def _calculate(self, internal_state: InternalState):
-        book_snapshots = internal_state["book_snapshots"]
-        current_book = book_snapshots.iloc[-1]
+        current_book = internal_state["book_snapshots"].iloc[-1]
+        return self.calculate_from_current_book(current_book)
+
+    @staticmethod
+    def calculate_from_current_book(current_book: pd.Series):
         sell_weighting = current_book.buy_volume_0 / (current_book.buy_volume_0 + current_book.sell_volume_0)
         return current_book.sell_price_0 * sell_weighting + current_book.buy_price_0 * (1 - sell_weighting)
+
+
+# Agent features
+
+
+class Inventory(Feature):
+    min_value = 0
+    max_value = 1000
+
+    def _calculate(self, internal_state: InternalState) -> float:
+        return internal_state["inventory"]
+
+
+class TimeRemaining(Feature):
+    min_value = 0
+    max_value = 1.0
+
+    def _calculate(self, internal_state: InternalState) -> float:
+        return internal_state["proportion_of_episode_remaining"]
