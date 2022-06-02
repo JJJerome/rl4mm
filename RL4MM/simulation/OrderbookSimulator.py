@@ -1,10 +1,10 @@
 from datetime import datetime
-from typing import Deque, Dict, List, Optional, Union
+from typing import Deque, Dict, List, Optional
 
 import pandas as pd
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.orderbook.models import Orderbook, Order, LimitOrder, MarketOrder
+from RL4MM.orderbook.models import Orderbook, Order, LimitOrder, FillableOrder
 from RL4MM.orderbook.Exchange import Exchange
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderGenerator import OrderGenerator
@@ -33,9 +33,7 @@ class OrderbookSimulator:
         self.now_is = start_date
         return start_book
 
-    def forward_step(
-        self, until: datetime, internal_orders: Optional[List[Order]] = None
-    ) -> List[Union[MarketOrder, LimitOrder]]:
+    def forward_step(self, until: datetime, internal_orders: Optional[List[Order]] = None) -> List[FillableOrder]:
         assert (
             until > self.now_is
         ), f"The current time is {self.now_is.time()}, but we are trying to step forward in time until {until.time()}!"
@@ -92,7 +90,3 @@ class OrderbookSimulator:
                         )
                     )
         return initial_orders
-
-    @property
-    def orderbook(self):
-        return self.exchange.central_orderbook
