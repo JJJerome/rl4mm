@@ -50,7 +50,7 @@ def main(args):
     trainer = ppo.PPOTrainer(env="HistoricalOrderbookEnvironment", config=config)
 
     # -------------------- Train Agent ---------------------------
-    for _ in range(args['episodes']):
+    for _ in range(args['iterations']):
         print(trainer.train())
 
     # -------------------- Eval Agent ----------------------------
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     parser.add_argument('-nwe','--num_workers_eval', default="2", help='Number of wokers used during evaluation.', type=int)
     parser.add_argument('-fw','--framework', default="torch", help='Framework, torch or tf.', type=str)
     parser.add_argument('-l','--lstm', default=False, help='LSTM on/off.', type=bool)
-    parser.add_argument('-e','--episodes', default="10", help='Training episodes.', type=int)
+    parser.add_argument('-i','--iterations', default="10", help='Training iterations.', type=int)
     # -------------------- Env Args ---------------------------
     parser.add_argument('-t','--ticker', default="MSFT", help='Specify stock ticker.', type=str)
     parser.add_argument('-maxd','--min_date', default="2019,1,2,10,35,45", help='.', type=str)
