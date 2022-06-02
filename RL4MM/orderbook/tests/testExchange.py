@@ -25,6 +25,7 @@ from RL4MM.orderbook.tests.mock_orders import (
 
 cancellations = [CANCELLATION_1, CANCELLATION_2, CANCELLATION_3]
 TICKER = "MSFT"
+TICK_SIZE = 100
 
 submission_1 = deepcopy(LIMIT_1)
 submission_2 = deepcopy(LIMIT_2)
@@ -40,7 +41,7 @@ class TestExchange(TestCase):
     def test_post_init(self):
         exchange = Exchange(TICKER)
         self.assertEqual(exchange.name, "NASDAQ")
-        empty_orderbook = {"buy": SortedDict(), "sell": SortedDict(), "ticker": TICKER}
+        empty_orderbook = {"buy": SortedDict(), "sell": SortedDict(), "ticker": TICKER, "tick_size": TICK_SIZE}
         self.assertEqual(exchange.central_orderbook, empty_orderbook)
 
     def test_get_initial_orderbook_from_orders(self):
@@ -55,6 +56,7 @@ class TestExchange(TestCase):
             buy=SortedDict({30.1 * 10000: deque([initial_orders[0]]), 30.2 * 10000: deque([initial_orders[1]])}),
             sell=SortedDict(),
             ticker=TICKER,
+            tick_size=TICK_SIZE,
         )
         self.assertEqual(initial_orderbook, expected)
 
@@ -79,9 +81,7 @@ class TestExchange(TestCase):
         actual_central = exchange.central_orderbook
         self.assertEqual(expected_central, actual_central)
         expected_internal = Orderbook(
-            buy=SortedDict(),
-            sell=SortedDict({30.3 * 10000: deque([submission_4])}),
-            ticker=TICKER,
+            buy=SortedDict(), sell=SortedDict({30.3 * 10000: deque([submission_4])}), ticker=TICKER, tick_size=TICK_SIZE
         )
         actual_internal = exchange.internal_orderbook
         self.assertEqual(expected_internal, actual_internal)
@@ -89,9 +89,7 @@ class TestExchange(TestCase):
     def test_execute_market_order(self):
         orderbook = self.get_demo_orderbook()
         internal_book = Orderbook(
-            buy=SortedDict(),
-            sell=SortedDict({30.3 * 10000: deque([submission_4])}),
-            ticker=TICKER,
+            buy=SortedDict(), sell=SortedDict({30.3 * 10000: deque([submission_4])}), ticker=TICKER, tick_size=TICK_SIZE
         )
         exchange = Exchange(TICKER, deepcopy(orderbook), internal_book)
         # Execute first order
@@ -116,6 +114,7 @@ class TestExchange(TestCase):
             buy=SortedDict({30.1 * 10000: deque([modified_submission])}),
             sell=SortedDict({}),
             ticker=TICKER,
+            tick_size=TICK_SIZE,
         )
         exchange.submit_order(LIMIT_1)
         exchange.remove_order(CANCELLATION_1)
@@ -142,9 +141,7 @@ class TestExchange(TestCase):
         expected_internal = exchange.get_empty_orderbook()
         self.assertEqual(expected_internal, exchange.internal_orderbook)
         expected_external = Orderbook(
-            buy=SortedDict({30.1 * 10000: deque([submission_1])}),
-            sell=SortedDict(),
-            ticker=TICKER,
+            buy=SortedDict({30.1 * 10000: deque([submission_1])}), sell=SortedDict(), ticker=TICKER, tick_size=TICK_SIZE
         )
         self.assertEqual(expected_external, exchange.central_orderbook)
 
@@ -166,6 +163,7 @@ class TestExchange(TestCase):
             buy=SortedDict({30.1 * 10000: deque([submission_1, submission_2])}),
             sell=SortedDict({30.2 * 10000: deque([partially_filled_submission]), 30.3 * 10000: deque([submission_4])}),
             ticker=TICKER,
+            tick_size=TICK_SIZE,
         )
         self.assertEqual(expected, exchange.central_orderbook)
 
@@ -175,6 +173,7 @@ class TestExchange(TestCase):
             buy=SortedDict({30.1 * 10000: deque([submission_1, submission_2]), 30.2 * 10000: deque([submission_3])}),
             sell=SortedDict({30.3 * 10000: deque([submission_4])}),
             ticker=TICKER,
+            tick_size=TICK_SIZE,
         )
         return deepcopy(orderbook)
 

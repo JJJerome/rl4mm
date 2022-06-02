@@ -1,4 +1,4 @@
-from typing import Literal, TypedDict, Optional
+from typing import Literal, TypedDict, Optional, Union
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -42,10 +42,14 @@ class Cancellation(Deletion):
     volume: int
 
 
+FillableOrder = Union[MarketOrder, LimitOrder]
+
+
 class Orderbook(TypedDict):
     buy: SortedDict  # SortedDict does not currently support typing. Type is SortedDict[int, Deque[Order]].
     sell: SortedDict
     ticker: str
+    tick_size: int
 
 
 class OrderDict(TypedDict):

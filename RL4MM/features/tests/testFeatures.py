@@ -7,7 +7,6 @@ from RL4MM.features.Features import (
     Spread,
     MidpriceMove,
     PriceRange,
-    CannotUpdateError,
     Volatility,
     MicroPrice,
     InternalState,
