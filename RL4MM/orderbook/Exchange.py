@@ -5,11 +5,20 @@ from dataclasses import dataclass
 
 import numpy as np
 from sortedcontainers import SortedDict
-from typing import Optional, List, Literal, Union
+from typing import Optional, List, Literal, Union, cast
 
 from RL4MM.orderbook.OrderIDConvertor import OrderIdConvertor
 from RL4MM.orderbook.create_order import create_order
-from RL4MM.orderbook.models import Orderbook, Order, LimitOrder, MarketOrder, Cancellation, Deletion, OrderDict
+from RL4MM.orderbook.models import (
+    Orderbook,
+    Order,
+    LimitOrder,
+    MarketOrder,
+    Cancellation,
+    Deletion,
+    OrderDict,
+    FillableOrder,
+)
 
 
 class EmptyOrderbookError(Exception):
@@ -25,6 +34,7 @@ class Exchange:
     ticker: str = "MSFT"
     central_orderbook: Orderbook = None  # type: ignore
     internal_orderbook: Orderbook = None  # type: ignore
+    tick_size: int = 100
 
     def __post_init__(self):
         self.central_orderbook = self.central_orderbook or self.get_empty_orderbook()
@@ -74,8 +84,7 @@ class Exchange:
                 orderbooks_to_update.append(self.internal_orderbook)
             for orderbook in orderbooks_to_update:
                 executed_order = self._reduce_order_with_queue_position(
-                    order_price=best_limit_order.price,
-                    order_direction=best_limit_order.direction,
+                    best_limit_order,
                     queue_position=0,
                     volume_to_remove=volume_to_execute,
                     orderbook=orderbook,
@@ -89,7 +98,7 @@ class Exchange:
             self.submit_order(remaining_order)  # submit a limit order with the remaining volume
         if not order.is_external:
             if isinstance(order, LimitOrder):
-                executed_market_order: MarketOrder = create_order("market", OrderDict(order.__dict__))
+                executed_market_order: MarketOrder = create_order("market", cast(OrderDict, order.__dict__))
             else:
                 executed_market_order = copy(order)
             executed_market_order.volume = order.volume - remaining_volume
@@ -103,24 +112,28 @@ class Exchange:
         for orderbook in orderbooks_to_update:
             queue_position = self._find_queue_position(order, orderbook)
             if queue_position is None:
-                if orderbook[order.direction][order.price][0].internal_id == -1:  # Initial orders remain in book
-                    assert (
-                        order.volume is not None
-                    ), "If attempting to delete an initial order, a volume must be provided."
+                try:
+                    best_order_id = orderbook[order.direction][order.price][0].internal_id
+                except KeyError:
+                    continue
+                if best_order_id == -1:  # Initial orders remain in book
+                    assert order.volume is not None, "When deleting an initial order, a volume must be provided."
                     # NOTE: here, we are assuming that none of the order trying to be cancelled/deleted has been filled!
                     order.internal_id = -1
                     queue_position = 0
                 else:  # trying to remove order that has already been filled
-                    return None
+                    continue
             elif isinstance(order, Deletion) and order.volume is None:
                 order.volume = orderbook[order.direction][order.price][queue_position].volume
-            self._reduce_order_with_queue_position(
-                order.price, order.direction, queue_position, order.volume, orderbook
-            )
+            try:
+                self._reduce_order_with_queue_position(order, queue_position, order.volume, orderbook)
+            except CancellationVolumeExceededError:
+                volume_to_remove = orderbook[order.direction][order.price][queue_position].volume
+                self._reduce_order_with_queue_position(order, queue_position, volume_to_remove, orderbook)
         return None
 
     def get_empty_orderbook(self):
-        return Orderbook(buy=SortedDict(), sell=SortedDict(), ticker=self.ticker)
+        return Orderbook(buy=SortedDict(), sell=SortedDict(), ticker=self.ticker, tick_size=self.tick_size)
 
     @property
     def best_ask_price(self):
@@ -146,16 +159,13 @@ class Exchange:
         except KeyError:
             raise EmptyOrderbookError(f"Trying take liquidity from empty {opposite_direction} side of the book.")
 
-    def _does_order_cross_spread(self, order: Union[LimitOrder, MarketOrder]):
+    def _does_order_cross_spread(self, order: FillableOrder):
         if isinstance(order, MarketOrder):
             return True
         if order.direction == "buy":
             return order.price >= self.best_ask_price
         if order.direction == "sell":
             return order.price <= self.best_bid_price
-
-    def _get_deletion_from_limit_order(self, limit_order: LimitOrder):
-        return Deletion(**copy(limit_order.__dict__))
 
     def _find_queue_position(
         self, order: Union[Cancellation, Deletion, LimitOrder], orderbook: Orderbook
@@ -179,22 +189,21 @@ class Exchange:
 
     def _reduce_order_with_queue_position(
         self,
-        order_price: int,
-        order_direction: Literal["buy", "sell"],
+        order: Union[LimitOrder, Cancellation, Deletion],
         queue_position: int,
         volume_to_remove: int,
         orderbook: Orderbook,
     ) -> LimitOrder:
-        order_to_partially_remove = copy(orderbook[order_direction][order_price][queue_position])
+        order_to_partially_remove = copy(orderbook[order.direction][order.price][queue_position])
         if volume_to_remove > order_to_partially_remove.volume:
             raise CancellationVolumeExceededError(
                 f"Attempting to remove volume {volume_to_remove} from order of size {order_to_partially_remove.volume}."
             )
-        removed_order = deepcopy(orderbook[order_direction][order_price][queue_position])
+        removed_order = deepcopy(orderbook[order.direction][order.price][queue_position])
         removed_order.volume = volume_to_remove
         order_to_partially_remove.volume -= volume_to_remove
-        orderbook[order_direction][order_price][queue_position] = order_to_partially_remove
-        self._clear_empty_orders_and_prices(order_price, order_direction, queue_position, orderbook)
+        orderbook[order.direction][order.price][queue_position] = order_to_partially_remove
+        self._clear_empty_orders_and_prices(order.price, order.direction, queue_position, orderbook)
         return removed_order
 
     def _clear_empty_orders_and_prices(
