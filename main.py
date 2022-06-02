@@ -2,6 +2,7 @@
 from RL4MM.gym.example_env import Example_v0
 
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
+from RL4MM.utils.utils import custom_logger
 from RL4MM.features.Features import Feature
 from RL4MM.utils.utils import get_date_time
 from ray.tune.registry import register_env
@@ -10,11 +11,15 @@ from gym.spaces import Discrete, Tuple
 from ray.rllib.agents import ppo
 import argparse, gym, ray
 from typing import List
+import os
 
 def env_creator(env_config):
+    obs = OrderbookSimulator(ticker=env_config['ticker'],
+                             n_levels=env_config['n_levels'])
+        
     """
     return HistoricalOrderbookEnvironment(
-        simulator = OrderbookSimulator(ticker=env_config['ticker']), # OrderbookSimulator
+        simulator = obs, # OrderbookSimulator
         min_date  = get_date_time(env_config['min_date']),  # datetime
         max_date  = get_date_time(env_config['max_date']),  # datetime
         step_size = timedelta(microseconds=env_config['step_size']), # timedelta
@@ -43,11 +48,13 @@ def main(args):
             "max_date":args['max_date'],
             "step_size":args['step_size'],
             "num_steps":args['num_steps'],
+            "n_levels":args['n_levels'],
             "initial_portfolio":args['initial_portfolio'],
         }
     }
     register_env("HistoricalOrderbookEnvironment", env_creator)
-    trainer = ppo.PPOTrainer(env="HistoricalOrderbookEnvironment", config=config)
+    trainer = ppo.PPOTrainer(env="HistoricalOrderbookEnvironment", config=config,\
+                             logger_creator=custom_logger(prefix=args['ticker']))
 
     # -------------------- Train Agent ---------------------------
     for _ in range(args['iterations']):
@@ -67,10 +74,11 @@ if __name__ == '__main__':
     parser.add_argument('-i','--iterations', default="10", help='Training iterations.', type=int)
     # -------------------- Env Args ---------------------------
     parser.add_argument('-t','--ticker', default="MSFT", help='Specify stock ticker.', type=str)
-    parser.add_argument('-maxd','--min_date', default="2019,1,2,10,35,45", help='.', type=str)
-    parser.add_argument('-mind','--max_date', default="2020,1,2,10,35,45", help='.', type=str)
-    parser.add_argument('-sz','--step_size', default="100000", help='.', type=int)
+    parser.add_argument('-maxd','--min_date', default="2019,1,2,10,35,45", help='Data start date.', type=str)
+    parser.add_argument('-mind','--max_date', default="2020,1,2,10,35,45", help='Data end date.', type=str)
+    parser.add_argument('-sz','--step_size', default="100000", help='Tick size.', type=int)
     parser.add_argument('-ns','--num_steps', default="10", help='Number of steps.', type=int)
+    parser.add_argument('-nl','--n_levels', default="50", help='Number of levels.', type=int)
     parser.add_argument('-ip','--initial_portfolio', default=None, help='Initial portfolio.', type=dict)
     # -------------------------------------------------
     args = vars(parser.parse_args())
