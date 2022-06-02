@@ -5,7 +5,14 @@ from dataclasses import dataclass
 
 import numpy as np
 from sortedcontainers import SortedDict
-from typing import Optional, List, Literal, Union, cast
+import sys
+
+# from typing import Optional, List, Literal, Union
+if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
+    from typing import Optional, List, Literal, Union, cast
+else:
+    from typing import Optional, List, Union, cast
+    from typing_extensions import Literal
 
 from RL4MM.orderbook.OrderIDConvertor import OrderIdConvertor
 from RL4MM.orderbook.create_order import create_order

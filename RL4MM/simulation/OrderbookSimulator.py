@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Deque, Dict, List, Optional
 
+from typing import Deque, Dict, List, Optional
 import pandas as pd
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase

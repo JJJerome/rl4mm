@@ -1,5 +1,10 @@
 import abc
-from typing import TypedDict
+import sys
+
+if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict
 
 import pandas as pd
 
