@@ -2,7 +2,7 @@
 import sys
 
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from typing import Optional, Literal, Union
+    from typing import Optional, Literal, Union, TypedDict
 else:
     from typing import Optional, Union
     from typing_extensions import Literal, TypedDict
