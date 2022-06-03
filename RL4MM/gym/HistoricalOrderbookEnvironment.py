@@ -1,6 +1,12 @@
+from __future__ import annotations
 from copy import deepcopy, copy
 from datetime import datetime, timedelta
-from typing import List, TypedDict, Literal
+import sys
+if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
+    from typing import List, TypedDict, Literal
+else:
+    from typing import List
+    from typing_extensions import TypedDict, Literal
 
 import gym
 import numpy as np

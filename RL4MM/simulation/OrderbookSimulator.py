@@ -76,7 +76,7 @@ class OrderbookSimulator:
         initial_orders = []
         for direction in ["buy", "sell"]:
             for level in range(self.n_levels):
-                if series[f"{direction}_volume_{level}"] > 0:
+                if f"{direction}_volume_{level}" in series:
                     initial_orders.append(
                         LimitOrder(
                             timestamp=series.name,

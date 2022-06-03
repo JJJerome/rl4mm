@@ -1,5 +1,10 @@
+from __future__ import annotations
 import abc
-from typing import Literal
+import sys
+if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 import numpy as np
 from scipy.stats import betabinom
