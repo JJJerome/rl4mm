@@ -1,5 +1,5 @@
-# from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
-from RL4MM.gym.example_env import Example_v0
+from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
+#from RL4MM.gym.example_env import Example_v0
 
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.utils.utils import custom_logger
@@ -13,23 +13,16 @@ import argparse, gym, ray
 from typing import List
 import os
 
-
 def env_creator(env_config):
     obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
-
-    """
     return HistoricalOrderbookEnvironment(
+        episode_length=timedelta(minutes = 10),
         simulator = obs, # OrderbookSimulator
         min_date  = get_date_time(env_config['min_date']),  # datetime
         max_date  = get_date_time(env_config['max_date']),  # datetime
-        step_size = timedelta(microseconds=env_config['step_size']), # timedelta
-        features  = ,  # List[Feature]
-        num_steps = env_config['num_steps'], # int
+        step_size=timedelta(seconds = env_config['step_size']),
         initial_portfolio = env_config['initial_portfolio'] #: dict = None
     ) 
-    """
-    return Example_v0()
-
 
 def main(args):
     ray.init()
@@ -48,7 +41,7 @@ def main(args):
             "min_date": args["min_date"],
             "max_date": args["max_date"],
             "step_size": args["step_size"],
-            "num_steps": args["num_steps"],
+            "episode_length": args["episode_length"],
             "n_levels": args["n_levels"],
             "initial_portfolio": args["initial_portfolio"],
         },
@@ -70,21 +63,21 @@ if __name__ == "__main__":
     # -------------------- Training Args ----------------------
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("-g", "--num_gpus", default="1", help="Number of GPUs to use during training.", type=int)
-    parser.add_argument("-nw", "--num_workers", default="2", help="Number of wokers to use during training.", type=int)
+    parser.add_argument("-nw", "--num_workers", default="1", help="Number of wokers to use during training.", type=int)
     parser.add_argument(
-        "-nwe", "--num_workers_eval", default="2", help="Number of wokers used during evaluation.", type=int
+        "-nwe", "--num_workers_eval", default="1", help="Number of wokers used during evaluation.", type=int
     )
     parser.add_argument("-fw", "--framework", default="torch", help="Framework, torch or tf.", type=str)
     parser.add_argument("-l", "--lstm", default=False, help="LSTM on/off.", type=bool)
     parser.add_argument("-i", "--iterations", default="10", help="Training iterations.", type=int)
     # -------------------- Env Args ---------------------------
+    parser.add_argument("-mind", "--min_date", default="2019,1,2", help="Data start date.", type=str)
+    parser.add_argument("-maxd", "--max_date", default="2020,1,2", help="Data end date.", type=str)
     parser.add_argument("-t", "--ticker", default="MSFT", help="Specify stock ticker.", type=str)
-    parser.add_argument("-maxd", "--min_date", default="2019,1,2,10,35,45", help="Data start date.", type=str)
-    parser.add_argument("-mind", "--max_date", default="2020,1,2,10,35,45", help="Data end date.", type=str)
-    parser.add_argument("-sz", "--step_size", default="100000", help="Tick size.", type=int)
-    parser.add_argument("-ns", "--num_steps", default="10", help="Number of steps.", type=int)
-    parser.add_argument("-nl", "--n_levels", default="50", help="Number of levels.", type=int)
+    parser.add_argument("-el", "--episode_length", default="10", help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
+    parser.add_argument("-sz", "--step_size", default="1", help="Step size in seconds.", type=int)
+    parser.add_argument("-nl", "--n_levels", default="200", help="Number of levels.", type=int)
     # -------------------------------------------------
     args = vars(parser.parse_args())
     # -------------------  Run ------------------------
