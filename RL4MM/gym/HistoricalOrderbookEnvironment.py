@@ -108,7 +108,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         return observation
 
     def step(self, action: tuple):
-        done = 0
+        done = False # rllib requires a bool
+        info = {}
         internal_orders = self.convert_action_to_orders(action=action)
         filled_orders = self.simulator.forward_step(until=self.now_is + self.step_size, internal_orders=internal_orders)
         previous_internal_state = deepcopy(self.internal_state)
@@ -118,8 +119,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         observation = self.get_observation()
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
             reward = self.terminal_reward_function.calculate(self.internal_state, previous_internal_state)
-            done = 1
-        return observation, reward, done, None
+            done = True # rllib requires a bool
+        return observation, reward, done, info 
 
     def get_observation(self) -> np.ndarray:
         return np.array([feature.calculate(self.internal_state) for feature in self.features])
