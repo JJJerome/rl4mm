@@ -180,6 +180,9 @@ class Exchange:
         internal_id = order.internal_id or self.order_id_convertor.get_internal_order_id(order)
         if internal_id is None and order.is_external:  # This is due to the external order being submitted before start
             return None
+        if order.price not in orderbook[order.direction]:
+            warnings.warn(f"No {order.direction} orders found at level {order.price}")
+            return None
         book_level = orderbook[order.direction][order.price]
         left, right = 0, len(book_level) - 1
         while left <= right:
