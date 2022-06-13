@@ -29,6 +29,7 @@ class BetaOrderDistributor(OrderDistributor):
         self.active_volume = active_volume
 
     def _convert_action(self, action: np.ndarray) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
+        assert all(action) > 0, "Action must be positive"
         beta_binom_buy = betabinom(n=self.n_levels - 1, a=action[0], b=action[1])
         beta_binom_sell = betabinom(n=self.n_levels - 1, a=action[2], b=action[3])
         buy_volumes = np.round(beta_binom_buy.pmf(self.tick_range) * self.active_volume).astype(int)

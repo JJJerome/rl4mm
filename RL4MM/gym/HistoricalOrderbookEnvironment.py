@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import warnings
 from copy import deepcopy, copy
 from datetime import datetime, timedelta
 import sys
@@ -30,7 +32,7 @@ from RL4MM.features.Features import (
 from RL4MM.gym.action_interpretation.OrderDistributors import OrderDistributor, BetaOrderDistributor
 from RL4MM.orderbook.create_order import create_order
 from RL4MM.orderbook.models import Orderbook, Order, FillableOrder, OrderDict, Cancellation
-from RL4MM.rewards.RewardFunctions import RewardFunction, PnL, InventoryAdjustedPnL
+from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
@@ -116,10 +118,12 @@ class HistoricalOrderbookEnvironment(gym.Env):
         done = False  # rllib requires a bool
         info = {}
         internal_orders = self.convert_action_to_orders(action=action)
-        filled_orders = self.simulator.forward_step(until=self.now_is + self.step_size, internal_orders=internal_orders)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            filled = self.simulator.forward_step(until=self.now_is + self.step_size, internal_orders=internal_orders)
         previous_internal_state = deepcopy(self.internal_state)
         self.now_is += self.step_size
-        self.update_internal_state(filled_orders)
+        self.update_internal_state(filled)
         reward = self.per_step_reward_function.calculate(self.internal_state, previous_internal_state)
         observation = self.get_observation()
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
@@ -159,7 +163,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
                     order = create_order("limit", order_dict)
                     orders.append(order)
                 if order_volume < 0:
-                    current_orders = copy(self.internal_orderbook[side][price])
+                    current_orders = deepcopy(self.internal_orderbook[side][price])
                     while order_volume < 0:
                         worst_order = current_orders[-1]
                         volume_to_remove = min(worst_order.volume, order_volume)
@@ -168,6 +172,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
                         cancellation = create_order("cancellation", order_dict)
                         orders.append(cancellation)
                         order_volume -= volume_to_remove
+                        current_orders.pop()
             for price in set(self.internal_orderbook[side].keys()) - set(best_prices):
                 try:
                     wide_orders = list(self.internal_orderbook[side][price])
