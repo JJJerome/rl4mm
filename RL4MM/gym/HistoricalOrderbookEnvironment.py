@@ -163,7 +163,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
                     order = create_order("limit", order_dict)
                     orders.append(order)
                 if order_volume < 0:
-                    current_orders = copy(self.internal_orderbook[side][price])
+                    current_orders = deepcopy(self.internal_orderbook[side][price])
                     while order_volume < 0:
                         worst_order = current_orders[-1]
                         volume_to_remove = min(worst_order.volume, order_volume)
@@ -172,6 +172,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
                         cancellation = create_order("cancellation", order_dict)
                         orders.append(cancellation)
                         order_volume -= volume_to_remove
+                        current_orders.pop()
             for price in set(self.internal_orderbook[side].keys()) - set(best_prices):
                 try:
                     wide_orders = list(self.internal_orderbook[side][price])
