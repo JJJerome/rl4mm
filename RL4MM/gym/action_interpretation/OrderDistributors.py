@@ -1,6 +1,7 @@
 from __future__ import annotations
 import abc
 import sys
+
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
     from typing import Literal
 else:
@@ -11,8 +12,12 @@ from scipy.stats import betabinom
 
 
 class OrderDistributor(metaclass=abc.ABCMeta):
+    def convert_action(self, action: np.ndarray) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
+        action = np.array(action, dtype=float) + sys.float_info.min
+        return self._convert_action(action)
+
     @abc.abstractmethod
-    def convert_action(self, action: tuple) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
+    def _convert_action(self, action: np.ndarray) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         pass
 
 
@@ -23,9 +28,9 @@ class BetaOrderDistributor(OrderDistributor):
         self.tick_range = range(0, self.n_levels)
         self.active_volume = active_volume
 
-    def convert_action(self, action: tuple) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
+    def _convert_action(self, action: np.ndarray) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         beta_binom_buy = betabinom(n=self.n_levels - 1, a=action[0], b=action[1])
         beta_binom_sell = betabinom(n=self.n_levels - 1, a=action[2], b=action[3])
-        buy_volumes = np.round(beta_binom_buy.pmf(self.tick_range) * self.active_volume)
-        sell_volumes = np.round(beta_binom_sell.pmf(self.tick_range) * self.active_volume)
+        buy_volumes = np.round(beta_binom_buy.pmf(self.tick_range) * self.active_volume).astype(int)
+        sell_volumes = np.round(beta_binom_sell.pmf(self.tick_range) * self.active_volume).astype(int)
         return {"buy": buy_volumes, "sell": sell_volumes}

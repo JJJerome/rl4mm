@@ -4,7 +4,7 @@ from ray.rllib.agents.ppo import PPOTrainer
 iterations = 10
 config = {
     "env": "MountainCarContinuous-v0",
-    "num_gpus": 1,
+    "num_gpus": 0,
     "num_workers": 2,
     "framework": "torch",
     "model": {

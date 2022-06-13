@@ -1,5 +1,6 @@
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
-#from RL4MM.gym.example_env import Example_v0
+
+# from RL4MM.gym.example_env import Example_v0
 
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.utils.utils import custom_logger
@@ -12,6 +13,7 @@ from ray.rllib.agents import ppo
 import argparse, gym, ray
 from typing import List
 import os
+
 
 def env_creator(env_config):
     obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
@@ -33,7 +35,7 @@ def main(args):
         "framework": args["framework"],
         "model": {
             "fcnet_hiddens": [64, 64],
-            "fcnet_activation": "relu",
+            "fcnet_activation": "tanh",
             "use_lstm": args["lstm"],
         },
         "evaluation_num_workers": args["num_workers_eval"],
