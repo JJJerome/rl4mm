@@ -25,14 +25,14 @@ parser.add_argument(
     action="store",
     type=int,
     default=99999999999,
-    help="the frequency of book snapshots added to database",
+    help="the max number of rows to add for a given date",
 )
 parser.add_argument(
     "--batch_size",
     action="store",
     type=int,
-    default=100000,
-    help="the frequency of book snapshots added to database",
+    default=1000000,
+    help="the batch size used to populate the db (for reducing memory requirements)",
 )
 
 if __name__ == "__main__":
