@@ -65,7 +65,7 @@ def main(args):
 if __name__ == "__main__":
     # -------------------- Training Args ----------------------
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("-g", "--num_gpus", default="1", help="Number of GPUs to use during training.", type=int)
+    parser.add_argument("-g", "--num_gpus", default="0", help="Number of GPUs to use during training.", type=int)
     parser.add_argument("-nw", "--num_workers", default="1", help="Number of wokers to use during training.", type=int)
     parser.add_argument(
         "-nwe", "--num_workers_eval", default="1", help="Number of wokers used during evaluation.", type=int
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--iterations", default="10", help="Training iterations.", type=int)
     # -------------------- Env Args ---------------------------
     parser.add_argument("-mind", "--min_date", default="2019,1,2", help="Data start date.", type=str)
-    parser.add_argument("-maxd", "--max_date", default="2020,1,2", help="Data end date.", type=str)
+    parser.add_argument("-maxd", "--max_date", default="2019,1,2", help="Data end date.", type=str)
     parser.add_argument("-t", "--ticker", default="MSFT", help="Specify stock ticker.", type=str)
     parser.add_argument("-el", "--episode_length", default="10", help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
