@@ -18,7 +18,7 @@ def env_creator(env_config):
     return HistoricalOrderbookEnvironment(
         episode_length=timedelta(minutes = 10),
         simulator = obs, # OrderbookSimulator
-        quote_levels=env_config["n_levels"],
+        quote_levels=env_config["n_levels"], # Double check this with Joe
         min_date  = get_date_time(env_config['min_date']),  # datetime
         max_date  = get_date_time(env_config['max_date']),  # datetime
         step_size=timedelta(seconds = env_config['step_size']),
