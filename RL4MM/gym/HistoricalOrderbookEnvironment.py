@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import warnings
 from copy import deepcopy, copy
 from datetime import datetime, timedelta
 import sys
@@ -116,10 +118,12 @@ class HistoricalOrderbookEnvironment(gym.Env):
         done = False  # rllib requires a bool
         info = {}
         internal_orders = self.convert_action_to_orders(action=action)
-        filled_orders = self.simulator.forward_step(until=self.now_is + self.step_size, internal_orders=internal_orders)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            filled = self.simulator.forward_step(until=self.now_is + self.step_size, internal_orders=internal_orders)
         previous_internal_state = deepcopy(self.internal_state)
         self.now_is += self.step_size
-        self.update_internal_state(filled_orders)
+        self.update_internal_state(filled)
         reward = self.per_step_reward_function.calculate(self.internal_state, previous_internal_state)
         observation = self.get_observation()
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
