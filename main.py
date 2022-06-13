@@ -18,6 +18,7 @@ def env_creator(env_config):
     return HistoricalOrderbookEnvironment(
         episode_length=timedelta(minutes = 10),
         simulator = obs, # OrderbookSimulator
+        quote_levels=env_config["n_levels"],
         min_date  = get_date_time(env_config['min_date']),  # datetime
         max_date  = get_date_time(env_config['max_date']),  # datetime
         step_size=timedelta(seconds = env_config['step_size']),
@@ -72,12 +73,12 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--iterations", default="10", help="Training iterations.", type=int)
     # -------------------- Env Args ---------------------------
     parser.add_argument("-mind", "--min_date", default="2019,1,2", help="Data start date.", type=str)
-    parser.add_argument("-maxd", "--max_date", default="2020,1,2", help="Data end date.", type=str)
+    parser.add_argument("-maxd", "--max_date", default="2019,1,2", help="Data end date.", type=str)
     parser.add_argument("-t", "--ticker", default="MSFT", help="Specify stock ticker.", type=str)
     parser.add_argument("-el", "--episode_length", default="10", help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
     parser.add_argument("-sz", "--step_size", default="1", help="Step size in seconds.", type=int)
-    parser.add_argument("-nl", "--n_levels", default="200", help="Number of levels.", type=int)
+    parser.add_argument("-nl", "--n_levels", default="50", help="Number of levels.", type=int)
     # -------------------------------------------------
     args = vars(parser.parse_args())
     # -------------------  Run ------------------------
