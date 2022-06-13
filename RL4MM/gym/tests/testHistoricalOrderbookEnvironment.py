@@ -12,8 +12,8 @@ from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironm
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
-ACTION_1 = [1,1,1,1]
-ACTION_2 = [1,2,1,2]
+ACTION_1 = [1, 1, 1, 1]
+ACTION_2 = [1, 2, 1, 2]
 
 
 class testHistoricalOrderbookEnvironment(TestCase):
@@ -33,7 +33,7 @@ class testHistoricalOrderbookEnvironment(TestCase):
         min_start_timedelta=timedelta(hours=10, seconds=1),
         max_end_timedelta=timedelta(hours=10, seconds=2),
         simulator=simulator,
-        feature_window_size=3
+        feature_window_size=3,
     )
 
     @classmethod
@@ -49,8 +49,6 @@ class testHistoricalOrderbookEnvironment(TestCase):
         )
         cls.env.reset()
 
-
-
     def test_reset(self):
         self.env.reset()
         expected = np.array([100, 0, 833.33, 0, 1, 308531.11])
@@ -60,17 +58,13 @@ class testHistoricalOrderbookEnvironment(TestCase):
 
     def test_convert_action_to_orders(self):
         self.env.reset()
-        best_prices = self.env._get_best_prices()
         internal_orders = self.env.convert_action_to_orders(action=ACTION_1)
         total_volume = sum(order.volume for order in internal_orders)
         self.assertEqual(200, total_volume)
-        for order in internal_orders:#
+        for order in internal_orders:  #
             self.assertEqual(order.volume, 10)  # BetaBinom(1,1) corresponds to Uniform
         internal_orders = self.env.convert_action_to_orders(action=ACTION_2)
         total_volume = sum(order.volume for order in internal_orders)
-        expected_order_sizes = [18,16,15,13,11,9,7,5,4,2] * 2  # Placing more orders towards the best price
+        expected_order_sizes = [18, 16, 15, 13, 11, 9, 7, 5, 4, 2] * 2  # Placing more orders towards the best price
         for i, order in enumerate(internal_orders):
             self.assertEqual(expected_order_sizes[i], order.volume)
-
-
-

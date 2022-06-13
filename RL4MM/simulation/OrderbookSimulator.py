@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from typing import Deque, Dict, List, Optional
 import pandas as pd
@@ -52,6 +52,7 @@ class OrderbookSimulator:
     def get_historical_start_book(self, start_date: datetime):
         start_series = self.database.get_last_snapshot(start_date, ticker=self.exchange.ticker)
         assert len(start_series) > 0, f"There is no data before the episode start time: {start_date}"
+        assert start_date - start_series.name <= timedelta(days=1), "Attempting to get data from more than a day ago"
         initial_orders = self._get_initial_orders_from_start_book(start_series)
         return self.exchange.get_initial_orderbook_from_orders(initial_orders)
 

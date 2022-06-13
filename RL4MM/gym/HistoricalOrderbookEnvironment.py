@@ -30,7 +30,7 @@ from RL4MM.features.Features import (
 from RL4MM.gym.action_interpretation.OrderDistributors import OrderDistributor, BetaOrderDistributor
 from RL4MM.orderbook.create_order import create_order
 from RL4MM.orderbook.models import Orderbook, Order, FillableOrder, OrderDict, Cancellation
-from RL4MM.rewards.RewardFunctions import RewardFunction, PnL, InventoryAdjustedPnL
+from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
