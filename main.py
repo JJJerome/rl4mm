@@ -1,5 +1,6 @@
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
-#from RL4MM.gym.example_env import Example_v0
+
+# from RL4MM.gym.example_env import Example_v0
 
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.utils.utils import custom_logger
@@ -13,16 +14,18 @@ import argparse, gym, ray
 from typing import List
 import os
 
+
 def env_creator(env_config):
     obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
     return HistoricalOrderbookEnvironment(
-        episode_length=timedelta(minutes = 10),
-        simulator = obs, # OrderbookSimulator
-        min_date  = get_date_time(env_config['min_date']),  # datetime
-        max_date  = get_date_time(env_config['max_date']),  # datetime
-        step_size=timedelta(seconds = env_config['step_size']),
-        initial_portfolio = env_config['initial_portfolio'] #: dict = None
-    ) 
+        episode_length=timedelta(minutes=10),
+        simulator=obs,  # OrderbookSimulator
+        min_date=get_date_time(env_config["min_date"]),  # datetime
+        max_date=get_date_time(env_config["max_date"]),  # datetime
+        step_size=timedelta(seconds=env_config["step_size"]),
+        initial_portfolio=env_config["initial_portfolio"],  #: dict = None
+    )
+
 
 def main(args):
     ray.init()

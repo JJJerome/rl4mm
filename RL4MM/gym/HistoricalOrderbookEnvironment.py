@@ -2,6 +2,7 @@ from __future__ import annotations
 from copy import deepcopy, copy
 from datetime import datetime, timedelta
 import sys
+
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
     from typing import List, TypedDict, Literal
 else:
@@ -57,12 +58,14 @@ class HistoricalOrderbookEnvironment(gym.Env):
         episode_length: timedelta = timedelta(minutes=30),
         initial_portfolio: Portfolio = None,
         quote_levels: int = 10,
-        num_book_snapshots: int = 10,
+        feature_window_size: int = 10,
         min_date: datetime = datetime(2019, 1, 2),
         max_date: datetime = datetime(2019, 1, 2),
+        min_start_timedelta: timedelta = timedelta(hours=10),
+        max_end_timedelta: timedelta = timedelta(hours=11, minutes=20),
         simulator: OrderbookSimulator = None,
         order_distributor: OrderDistributor = None,
-        per_step_reward_function: RewardFunction = PnL(),
+        per_step_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=10 ** (-4)),
         terminal_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=0.1),
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
@@ -89,6 +92,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         )
         self.min_date = min_date
         self.max_date = max_date
+        self.min_start_timedelta = min_start_timedelta
+        self.max_end_timedelta = max_end_timedelta
         self.simulator = simulator or OrderbookSimulator(
             ticker=ticker, order_generators=[HistoricalOrderGenerator(ticker)], n_levels=200
         )
@@ -96,9 +101,9 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.per_step_reward_function = per_step_reward_function
         self.terminal_reward_function = terminal_reward_function
         self.now_is = min_date
-        self.num_book_snapshots = num_book_snapshots
+        self.feature_window_size = feature_window_size
         self.price = MicroPrice()
-        self.reset()
+        self._check_params()
 
     def reset(self):
         self.now_is = self._get_random_start_time()
@@ -108,7 +113,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         return observation
 
     def step(self, action: tuple):
-        done = False # rllib requires a bool
+        done = False  # rllib requires a bool
         info = {}
         internal_orders = self.convert_action_to_orders(action=action)
         filled_orders = self.simulator.forward_step(until=self.now_is + self.step_size, internal_orders=internal_orders)
@@ -119,8 +124,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         observation = self.get_observation()
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
             reward = self.terminal_reward_function.calculate(self.internal_state, previous_internal_state)
-            done = True # rllib requires a bool
-        return observation, reward, done, info 
+            done = True  # rllib requires a bool
+        return observation, reward, done, info
 
     def get_observation(self) -> np.ndarray:
         return np.array([feature.calculate(self.internal_state) for feature in self.features])
@@ -171,7 +176,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
                 for order in wide_orders:
                     cancellation = Cancellation(**copy(order.__dict__))
                     orders.append(cancellation)
-
         return orders
 
     def _get_default_order_dict(self, direction: Literal["buy", "sell"]) -> OrderDict:
@@ -226,29 +230,31 @@ class HistoricalOrderbookEnvironment(gym.Env):
         volumes = list()
         for price in price_levels:
             try:
-                volumes.append(sum([order.volume for order in orderbook[direction][price]]))
+                volumes.append(sum(order.volume for order in orderbook[direction][price]))
             except KeyError:
                 volumes.append(0)
         return np.array(volumes)
 
-    def _get_features_from_underlying(self, book_snapshots: pd.DataFrame):
-        return (feature.calculate(book_snapshots) for feature in self.features)
-
     def _random_offset_timestamp(self):
-        max_offset_steps = int((MAXIMUM_END_DELTA - self.episode_length - MINIMUM_START_DELTA) / self.step_size)
-        random_offset_steps = np.random.randint(low=0, high=max_offset_steps)
-        return MINIMUM_START_DELTA + random_offset_steps * self.step_size
+        max_offset_steps = int(
+            (self.max_end_timedelta - self.episode_length - self.min_start_timedelta) / self.step_size
+        )
+        try:
+            random_offset_steps = np.random.randint(low=0, high=max_offset_steps)
+        except ValueError:
+            random_offset_steps = 0
+        return self.min_start_timedelta + random_offset_steps * self.step_size
 
     def _random_offset_days(self):
         return np.random.randint(int((self.max_date.date() - self.min_date.date()) / timedelta(days=1)) + 1)
 
     def _reset_internal_state(self):
-        snapshot_start = self.now_is - self.step_size * self.num_book_snapshots
+        snapshot_start = self.now_is - self.step_size * self.feature_window_size
         book_snapshots = self.simulator.database.get_book_snapshot_series(
             start_date=snapshot_start,
             end_date=self.now_is,
             ticker=self.ticker,
-            freq=ORDERBOOK_FREQ,
+            freq=self.step_size,
             n_levels=LEVELS_FOR_FEATURE_CALCULATION,
         )
         self.internal_state = InternalState(
@@ -258,6 +264,9 @@ class HistoricalOrderbookEnvironment(gym.Env):
             book_snapshots=book_snapshots,
             proportion_of_episode_remaining=1.0,
         )
+
+    def _check_params(self):
+        assert self.min_start_timedelta + self.episode_length <= self.max_end_timedelta, "Episode is too long"
 
     def render(self, mode="human"):
         pass

@@ -27,10 +27,12 @@ class HistoricalOrderGenerator(OrderGenerator):
     @staticmethod
     def _remove_hidden_executions(messages: pd.DataFrame):
         if messages.empty:
-            warnings.warn('DataFrame is empty.')
+            warnings.warn("DataFrame is empty.")
             return messages
         else:
-            assert "cross_trade" not in messages.message_type.unique(), "Trying to step forward before initial cross-trade!"
+            assert (
+                "cross_trade" not in messages.message_type.unique()
+            ), "Trying to step forward before initial cross-trade!"
             return messages[messages.message_type != "market_hidden"]
 
 
