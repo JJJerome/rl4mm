@@ -9,7 +9,7 @@ def get_date_time(date_string: str):
     return datetime(d[0], d[1], d[2])
 
 
-def custom_logger(prefix, custom_path="/home/RL4MM/results"):
+def custom_logger(prefix, custom_path="/home/results"):
     custom_path = os.path.expanduser(custom_path)
     timestr = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
     logdir_prefix = "{}_{}".format(prefix, timestr)
