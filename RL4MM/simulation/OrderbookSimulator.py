@@ -30,6 +30,7 @@ class OrderbookSimulator:
         if not start_book:
             start_book = self.get_historical_start_book(start_date)
         self.exchange.central_orderbook = start_book
+        self.exchange.reset_internal_orderbook()
         self.now_is = start_date
         return start_book
 

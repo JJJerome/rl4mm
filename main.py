@@ -73,7 +73,7 @@ if __name__ == "__main__":
     parser.add_argument("-mind", "--min_date", default="2019,1,2", help="Data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2019,1,2", help="Data end date.", type=str)
     parser.add_argument("-t", "--ticker", default="MSFT", help="Specify stock ticker.", type=str)
-    parser.add_argument("-el", "--episode_length", default="10", help="Episode length (minutes).", type=int)
+    parser.add_argument("-el", "--episode_length", default="1", help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
     parser.add_argument("-sz", "--step_size", default="1", help="Step size in seconds.", type=int)
     parser.add_argument("-nl", "--n_levels", default="200", help="Number of levels.", type=int)
