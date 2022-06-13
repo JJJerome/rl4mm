@@ -18,6 +18,8 @@ RUN apt-get -y update \
     libsm6 \ 
     ffmpeg \ 
     tmux \
+    fish \
+    nano \
     wget \
     vim \
     && apt-get clean \
