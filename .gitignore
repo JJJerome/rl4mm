@@ -1,6 +1,7 @@
 /.env
 *.csv
 *.swp
+*.swo
 *.pyc
 *.xml
 *.iml
@@ -8,4 +9,4 @@
 /.idea/
 /data/
 /experiments/
-*.ipynb_checkpoints/*
+*.ipynb\_checkpoints*
