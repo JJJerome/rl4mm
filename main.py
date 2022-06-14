@@ -11,17 +11,19 @@ from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.utils.utils import custom_logger
 from RL4MM.utils.utils import get_date_time
 
+
 def env_creator(env_config):
     obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
     return HistoricalOrderbookEnvironment(
         episode_length=timedelta(minutes=env_config["episode_length"]),
-        simulator = obs, # OrderbookSimulator
-        quote_levels=env_config["n_levels"], # Double check this with Joe
-        min_date  = get_date_time(env_config['min_date']),  # datetime
-        max_date  = get_date_time(env_config['max_date']),  # datetime
-        step_size=timedelta(seconds = env_config['step_size']),
-        initial_portfolio = env_config['initial_portfolio'] #: dict = None
-    ) 
+        simulator=obs,  # OrderbookSimulator
+        quote_levels=env_config["n_levels"],  # Double check this with Joe
+        min_date=get_date_time(env_config["min_date"]),  # datetime
+        max_date=get_date_time(env_config["max_date"]),  # datetime
+        step_size=timedelta(seconds=env_config["step_size"]),
+        initial_portfolio=env_config["initial_portfolio"],  #: dict = None
+    )
+
 
 def main(args):
     ray.init()
@@ -31,7 +33,7 @@ def main(args):
         "framework": args["framework"],
         "model": {
             "fcnet_hiddens": [64, 64],
-            "fcnet_activation":"tanh",#torch.nn.Sigmoid,
+            "fcnet_activation": "tanh",  # torch.nn.Sigmoid,
             "use_lstm": args["lstm"],
         },
         "evaluation_num_workers": args["num_workers_eval"],
