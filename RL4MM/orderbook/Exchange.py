@@ -51,6 +51,9 @@ class Exchange:
         self.order_id_convertor = OrderIdConvertor()
         self.name = "NASDAQ"
 
+    def reset_internal_orderbook(self):
+        self.internal_orderbook = self.get_empty_orderbook()
+
     def process_order(self, order: Order) -> Optional[List[Union[MarketOrder, LimitOrder]]]:
         if isinstance(order, LimitOrder):
             return self.submit_order(order)
