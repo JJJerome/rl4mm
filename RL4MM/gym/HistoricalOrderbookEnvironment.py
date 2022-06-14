@@ -135,15 +135,16 @@ class HistoricalOrderbookEnvironment(gym.Env):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             filled = self.simulator.forward_step(until=self.now_is + self.step_size, internal_orders=internal_orders)
-        previous_internal_state = deepcopy(self.internal_state)
+        current_state = deepcopy(self.internal_state)
         self.now_is += self.step_size
         self.update_internal_state(filled)
         if self.order_tracker is not None:
             self.order_tracker.track_orders(filled_orders=filled, internal_state=self.internal_state)
-        reward = self.per_step_reward_function.calculate(self.internal_state, previous_internal_state)
+        next_state = self.internal_state
+        reward = self.per_step_reward_function.calculate(current_state, next_state)
         observation = self.get_observation()
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
-            reward = self.terminal_reward_function.calculate(self.internal_state, previous_internal_state)
+            reward = self.terminal_reward_function.calculate(current_state,next_state)
             done = True  # rllib requires a bool
         return observation, reward, done, info
 
@@ -316,3 +317,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
     @property
     def internal_orderbook(self):
         return self.simulator.exchange.internal_orderbook
+
+    def mark_to_market_value(self):
+        return self.internal_state["inventory"] * self.internal_state["asset_price"] + self.internal_state["cash"]
