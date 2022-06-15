@@ -5,22 +5,26 @@ from ray.tune.registry import register_env
 from ray.rllib.agents import ppo
 import torch
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
+from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 
 # from RL4MM.gym.example_env import Example_v0
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.utils.utils import custom_logger
 from RL4MM.utils.utils import get_date_time
+from RL4MM.utils.utils import boolean_string
 
 def env_creator(env_config):
     obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
     return HistoricalOrderbookEnvironment(
         episode_length=timedelta(minutes=env_config["episode_length"]),
         simulator = obs, # OrderbookSimulator
-        quote_levels=env_config["n_levels"], # Double check this with Joe
+        quote_levels=10, #env_config["n_levels"], # Double check this with Joe
         min_date  = get_date_time(env_config['min_date']),  # datetime
         max_date  = get_date_time(env_config['max_date']),  # datetime
         step_size=timedelta(seconds = env_config['step_size']),
-        initial_portfolio = env_config['initial_portfolio'] #: dict = None
+        initial_portfolio = env_config['initial_portfolio'], #: dict = None
+        per_step_reward_function=InventoryAdjustedPnL(inventory_aversion=10 ** (-4), asymmetrically_dampened=True),
+        terminal_reward_function=InventoryAdjustedPnL(inventory_aversion=0.1, asymmetrically_dampened=True),
     ) 
 
 def main(args):
@@ -30,7 +34,7 @@ def main(args):
         "num_workers": args["num_workers"],
         "framework": args["framework"],
         "model": {
-            "fcnet_hiddens": [64, 64],
+            "fcnet_hiddens": [256, 256],
             "fcnet_activation":"tanh",#torch.nn.Sigmoid,
             "use_lstm": args["lstm"],
         },
@@ -61,14 +65,14 @@ def main(args):
 if __name__ == "__main__":
     # -------------------- Training Args ----------------------
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("-g", "--num_gpus", default="0", help="Number of GPUs to use during training.", type=int)
-    parser.add_argument("-nw", "--num_workers", default="1", help="Number of workers to use during training.", type=int)
+    parser.add_argument("-g", "--num_gpus", default="1", help="Number of GPUs to use during training.", type=int)
+    parser.add_argument("-nw", "--num_workers", default="5", help="Number of workers to use during training.", type=int)
     parser.add_argument(
         "-nwe", "--num_workers_eval", default="1", help="Number of workers used during evaluation.", type=int
     )
     parser.add_argument("-fw", "--framework", default="torch", help="Framework, torch or tf.", type=str)
-    parser.add_argument("-l", "--lstm", default=False, help="LSTM on/off.", type=bool)
-    parser.add_argument("-i", "--iterations", default="10", help="Training iterations.", type=int)
+    parser.add_argument("-l", "--lstm", default=False, help="LSTM on/off.", type=boolean_string)
+    parser.add_argument("-i", "--iterations", default="200", help="Training iterations.", type=int)
     # -------------------- Env Args ---------------------------
     parser.add_argument("-mind", "--min_date", default="2019,1,2", help="Data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2019,1,2", help="Data end date.", type=str)
