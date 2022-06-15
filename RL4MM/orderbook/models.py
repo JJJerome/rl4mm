@@ -30,6 +30,7 @@ class Order:
 @dataclass
 class MarketOrder(Order):
     volume: int
+    price: Optional[int] = None
 
 
 @dataclass
