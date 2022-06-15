@@ -33,8 +33,8 @@ class Custom_Callbacks(DefaultCallbacks):
             "ERROR: `on_episode_step()` callback should not be called right "
             "after env reset!"
         )
-        episode.custom_metrics['inventory']  = episode._agent_to_last_info['agent0']["inventory"]
-        episode.custom_metrics['cash']  = episode._agent_to_last_info['agent0']["cash"]
+        for key in episode._agent_to_last_info['agent0']:
+            episode.custom_metrics[key]  = episode._agent_to_last_info['agent0'][key]
 
     def on_episode_end(
         self,
@@ -56,8 +56,8 @@ class Custom_Callbacks(DefaultCallbacks):
                 "ERROR: `on_episode_end()` should only be called "
                 "after episode is done!"
             )
-        episode.custom_metrics['inventory']  = episode._agent_to_last_info['agent0']["inventory"]
-        episode.custom_metrics['cash']  = episode._agent_to_last_info['agent0']["cash"]
+        for key in episode._agent_to_last_info['agent0']:
+            episode.custom_metrics[key]  = episode._agent_to_last_info['agent0'][key]
 
     def on_train_result(self, *, result: dict, **kwargs):
         result["callback_ok"] = True
