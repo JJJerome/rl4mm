@@ -79,7 +79,7 @@ class Exchange:
                 orderbook[order.direction][order.price] = deque([order])
         return None
 
-    def execute_order(self, order: Union[MarketOrder, LimitOrder]) -> List[Union[MarketOrder, LimitOrder]]:
+    def execute_order(self, order: FillableOrder) -> List[FillableOrder]:
         executed_internal_orders: List[Union[MarketOrder, LimitOrder]] = list()
         remaining_volume = order.volume
         while remaining_volume > 0 and self._does_order_cross_spread(order):
@@ -102,17 +102,15 @@ class Exchange:
             if not executed_order.is_external:
                 executed_internal_orders.append(executed_order)
             remaining_volume -= volume_to_execute
+            if not order.is_external:
+                executed_market_order: MarketOrder = create_order("market", cast(OrderDict, order.__dict__))
+                executed_market_order.volume = volume_to_execute
+                executed_market_order.price = best_limit_order.price
+                executed_internal_orders.append(executed_market_order)
         if remaining_volume > 0 and isinstance(order, LimitOrder):
             remaining_order = copy(order)
             remaining_order.volume = remaining_volume
             self.submit_order(remaining_order)  # submit a limit order with the remaining volume
-        if not order.is_external:
-            if isinstance(order, LimitOrder):
-                executed_market_order: MarketOrder = create_order("market", cast(OrderDict, order.__dict__))
-            else:
-                executed_market_order = copy(order)
-            executed_market_order.volume = order.volume - remaining_volume
-            executed_internal_orders.append(executed_market_order)
         return executed_internal_orders
 
     def remove_order(self, order: Union[Cancellation, Deletion]) -> None:
@@ -161,7 +159,7 @@ class Exchange:
             orderbook[order.direction][order.price] = deque([order])
         return orderbook
 
-    def _get_highest_priority_matching_order(self, order: Order):
+    def _get_highest_priority_matching_order(self, order: FillableOrder) -> LimitOrder:
         opposite_direction = "sell" if order.direction == "buy" else "buy"
         best_price = self.best_ask_price if opposite_direction == "sell" else self.best_bid_price
         try:

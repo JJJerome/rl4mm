@@ -99,6 +99,19 @@ class Volatility(Feature):
         return returns_df.var()
 
 
+class MidPrice(Feature):
+    min_value = 0
+    max_value = 1000 * 10000  # Here, we assume that stock prices are less than $1000
+
+    def _calculate(self, internal_state: InternalState):
+        current_book = internal_state["book_snapshots"].iloc[-1]
+        return self.calculate_from_current_book(current_book)
+
+    @staticmethod
+    def calculate_from_current_book(current_book: pd.Series):
+        return (current_book.sell_price_0 + current_book.buy_price_0) / 2
+
+
 class MicroPrice(Feature):
     min_value = 0
     max_value = 1000 * 10000  # Here, we assume that stock prices are less than $1000
