@@ -6,6 +6,7 @@ from ray.rllib.agents import ppo
 import torch
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
+from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
 
 # from RL4MM.gym.example_env import Example_v0
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
@@ -23,8 +24,13 @@ def env_creator(env_config):
         max_date  = get_date_time(env_config['max_date']),  # datetime
         step_size=timedelta(seconds = env_config['step_size']),
         initial_portfolio = env_config['initial_portfolio'], #: dict = None
-        per_step_reward_function=InventoryAdjustedPnL(inventory_aversion=10 ** (-4), asymmetrically_dampened=True),
-        terminal_reward_function=InventoryAdjustedPnL(inventory_aversion=0.1, asymmetrically_dampened=True),
+        per_step_reward_function=InventoryAdjustedPnL(
+            inventory_aversion=10 ** (-4), asymmetrically_dampened=env_config['asymmetrically_dampened']
+        ),
+        terminal_reward_function=InventoryAdjustedPnL(
+            inventory_aversion=0.1, asymmetrically_dampened=env_config['asymmetrically_dampened']
+        ),
+        market_order_clearing=env_config['market_order_clearing'],
     ) 
 
 def main(args):
@@ -33,6 +39,7 @@ def main(args):
         "num_gpus": args["num_gpus"],
         "num_workers": args["num_workers"],
         "framework": args["framework"],
+        "callbacks": Custom_Callbacks,
         "model": {
             "fcnet_hiddens": [256, 256],
             "fcnet_activation":"tanh",#torch.nn.Sigmoid,
@@ -47,6 +54,8 @@ def main(args):
             "episode_length": args["episode_length"],
             "n_levels": args["n_levels"],
             "initial_portfolio": args["initial_portfolio"],
+            "asymmetrically_dampened": args["asymmetrically_dampened"],
+            "market_order_clearing": args["market_order_clearing"],
         },
     }
     register_env("HistoricalOrderbookEnvironment", env_creator)
@@ -81,6 +90,8 @@ if __name__ == "__main__":
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
     parser.add_argument("-sz", "--step_size", default="1", help="Step size in seconds.", type=int)
     parser.add_argument("-nl", "--n_levels", default="200", help="Number of levels.", type=int)
+    parser.add_argument("-a", "--asymmetrically_dampened", default=True, help="AD on/off.", type=boolean_string)
+    parser.add_argument("-moc", "--market_order_clearing", default=True, help="Market order clearing on/off.", type=boolean_string)
     # -------------------------------------------------
     args = vars(parser.parse_args())
     # -------------------  Run ------------------------

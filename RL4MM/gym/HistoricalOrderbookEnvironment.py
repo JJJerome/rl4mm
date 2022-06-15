@@ -128,9 +128,11 @@ class HistoricalOrderbookEnvironment(gym.Env):
             self.order_tracker.reset()
         return observation
 
+    def clear_inventory(clear_inventory_action: float) -> bool: 
+        return np.abs(self.internal_state["inventory"]) > clear_inventory_action
+
     def step(self, action: tuple):
         done = False  # rllib requires a bool
-        info = {}
         internal_orders = self.convert_action_to_orders(action=action)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -146,6 +148,10 @@ class HistoricalOrderbookEnvironment(gym.Env):
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
             reward = self.terminal_reward_function.calculate(current_state,next_state)
             done = True  # rllib requires a bool
+        info = {'inventory':self.internal_state["inventory"],
+                'cash':self.internal_state["cash"],
+                #'clear_inventory': clear_inventory(action[-1])
+               }
         return observation, reward, done, info
 
     def get_observation(self) -> np.ndarray:
