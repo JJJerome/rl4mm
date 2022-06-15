@@ -8,7 +8,6 @@ from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironm
 from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
 
-# from RL4MM.gym.example_env import Example_v0
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.utils.utils import custom_logger
 from RL4MM.utils.utils import get_date_time
@@ -18,8 +17,8 @@ def env_creator(env_config):
     obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
     return HistoricalOrderbookEnvironment(
         episode_length=timedelta(minutes=env_config["episode_length"]),
-        simulator = obs, # OrderbookSimulator
-        quote_levels=10, #env_config["n_levels"], # Double check this with Joe
+        simulator = obs,
+        quote_levels=10, 
         min_date  = get_date_time(env_config['min_date']),  # datetime
         max_date  = get_date_time(env_config['max_date']),  # datetime
         step_size=timedelta(seconds = env_config['step_size']),
