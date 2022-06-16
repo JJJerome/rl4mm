@@ -151,6 +151,10 @@ class Exchange:
     def best_bid_price(self):
         return next(reversed(self.central_orderbook["buy"]), 0)
 
+    @property
+    def orderbook_price_range(self):
+        return next(iter(self.central_orderbook["buy"].keys())), next(reversed(self.central_orderbook["sell"]))
+
     def get_initial_orderbook_from_orders(self, orders: List[LimitOrder]) -> Orderbook:
         assert all(order.internal_id == -1 for order in orders), "internal_ids of orders in the initial book must be -1"
         orderbook = self.get_empty_orderbook()

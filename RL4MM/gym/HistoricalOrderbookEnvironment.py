@@ -5,10 +5,11 @@ from copy import deepcopy, copy
 from datetime import datetime, timedelta
 import sys
 
-from RL4MM.gym.order_tracking.OrderTrackers import OrderTracker, SimpleOrderTracker
+from RL4MM.gym.order_tracking.InfoCalculators import InfoCalculator
+from RL4MM.utils.utils import convert_timedelta_to_freq
 
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from typing import List, TypedDict, Literal
+    from typing import List, TypedDict, Literal, Union
 else:
     from typing import List
     from typing_extensions import TypedDict, Literal
@@ -29,17 +30,18 @@ from RL4MM.features.Features import (
     MidpriceMove,
     Volatility,
     Inventory,
-    TimeRemaining, MidPrice,
+    TimeRemaining,
+    MidPrice,
 )
 from RL4MM.gym.action_interpretation.OrderDistributors import OrderDistributor, BetaOrderDistributor
 from RL4MM.orderbook.create_order import create_order
-from RL4MM.orderbook.models import Orderbook, Order, FillableOrder, OrderDict, Cancellation, LimitOrder
+from RL4MM.orderbook.models import Orderbook, FillableOrder, OrderDict, Cancellation, LimitOrder
 from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
-MINIMUM_START_DELTA = timedelta(hours=10)  # We ignore the first half an hour of trading, as it is too chaotic
-MAXIMUM_END_DELTA = timedelta(hours=11, minutes=20)  # Same for the last half an hour
+MINIMUM_START_DELTA = timedelta(hours=10)
+MAXIMUM_END_DELTA = timedelta(hours=13, minutes=30)
 ORDERBOOK_FREQ = "1S"
 ORDERBOOK_MIN_STEP = pd.to_timedelta(ORDERBOOK_FREQ)
 LEVELS_FOR_FEATURE_CALCULATION = 1
@@ -65,15 +67,15 @@ class HistoricalOrderbookEnvironment(gym.Env):
         feature_window_size: int = 10,
         min_date: datetime = datetime(2019, 1, 2),
         max_date: datetime = datetime(2019, 1, 2),
-        min_start_timedelta: timedelta = timedelta(hours=10),
-        max_end_timedelta: timedelta = timedelta(hours=11, minutes=20),
+        min_start_timedelta: timedelta = timedelta(hours=10),  # Ignore the first half an hour of trading
+        max_end_timedelta: timedelta = timedelta(hours=15, minutes=30),  # Same for the last half an hour
         simulator: OrderbookSimulator = None,
         order_distributor: OrderDistributor = None,
         market_order_clearing: bool = False,
         max_inventory: int = 100000,
         per_step_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=10 ** (-4)),
         terminal_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=0.1),
-        order_tracker: OrderTracker = None,
+        info_calculator: InfoCalculator = None,
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
         # Actions are the parameters governing the distribution over levels in the orderbook
@@ -112,7 +114,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.market_order_clearing = market_order_clearing
         self.per_step_reward_function = per_step_reward_function
         self.terminal_reward_function = terminal_reward_function
-        self.order_tracker = order_tracker
+        self.info_calculator = info_calculator
         self.now_is = min_date
         self.feature_window_size = feature_window_size
         self.price = MidPrice()
@@ -123,26 +125,28 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.simulator.reset_episode(start_date=self.now_is)
         self._reset_internal_state()
         observation = self.get_observation()
-        if self.order_tracker is not None:
-            self.order_tracker.reset()
         return observation
 
-    def step(self, action: tuple):
+    def step(self, action: np.ndarray):
         done = False  # rllib requires a bool
         internal_orders = self.convert_action_to_orders(action=action)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            filled = self.simulator.forward_step(until=self.now_is + self.step_size, internal_orders=internal_orders)
+            filled = self.simulator.forward_step(
+                until=self.now_is + self.step_size, internal_orders=internal_orders  # type: ignore
+            )
         current_state = deepcopy(self.internal_state)
         self.now_is += self.step_size
         self.update_internal_state(filled)
-        if self.order_tracker is not None:
-            self.order_tracker.track_orders(filled_orders=filled, internal_state=self.internal_state)
+        if self.info_calculator is not None:
+            info = self.info_calculator.calculate(
+                filled_orders=filled, internal_state=self.internal_state, action=action
+            )
         next_state = self.internal_state
         reward = self.per_step_reward_function.calculate(current_state, next_state)
         observation = self.get_observation()
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
-            reward = self.terminal_reward_function.calculate(current_state,next_state)
+            reward = self.terminal_reward_function.calculate(current_state, next_state)
             done = True  # rllib requires a bool
         info = {'inventory':int(self.internal_state["inventory"]),
                 'cash':int(self.internal_state["cash"]),
@@ -161,25 +165,25 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self._update_asset_price()
         self._update_time_remaining()
 
-    def convert_action_to_orders(self, action: tuple) -> List[Order]:
+    def convert_action_to_orders(self, action: np.ndarray) -> List[Union[Cancellation, LimitOrder]]:
         desired_volumes = self.order_distributor.convert_action(action)
         if self.market_order_clearing and np.abs(self.internal_state["inventory"]) > action[-1]:  # cancel all orders
-            desired_volumes = {d: np.zeros(self.quote_levels) for d in ["buy", "sell"]}
+            desired_volumes = {d: np.zeros(self.quote_levels) for d in ["buy", "sell"]}  # type: ignore
         current_volumes = self._get_current_internal_order_volumes()
         difference_in_volumes = {d: desired_volumes[d] - current_volumes[d] for d in ["buy", "sell"]}  # type: ignore
-        orders = self._convert_volume_diff_to_orders(difference_in_volumes)
+        orders = self._volume_diff_to_orders(difference_in_volumes)
         if self.market_order_clearing and np.abs(self.internal_state["inventory"]) > action[-1]:
             # place a market order to reduce inventory to zero
             orders += self._get_inventory_clearing_market_order()
         return orders
 
-    def _convert_volume_diff_to_orders(self, volume_difference: dict[str, np.ndarray]) -> List[Order]:
+    def _volume_diff_to_orders(self, volume_diff: dict[str, np.ndarray]) -> List[Union[Cancellation, LimitOrder]]:
         best_prices = self._get_best_prices()
         orders = list()
         for side in ["buy", "sell"]:
             for level, price in enumerate(best_prices[side]):
                 order_dict = self._get_default_order_dict(side)  # type:ignore
-                order_volume = volume_difference[side][level]
+                order_volume = volume_diff[side][level]
                 order_dict["price"] = price
                 if order_volume > 0:
                     order_dict["volume"] = order_volume
@@ -228,10 +232,12 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def _update_portfolio(self, filled_orders: List[FillableOrder]):
         for order in filled_orders:
-            if order.direction == "sell":
+            if order.price is None:
+                raise Exception("Cannot update portfolio from a market order with no fill price.")
+            elif order.direction == "sell":
                 self.internal_state["inventory"] -= order.volume
                 self.internal_state["cash"] += order.volume * order.price
-            if order.direction == "buy":
+            elif order.direction == "buy":
                 self.internal_state["inventory"] += order.volume
                 self.internal_state["cash"] -= order.volume * order.price
 
@@ -290,7 +296,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
             start_date=snapshot_start,
             end_date=self.now_is,
             ticker=self.ticker,
-            freq=self.step_size,
+            freq=convert_timedelta_to_freq(self.step_size),
             n_levels=LEVELS_FOR_FEATURE_CALCULATION,
         )
         self.internal_state = InternalState(

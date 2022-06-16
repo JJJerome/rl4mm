@@ -3,7 +3,8 @@ from datetime import timedelta
 import ray
 from ray.tune.registry import register_env
 from ray.rllib.agents import ppo
-import torch
+
+# import torch
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL, PnL
 from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
@@ -41,6 +42,7 @@ def env_creator(env_config):
         market_order_clearing=env_config['market_order_clearing'],
     ) 
 
+
 def main(args):
     ray.init()
     env_config = {
@@ -69,7 +71,7 @@ def main(args):
         "lambda":args["lambda"],
         "model": {
             "fcnet_hiddens": [256, 256],
-            "fcnet_activation":"tanh",#torch.nn.Sigmoid,
+            "fcnet_activation":"tanh", #torch.nn.Sigmoid,
             "use_lstm": args["lstm"],
         },
         "env_config": env_config,

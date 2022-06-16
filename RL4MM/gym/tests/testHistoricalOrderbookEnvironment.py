@@ -12,8 +12,8 @@ from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironm
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
-ACTION_1 = [1, 1, 1, 1]
-ACTION_2 = [1, 2, 1, 2]
+ACTION_1 = np.array([1, 1, 1, 1])
+ACTION_2 = np.array([1, 2, 1, 2])
 
 
 class testHistoricalOrderbookEnvironment(TestCase):
