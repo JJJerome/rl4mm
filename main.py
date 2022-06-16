@@ -3,7 +3,8 @@ from datetime import timedelta
 import ray
 from ray.tune.registry import register_env
 from ray.rllib.agents import ppo
-import torch
+
+# import torch
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
@@ -12,6 +13,7 @@ from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.utils.utils import custom_logger
 from RL4MM.utils.utils import get_date_time
 from RL4MM.utils.utils import boolean_string
+
 
 def env_creator(env_config):
     obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
@@ -32,6 +34,7 @@ def env_creator(env_config):
         market_order_clearing=env_config['market_order_clearing'],
     ) 
 
+
 def main(args):
     ray.init()
     config = {
@@ -41,7 +44,7 @@ def main(args):
         "callbacks": Custom_Callbacks,
         "model": {
             "fcnet_hiddens": [256, 256],
-            "fcnet_activation":"tanh",#torch.nn.Sigmoid,
+            "fcnet_activation":"tanh", #torch.nn.Sigmoid,
             "use_lstm": args["lstm"],
         },
         "evaluation_num_workers": args["num_workers_eval"],
