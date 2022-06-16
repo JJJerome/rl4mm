@@ -88,12 +88,16 @@ def main(args):
         env="HistoricalOrderbookEnvironment", config=config, logger_creator=custom_logger(prefix=args["ticker"])
     )
 
+
+    if args["model_path"] is not None: 
+        trainer.restore(f'{args["model_path"]}')
     # -------------------- Train Agent ---------------------------
     for _ in range(args["iterations"]):
         print(trainer.train())
-
+        trainer.save(f"{trainer.logdir}checkpoint")
+    
     # -------------------- Eval Agent ----------------------------
-    #trainer.evaluate()
+    print(trainer.evaluate())
 
 
 if __name__ == "__main__":
@@ -109,6 +113,8 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--iterations", default="1000", help="Training iterations.", type=int)
     parser.add_argument("-la", "--lambda", default="1.0", help="Training iterations.", type=float)
     parser.add_argument("-rfl", "--rollout_fragment_length", default="200", help="Rollout fragment length, collected per worker..", type=int)
+    parser.add_argument("-mp", "--model_path", default=None, help="Path to existin model.", type=str)
+
     # -------------------- Env Args ---------------------------
     parser.add_argument("-mind", "--min_date", default="2019,1,2", help="Data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2019,1,2", help="Data end date.", type=str)
