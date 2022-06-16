@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from ray.tune.logger import UnifiedLogger
 import tempfile
 import os
@@ -21,3 +21,11 @@ def custom_logger(prefix, custom_path="/home/results"):
         return UnifiedLogger(config, logdir, loggers=None)
 
     return logger_creator
+
+
+def convert_timedelta_to_freq(delta: timedelta):
+    assert sum([delta.seconds > 0, delta.microseconds > 0]) == 1, "Timedelta must be given in seconds or microseconds."
+    if delta.seconds > 0:
+        return f"{delta.seconds}S"
+    else:
+        return f"{delta.microseconds}ms"
