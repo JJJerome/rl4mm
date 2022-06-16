@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from typing import Deque, Dict, List, Optional
+from typing import Deque, Dict, List, Optional, Literal, Callable
 import pandas as pd
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
@@ -51,11 +51,36 @@ class OrderbookSimulator:
         return filled_internal_orders
 
     def get_historical_start_book(self, start_date: datetime):
-        start_series = self.database.get_last_snapshot(start_date, ticker=self.exchange.ticker)
+        start_series = self.database.get_last_snapshot(start_date, ticker=self.ticker)
         assert len(start_series) > 0, f"There is no data before the episode start time: {start_date}"
         assert start_date - start_series.name <= timedelta(days=1), "Attempting to get data from more than a day ago"
-        initial_orders = self._get_initial_orders_from_start_book(start_series)
+        initial_orders = self._get_initial_orders_from_book(start_series)
         return self.exchange.get_initial_orderbook_from_orders(initial_orders)
+
+    def update_outer_levels(self) -> None:
+        min_initial_price, max_initial_price = self._get_initial_price_interval()
+        orderbook_series = self.database.get_last_snapshot(self.now_is, ticker=self.ticker)
+
+        def filter_function(direction: Literal["buy", "ask"], price: int):
+            if direction == "buy" and price < min_initial_price or direction == "sell" and price > max_initial_price:
+                return True
+            else:
+                return False
+
+        orders_to_add = self._get_initial_orders_from_book(orderbook_series, filter_function)
+        for order in orders_to_add:
+            assert (
+                order.price not in self.exchange.internal_orderbook[order.direction].keys()
+            ), "Trying to reset levels with internal orders in"
+            self.exchange.central_orderbook[order.direction][order.price] = order
+
+    def _get_initial_price_interval(self) -> List[int]:
+        price_interval = []
+        for side in ["buy", "sell"]:
+            half_book = self.exchange.central_orderbook[side]
+            outer = min if side is "buy" else max
+            price_interval.append(outer(level for level in half_book.keys() if half_book[level][0].internal_id == -1))
+        return price_interval
 
     @staticmethod
     def _compress_order_dict(order_dict: Dict[str, Deque[Order]]) -> List:
@@ -74,18 +99,20 @@ class OrderbookSimulator:
     def _remove_hidden_executions(messages: pd.DataFrame):
         return messages[messages.message_type != "execution_hidden"]
 
-    def _get_initial_orders_from_start_book(self, series: pd.DataFrame):
+    always_true_function: Callable = lambda x: True
+
+    def _get_initial_orders_from_book(self, series: pd.DataFrame, filter_function: Callable = always_true_function):
         initial_orders = []
         for direction in ["buy", "sell"]:
             for level in range(self.n_levels):
-                if f"{direction}_volume_{level}" in series:
+                if f"{direction}_volume_{level}" in series and filter_function(direction, level):
                     initial_orders.append(
                         LimitOrder(
                             timestamp=series.name,
                             price=series[f"{direction}_price_{level}"],
                             volume=series[f"{direction}_volume_{level}"],
                             direction=direction,  # type: ignore
-                            ticker=self.exchange.ticker,
+                            ticker=self.ticker,
                             internal_id=-1,
                             external_id=None,
                             is_external=True,
