@@ -23,8 +23,8 @@ class InventoryAdjustedPnL(RewardFunction):
         self.asymmetrically_dampened = asymmetrically_dampened
 
     def calculate(self, current_state: InternalState, next_state: InternalState) -> float:
+        delta_midprice = next_state["asset_price"] - current_state["asset_price"]
+        dampened_inventory_term = self.inventory_aversion * next_state["inventory"] * delta_midprice
         if self.asymmetrically_dampened: 
-            dampened_inventory_term = max(0, self.inventory_aversion * (next_state["inventory"]) ** 2)
-        else:
-            dampened_inventory_term = self.inventory_aversion * (next_state["inventory"]) ** 2
+            dampened_inventory_term = max(0, dampened_inventory_term)
         return self.pnl.calculate(current_state, next_state) - dampened_inventory_term 
