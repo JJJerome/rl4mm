@@ -40,8 +40,8 @@ from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
-MINIMUM_START_DELTA = timedelta(hours=10)  # We ignore the first half an hour of trading, as it is too chaotic
-MAXIMUM_END_DELTA = timedelta(hours=11, minutes=20)  # Same for the last half an hour
+MINIMUM_START_DELTA = timedelta(hours=10)
+MAXIMUM_END_DELTA = timedelta(hours=13, minutes=30)
 ORDERBOOK_FREQ = "1S"
 ORDERBOOK_MIN_STEP = pd.to_timedelta(ORDERBOOK_FREQ)
 LEVELS_FOR_FEATURE_CALCULATION = 1
@@ -67,8 +67,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         feature_window_size: int = 10,
         min_date: datetime = datetime(2019, 1, 2),
         max_date: datetime = datetime(2019, 1, 2),
-        min_start_timedelta: timedelta = timedelta(hours=10),
-        max_end_timedelta: timedelta = timedelta(hours=11, minutes=20),
+        min_start_timedelta: timedelta = timedelta(hours=10),  # Ignore the first half an hour of trading
+        max_end_timedelta: timedelta = timedelta(hours=15, minutes=30),  # Same for the last half an hour
         simulator: OrderbookSimulator = None,
         order_distributor: OrderDistributor = None,
         market_order_clearing: bool = False,
@@ -130,7 +130,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def step(self, action: np.ndarray):
         done = False  # rllib requires a bool
-        info = {}
         internal_orders = self.convert_action_to_orders(action=action)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -150,6 +149,10 @@ class HistoricalOrderbookEnvironment(gym.Env):
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
             reward = self.terminal_reward_function.calculate(current_state, next_state)
             done = True  # rllib requires a bool
+        info = {'inventory':self.internal_state["inventory"],
+                'cash':self.internal_state["cash"],
+                #'clear_inventory': clear_inventory(action[-1])
+               }
         return observation, reward, done, info
 
     def get_observation(self) -> np.ndarray:
