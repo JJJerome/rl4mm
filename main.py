@@ -3,7 +3,8 @@ from datetime import timedelta
 import ray
 from ray.tune.registry import register_env
 from ray.rllib.agents import ppo
-import torch
+
+# import torch
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 
 # from RL4MM.gym.example_env import Example_v0

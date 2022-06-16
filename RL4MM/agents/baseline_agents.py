@@ -9,7 +9,7 @@ class RandomAgent(Agent):
         self.action_space = env.action_space
         self.action_space.seed(seed)
 
-    def get_action(self, state: np.ndarray) -> Action:
+    def get_action(self, state: np.ndarray) -> np.ndarray:
         return self.action_space.sample()
 
 
