@@ -110,7 +110,7 @@ class Example_v0(gym.Env):
                     if self.position == self.goal:
                         # on goal now
                         self.reward = self.REWARD_GOAL
-                        self.done = 1
+                        self.done = True
                     elif self.position < self.goal:
                         # moving away from goal
                         self.reward = self.REWARD_AWAY
@@ -128,7 +128,7 @@ class Example_v0(gym.Env):
                     if self.position == self.goal:
                         # on goal now
                         self.reward = self.REWARD_GOAL
-                        self.done = 1
+                        self.done = True
                     elif self.position > self.goal:
                         # moving away from goal
                         self.reward = self.REWARD_AWAY
