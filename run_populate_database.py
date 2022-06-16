@@ -39,7 +39,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     populate_database(
         tickers=(args.ticker,),
-        trading_dates=(args.trading_dates.split(","),),
+        trading_dates=tuple(args.trading_dates.split(",")),
         n_levels=args.n_levels,
         path_to_lobster_data=args.path_to_lobster_data,
         book_snapshot_freq=args.book_snapshot_freq,
