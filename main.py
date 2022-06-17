@@ -101,7 +101,9 @@ def main(args):
     best_checkpoint = analysis.get_trial_checkpoints_paths(
         trial=analysis.get_best_trial("episode_reward_mean"), metric="episode_reward_mean"
     )
-    save_best_checkpoint_path(args["output"], best_checkpoint)
+    path_to_save_dir = args["output"] or "/home/ray"
+    print(best_checkpoint)
+    save_best_checkpoint_path(path_to_save_dir, best_checkpoint[0][0])
 
 
 if __name__ == "__main__":
