@@ -78,6 +78,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         info_calculator: InfoCalculator = None,
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
+
         # Actions are the parameters governing the distribution over levels in the orderbook
         self.action_space = Box(low=0.0, high=max_distribution_param, shape=(4,), dtype=np.float64)
         if market_order_clearing:
@@ -148,9 +149,11 @@ class HistoricalOrderbookEnvironment(gym.Env):
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
             reward = self.terminal_reward_function.calculate(current_state, next_state)
             done = True  # rllib requires a bool
-        info = {'inventory':int(self.internal_state["inventory"]),
-                'cash':int(self.internal_state["cash"]),
-               }
+        info = {
+            "inventory": self.internal_state["inventory"],
+            "cash": self.internal_state["cash"],
+            #'clear_inventory': clear_inventory(action[-1])
+        }
         return observation, reward, done, info
 
     def get_observation(self) -> np.ndarray:

@@ -22,10 +22,12 @@ def custom_logger(prefix, custom_path="/home/RL4MM/results"):
 
     return logger_creator
 
+
 def boolean_string(s):
-    if s not in {'False', 'True'}:
-        raise ValueError('Not a valid boolean string')
-    return s == 'True'
+    if s not in {"False", "True"}:
+        raise ValueError("Not a valid boolean string")
+    return s == "True"
+
 
 def convert_timedelta_to_freq(delta: timedelta):
     assert sum([delta.seconds > 0, delta.microseconds > 0]) == 1, "Timedelta must be given in seconds or microseconds."

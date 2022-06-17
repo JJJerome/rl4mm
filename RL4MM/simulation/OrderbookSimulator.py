@@ -17,7 +17,7 @@ from RL4MM.orderbook.Exchange import Exchange
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderGenerator import OrderGenerator
 
-OUTER_LEVELS = 30/200
+OUTER_LEVELS = 30 / 200
 
 
 class OrderbookSimulator:
@@ -142,6 +142,6 @@ class OrderbookSimulator:
     @property
     def _near_exiting_initial_price_range(self) -> bool:
         return (
-            self.exchange.best_bid_price < self.min_initial_price + OUTER_LEVELS*self.initial_price_range
-            or self.exchange.best_ask_price > self.max_initial_price - OUTER_LEVELS*self.initial_price_range
+            self.exchange.best_bid_price < self.min_initial_price + OUTER_LEVELS * self.initial_price_range
+            or self.exchange.best_ask_price > self.max_initial_price - OUTER_LEVELS * self.initial_price_range
         )
