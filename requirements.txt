@@ -13,6 +13,7 @@ plotly~=5.3.1
 psycopg2
 pydantic~=1.9.0
 python-dotenv~=0.19.2
+ray
 seaborn~=0.11.2
 sqlalchemy~=1.4.31
 sortedcontainers~=2.4.0
