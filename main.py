@@ -4,7 +4,6 @@ import ray
 from ray.tune.registry import register_env
 from ray.rllib.agents import ppo
 
-# import torch
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL, PnL
 from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
@@ -42,7 +41,6 @@ def env_creator(env_config):
         market_order_clearing=env_config['market_order_clearing'],
     ) 
 
-
 def main(args):
     ray.init()
     env_config = {
@@ -74,6 +72,8 @@ def main(args):
             "fcnet_activation":"tanh", #torch.nn.Sigmoid,
             "use_lstm": args["lstm"],
         },
+        "output":  args["output"],
+        "output_max_file_size": args["output_max_file_size"], 
         "env_config": env_config,
         "evaluation_num_workers": args["num_workers_eval"],
         "evaluation_interval": 1,
@@ -103,8 +103,12 @@ def main(args):
 if __name__ == "__main__":
     # -------------------- Training Args ----------------------
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("-g", "--num_gpus", default="1", help="Number of GPUs to use during training.", type=int)
-    parser.add_argument("-nw", "--num_workers", default="5", help="Number of workers to use during training.", type=int)
+    parser.add_argument(
+        "-g", "--num_gpus", default="1", help="Number of GPUs to use during training.", type=int
+        )
+    parser.add_argument(
+        "-nw", "--num_workers", default="5", help="Number of workers to use during training.", type=int
+        )
     parser.add_argument(
         "-nwe", "--num_workers_eval", default="1", help="Number of workers used during evaluation.", type=int
     )
@@ -112,9 +116,18 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--lstm", default=False, help="LSTM on/off.", type=boolean_string)
     parser.add_argument("-i", "--iterations", default="1000", help="Training iterations.", type=int)
     parser.add_argument("-la", "--lambda", default="1.0", help="Training iterations.", type=float)
-    parser.add_argument("-rfl", "--rollout_fragment_length", default="200", help="Rollout fragment length, collected per worker..", type=int)
+    parser.add_argument(
+        "-rfl", "--rollout_fragment_length", default="200", 
+        help="Rollout fragment length, collected per worker..", type=int
+        )
     parser.add_argument("-mp", "--model_path", default=None, help="Path to existin model.", type=str)
-
+    
+    # -------------------- Generating a dataset of eval episodes 
+    parser.add_argument("-o", "--output", default=None, help="Directory to save episode data to.", type=str)
+    parser.add_argument(
+        "-omfs", "--output_max_file_size", default="5000000", 
+        help="Max size of json file that transitions are saved to.", type=int
+        )
     # -------------------- Env Args ---------------------------
     parser.add_argument("-mind", "--min_date", default="2019,1,2", help="Data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2019,1,2", help="Data end date.", type=str)
