@@ -1,23 +1,21 @@
 import argparse
+import os
 from datetime import timedelta
 import ray
-from ray.rllib.agents import ppo
-
-from ray.tune.logger import pretty_print
+from ray import tune
 from ray.tune.registry import register_env
 
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
-from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL, PnL
+from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL
 from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
 import copy
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
-from RL4MM.utils.utils import custom_logger
-from RL4MM.utils.utils import get_date_time
+from RL4MM.utils.utils import get_date_time, save_best_checkpoint_path
 from RL4MM.utils.utils import boolean_string
 
 
 def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
-    if reward_function == "AD":  # symmetrically dampened
+    if reward_function == "AD":  # asymmetrically dampened
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=True)
     elif reward_function == "SD":  # symmetrically dampened
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=False)
@@ -61,7 +59,10 @@ def main(args):
     eval_env_config["min_date"] = args["min_date_eval"]
     eval_env_config["max_date"] = args["max_date_eval"]
 
+    register_env("HistoricalOrderbookEnvironment", env_creator)
+
     config = {
+        "env": "HistoricalOrderbookEnvironment",
         "num_gpus": args["num_gpus"],
         "num_workers": args["num_workers"],
         "framework": args["framework"],
@@ -79,27 +80,28 @@ def main(args):
         "output": args["output"],
         "output_max_file_size": args["output_max_file_size"],
         "env_config": env_config,
+        "evaluation_interval": 3,  # Run one evaluation step on every 3rd `Trainer.train()` call.
         "evaluation_num_workers": args["num_workers_eval"],
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
         "evaluation_config": {"env_config": eval_env_config},
     }
-    register_env("HistoricalOrderbookEnvironment", env_creator)
-    trainer = ppo.PPOTrainer(
-        env="HistoricalOrderbookEnvironment", config=config, logger_creator=custom_logger(prefix=args["ticker"])
+
+    tensorboard_logdir = args["tensorboard_logdir"]
+    if not os.path.exists(tensorboard_logdir):
+        os.makedirs(tensorboard_logdir)
+
+    analysis = tune.run(
+        "PPO",
+        stop={"training_iteration": args["iterations"]},
+        config=config,
+        local_dir=tensorboard_logdir,
+        checkpoint_at_end=True,
     )
-
-    if args["model_path"] is not None:
-        trainer.restore(f'{args["model_path"]}')
-    # -------------------- Train Agent ---------------------------
-    for _ in range(args["iterations"]):
-        result = trainer.train()
-        print(pretty_print(result))
-        trainer.save(f"{trainer.logdir}checkpoint")
-
-    # -------------------- Eval Agent ----------------------------
-    result = trainer.evaluate()
-    print(pretty_print(result))
+    best_checkpoint = analysis.get_trial_checkpoints_paths(
+        trial=analysis.get_best_trial("episode_reward_mean"), metric="episode_reward_mean"
+    )
+    save_best_checkpoint_path(args["output"], best_checkpoint)
 
 
 if __name__ == "__main__":
@@ -127,6 +129,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "-tb", "--train_batch_size", default=3600, help="The size of the training batch used for updates.", type=int
     )
+    parser.add_argument(
+        "-tbd",
+        "--tensorboard_logdir",
+        default="/home/data/tensorboard",
+        help="Directory to save tensorboard logs to.",
+        type=str,
+    )
     # -------------------- Generating a dataset of eval episodes
     parser.add_argument("-o", "--output", default=None, help="Directory to save episode data to.", type=str)
     parser.add_argument(
@@ -137,15 +146,15 @@ if __name__ == "__main__":
         type=int,
     )
     # -------------------- Env Args ---------------------------
-    parser.add_argument("-mind", "--min_date", default="2019,1,2", help="Data start date.", type=str)
-    parser.add_argument("-maxd", "--max_date", default="2019,1,2", help="Data end date.", type=str)
-    parser.add_argument("-minde", "--min_date_eval", default="2019,1,3", help="Data start date.", type=str)
-    parser.add_argument("-maxde", "--max_date_eval", default="2019,1,3", help="Data end date.", type=str)
+    parser.add_argument("-mind", "--min_date", default="2019,1,2", help="Train data start date.", type=str)
+    parser.add_argument("-maxd", "--max_date", default="2019,1,2", help="Train data end date.", type=str)
+    parser.add_argument("-minde", "--min_date_eval", default="2019,1,3", help="Evaluation data start date.", type=str)
+    parser.add_argument("-maxde", "--max_date_eval", default="2019,1,3", help="Evaluation data end date.", type=str)
     parser.add_argument("-t", "--ticker", default="MSFT", help="Specify stock ticker.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
     parser.add_argument("-sz", "--step_size", default=1, help="Step size in seconds.", type=int)
-    parser.add_argument("-nl", "--n_levels", default=200, help="Number of levels.", type=int)
+    parser.add_argument("-nl", "--n_levels", default=200, help="Number of orderbook levels.", type=int)
     parser.add_argument(
         "-psr",
         "--per_step_reward_function",
