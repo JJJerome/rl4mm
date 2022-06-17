@@ -3,18 +3,11 @@ Here we use callbacks to track the average CartPole pole angle magnitude as a
 custom metric.
 """
 
-from typing import Dict, Tuple
-import argparse
-import numpy as np
-import os
-
-import ray
-from ray import tune
+from typing import Dict
 from ray.rllib.agents.callbacks import DefaultCallbacks
 from ray.rllib.env import BaseEnv
 from ray.rllib.evaluation import Episode, RolloutWorker
 from ray.rllib.policy import Policy
-from ray.rllib.policy.sample_batch import SampleBatch
 
 
 class Custom_Callbacks(DefaultCallbacks):

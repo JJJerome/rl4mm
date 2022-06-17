@@ -38,7 +38,7 @@ class OrderbookSimulator:
         self.database = database or HistoricalDatabase()
         # The following is for re-syncronisation with the historical data
         self.max_initial_price: int = 0
-        self.min_initial_price: int = np.infty
+        self.min_initial_price: int = np.infty  # type:ignore
         self.initial_price_range: int = self.max_initial_price - self.min_initial_price
 
     def reset_episode(self, start_date: datetime, start_book: Optional[Orderbook] = None):
@@ -93,9 +93,9 @@ class OrderbookSimulator:
         orders_to_add = self._get_initial_orders_from_book(orderbook_series, self._initial_prices_filter_function)
         for order in orders_to_add:
             assert (
-                order.price not in self.exchange.internal_orderbook[order.direction].keys()
+                order.price not in self.exchange.internal_orderbook[order.direction].keys()  # type:ignore
             ), "Attempting to re-syncronise levels containing internal orders."
-            self.exchange.central_orderbook[order.direction][order.price] = deque([order])
+            self.exchange.central_orderbook[order.direction][order.price] = deque([order])  # type:ignore
         self.min_initial_price = min(self.min_initial_price, self.exchange.orderbook_price_range[0])
         self.max_initial_price = max(self.max_initial_price, self.exchange.orderbook_price_range[1])
 
