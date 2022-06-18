@@ -152,7 +152,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         info = {
             "inventory": self.internal_state["inventory"],
             "cash": self.internal_state["cash"],
-            #'clear_inventory': clear_inventory(action[-1])
+            # 'clear_inventory': clear_inventory(action[-1])
         }
         return observation, reward, done, info
 

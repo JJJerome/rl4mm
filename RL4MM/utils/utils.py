@@ -35,3 +35,9 @@ def convert_timedelta_to_freq(delta: timedelta):
         return f"{delta.seconds}S"
     else:
         return f"{delta.microseconds}ms"
+
+
+def save_best_checkpoint_path(path_to_save_dir: str, best_checkpoint_path: str):
+    text_file = open(path_to_save_dir + "/best_checkpoint_path.txt", "wt")
+    text_file.write(best_checkpoint_path)
+    text_file.close()
