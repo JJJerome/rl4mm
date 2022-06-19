@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from functools import partial
 from typing import Tuple, Optional
 
@@ -14,6 +15,7 @@ from contextlib import suppress
 from io import BytesIO
 from pathlib import Path
 
+from pandas import DatetimeIndex
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from urllib.request import urlopen
@@ -39,7 +41,11 @@ MAX_ORDERS_PER_SECOND = 20000
 
 def populate_database(
     tickers: Tuple[str] = ("MSFT",),
-    trading_dates: Tuple[str] = ("2012-06-21",),
+    trading_datetimes: DatetimeIndex = DatetimeIndex(
+        [
+            "2012-06-21",
+        ]
+    ),
     n_levels: int = 50,
     database: HistoricalDatabase = HistoricalDatabase(),
     path_to_lobster_data: str = "",
@@ -54,7 +60,8 @@ def populate_database(
         is_sample_data = True
     book_cols, message_cols = _get_book_and_message_columns(n_levels)
     for ticker in tickers:
-        for trading_date in trading_dates:
+        for trading_datetime in trading_datetimes:
+            trading_date = datetime.strftime(trading_datetime, "%Y-%m-%d")
             if is_sample_data:
                 download_lobster_sample_data(ticker, trading_date, n_levels, path_to_lobster_data)
             book_path, message_path = _get_book_and_message_paths(path_to_lobster_data, ticker, trading_date, n_levels)
