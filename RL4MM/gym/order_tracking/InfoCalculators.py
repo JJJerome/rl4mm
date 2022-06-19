@@ -20,5 +20,7 @@ class SimpleInfoCalculator(InfoCalculator):
             price=internal_state["asset_price"],
             inventory=internal_state["inventory"],
             spread=last_snapshot.sell_price_0 - last_snapshot.buy_price_0,
+            bid_action=action[0, 1],
+            ask_action=action[1, 2],
         )
         return info_dict
