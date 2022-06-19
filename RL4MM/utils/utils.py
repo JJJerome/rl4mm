@@ -22,10 +22,12 @@ def custom_logger(prefix, custom_path="/home/RL4MM/results"):
 
     return logger_creator
 
+
 def boolean_string(s):
-    if s not in {'False', 'True'}:
-        raise ValueError('Not a valid boolean string')
-    return s == 'True'
+    if s not in {"False", "True"}:
+        raise ValueError("Not a valid boolean string")
+    return s == "True"
+
 
 def convert_timedelta_to_freq(delta: timedelta):
     assert sum([delta.seconds > 0, delta.microseconds > 0]) == 1, "Timedelta must be given in seconds or microseconds."
@@ -33,3 +35,9 @@ def convert_timedelta_to_freq(delta: timedelta):
         return f"{delta.seconds}S"
     else:
         return f"{delta.microseconds}ms"
+
+
+def save_best_checkpoint_path(path_to_save_dir: str, best_checkpoint_path: str):
+    text_file = open(path_to_save_dir + "/best_checkpoint_path.txt", "wt")
+    text_file.write(best_checkpoint_path)
+    text_file.close()

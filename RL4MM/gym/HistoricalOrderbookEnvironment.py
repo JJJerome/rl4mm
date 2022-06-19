@@ -5,7 +5,7 @@ from copy import deepcopy, copy
 from datetime import datetime, timedelta
 import sys
 
-from RL4MM.gym.order_tracking.InfoCalculators import InfoCalculator
+from RL4MM.gym.order_tracking.InfoCalculators import InfoCalculator, SimpleInfoCalculator
 from RL4MM.utils.utils import convert_timedelta_to_freq
 
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
@@ -78,6 +78,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         info_calculator: InfoCalculator = None,
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
+
         # Actions are the parameters governing the distribution over levels in the orderbook
         self.action_space = Box(low=0.0, high=max_distribution_param, shape=(4,), dtype=np.float64)
         if market_order_clearing:
@@ -114,7 +115,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.market_order_clearing = market_order_clearing
         self.per_step_reward_function = per_step_reward_function
         self.terminal_reward_function = terminal_reward_function
-        self.info_calculator = info_calculator
+        self.info_calculator = info_calculator or SimpleInfoCalculator()
         self.now_is = min_date
         self.feature_window_size = feature_window_size
         self.price = MidPrice()
@@ -148,9 +149,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
             reward = self.terminal_reward_function.calculate(current_state, next_state)
             done = True  # rllib requires a bool
-        info = {'inventory':int(self.internal_state["inventory"]),
-                'cash':int(self.internal_state["cash"]),
-               }
         return observation, reward, done, info
 
     def get_observation(self) -> np.ndarray:
