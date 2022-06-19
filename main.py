@@ -13,7 +13,6 @@ from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.utils.utils import get_date_time, save_best_checkpoint_path
 from RL4MM.utils.utils import boolean_string
 
-
 def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
     if reward_function == "AD":  # asymmetrically dampened
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=True)
@@ -41,7 +40,8 @@ def env_creator(env_config):
 
 
 def main(args):
-    ray.init()
+    #ray.init()
+    ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"])
     env_config = {
         "ticker": args["ticker"],
         "min_date": args["min_date"],
