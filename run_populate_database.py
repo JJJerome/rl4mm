@@ -32,7 +32,7 @@ parser.add_argument(
     help="the path to the folder containing the LOBSTER message and book data",
 )
 parser.add_argument(
-    "-bsf" "--book_snapshot_freq",
+    "-bsf", "--book_snapshot_freq",
     action="store",
     type=str,
     default="S",
