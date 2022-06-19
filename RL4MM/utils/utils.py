@@ -5,8 +5,7 @@ import os
 
 
 def get_date_time(date_string: str):
-    d = [int(x) for x in date_string.split(",")]
-    return datetime(d[0], d[1], d[2])
+    return datetime.strptime(date_string, "%Y-%m-%d")
 
 
 def custom_logger(prefix, custom_path="/home/RL4MM/results"):

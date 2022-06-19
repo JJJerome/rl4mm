@@ -27,6 +27,7 @@ def env_creator(env_config):
     print(env_config)
     obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
     return HistoricalOrderbookEnvironment(
+        ticker=env_config["ticker"],
         episode_length=timedelta(minutes=env_config["episode_length"]),
         simulator=obs,
         quote_levels=10,
@@ -58,6 +59,8 @@ def main(args):
     eval_env_config = copy.deepcopy(env_config)
     eval_env_config["min_date"] = args["min_date_eval"]
     eval_env_config["max_date"] = args["max_date_eval"]
+    eval_env_config["per_step_reward_function"] = (args["eval_per_step_reward_function"],)
+    eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
 
     register_env("HistoricalOrderbookEnvironment", env_creator)
 
@@ -147,11 +150,9 @@ if __name__ == "__main__":
         help="Max size of json file that transitions are saved to.",
         type=int,
     )
-    # -------------------- Env Args ---------------------------
-    parser.add_argument("-mind", "--min_date", default="2019,1,2", help="Train data start date.", type=str)
-    parser.add_argument("-maxd", "--max_date", default="2019,1,2", help="Train data end date.", type=str)
-    parser.add_argument("-minde", "--min_date_eval", default="2019,1,3", help="Evaluation data start date.", type=str)
-    parser.add_argument("-maxde", "--max_date_eval", default="2019,1,3", help="Evaluation data end date.", type=str)
+    # -------------------- Training env Args ---------------------------
+    parser.add_argument("-mind", "--min_date", default="2019-01-02", help="Train data start date.", type=str)
+    parser.add_argument("-maxd", "--max_date", default="2019-01-02", help="Train data end date.", type=str)
     parser.add_argument("-t", "--ticker", default="MSFT", help="Specify stock ticker.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
@@ -170,11 +171,31 @@ if __name__ == "__main__":
         "--terminal_reward_function",
         default="PnL",
         choices=["AD", "SD", "PnL"],
-        help="Per step reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
+        help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
     parser.add_argument(
         "-moc", "--market_order_clearing", default=True, help="Market order clearing on/off.", type=boolean_string
+    )
+
+    # ------------------ Eval env args -------------------------------
+    parser.add_argument("-minde", "--min_date_eval", default="2019-01-03", help="Evaluation data start date.", type=str)
+    parser.add_argument("-maxde", "--max_date_eval", default="2019-01-03", help="Evaluation data end date.", type=str)
+    parser.add_argument(
+        "-epsr",
+        "--eval_per_step_reward_function",
+        default="PnL",
+        choices=["AD", "SD", "PnL"],
+        help="Eval per step reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
+        type=str,
+    )
+    parser.add_argument(
+        "-etr",
+        "--eval_terminal_reward_function",
+        default="PnL",
+        choices=["AD", "SD", "PnL"],
+        help="Eval terminal reward function: symmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
+        type=str,
     )
     # -------------------------------------------------
     args = vars(parser.parse_args())
