@@ -27,6 +27,7 @@ def env_creator(env_config):
     print(env_config)
     obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
     return HistoricalOrderbookEnvironment(
+        ticker=env_config["ticker"],
         episode_length=timedelta(minutes=env_config["episode_length"]),
         simulator=obs,
         quote_levels=10,
