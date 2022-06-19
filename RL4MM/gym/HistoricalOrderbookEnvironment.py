@@ -155,7 +155,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         return np.array([feature.calculate(self.internal_state) for feature in self.features])
 
     def _get_random_start_time(self):
-        return self.min_date + timedelta(days=self._random_offset_days()) + self._random_offset_timestamp()
+        return self._get_random_trading_day() + self._random_offset_timestamp()
 
     def update_internal_state(self, filled_orders: List[FillableOrder]):
         self._update_portfolio(filled_orders)
@@ -287,6 +287,10 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def _random_offset_days(self):
         return np.random.randint(int((self.max_date.date() - self.min_date.date()) / timedelta(days=1)) + 1)
+
+    def _get_random_trading_day(self):
+        trading_dates = pd.bdate_range(self.min_date,self.max_date)
+        return np.random.choice(trading_dates)
 
     def _reset_internal_state(self):
         snapshot_start = self.now_is - self.step_size * self.feature_window_size
