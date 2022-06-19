@@ -66,6 +66,8 @@ def main(args):
         "framework": args["framework"],
         "callbacks": Custom_Callbacks,
         "rollout_fragment_length": args["rollout_fragment_length"],
+        "sgd_minibatch_size":100,
+        "num_sgd_iter":10,
         "lambda":args["lambda"],
         "model": {
             "fcnet_hiddens": [256, 256],
@@ -104,7 +106,7 @@ if __name__ == "__main__":
     # -------------------- Training Args ----------------------
     parser = argparse.ArgumentParser(description="")
     parser.add_argument(
-        "-g", "--num_gpus", default="1", help="Number of GPUs to use during training.", type=int
+        "-g", "--num_gpus", default="2", help="Number of GPUs to use during training.", type=int
         )
     parser.add_argument(
         "-nw", "--num_workers", default="5", help="Number of workers to use during training.", type=int
