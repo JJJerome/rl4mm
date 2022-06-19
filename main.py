@@ -150,8 +150,8 @@ if __name__ == "__main__":
         type=int,
     )
     # -------------------- Training env Args ---------------------------
-    parser.add_argument("-mind", "--min_date", default="2019,1,2", help="Train data start date.", type=str)
-    parser.add_argument("-maxd", "--max_date", default="2019,1,2", help="Train data end date.", type=str)
+    parser.add_argument("-mind", "--min_date", default="2019-01-02", help="Train data start date.", type=str)
+    parser.add_argument("-maxd", "--max_date", default="2019-01-02", help="Train data end date.", type=str)
     parser.add_argument("-t", "--ticker", default="MSFT", help="Specify stock ticker.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
@@ -178,8 +178,8 @@ if __name__ == "__main__":
     )
 
     # ------------------ Eval env args -------------------------------
-    parser.add_argument("-minde", "--min_date_eval", default="2019,1,3", help="Evaluation data start date.", type=str)
-    parser.add_argument("-maxde", "--max_date_eval", default="2019,1,3", help="Evaluation data end date.", type=str)
+    parser.add_argument("-minde", "--min_date_eval", default="2019-01-03", help="Evaluation data start date.", type=str)
+    parser.add_argument("-maxde", "--max_date_eval", default="2019-01-03", help="Evaluation data end date.", type=str)
     parser.add_argument(
         "-epsr",
         "--eval_per_step_reward_function",
