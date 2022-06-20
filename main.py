@@ -59,7 +59,7 @@ def main(args):
     eval_env_config = copy.deepcopy(env_config)
     eval_env_config["min_date"] = args["min_date_eval"]
     eval_env_config["max_date"] = args["max_date_eval"]
-    eval_env_config["per_step_reward_function"] = (args["eval_per_step_reward_function"],)
+    eval_env_config["per_step_reward_function"] = args["eval_per_step_reward_function"]
     eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
 
     register_env("HistoricalOrderbookEnvironment", env_creator)
@@ -88,7 +88,8 @@ def main(args):
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
         "evaluation_config": {"env_config": eval_env_config},
-        "recreate_failed_workers": True,
+        "recreate_failed_workers": False, #True,
+        "disable_env_checking":True,
     }
 
     tensorboard_logdir = args["tensorboard_logdir"]
