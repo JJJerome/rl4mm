@@ -90,6 +90,7 @@ def main(args):
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
         "evaluation_config": {"env_config": eval_env_config},
+        "recreate_failed_workers": True,
     }
 
     tensorboard_logdir = args["tensorboard_logdir"]

@@ -144,16 +144,24 @@ class Exchange:
         return Orderbook(buy=SortedDict(), sell=SortedDict(), ticker=self.ticker, tick_size=self.tick_size)
 
     @property
-    def best_ask_price(self):
+    def best_sell_price(self):
         return next(iter(self.central_orderbook["sell"].keys()), np.infty)
 
     @property
-    def best_bid_price(self):
+    def best_buy_price(self):
         return next(reversed(self.central_orderbook["buy"]), 0)
 
     @property
     def orderbook_price_range(self):
-        return next(iter(self.central_orderbook["buy"].keys())), next(reversed(self.central_orderbook["sell"]))
+        sell_prices = reversed(self.central_orderbook["sell"])
+        worst_sell = 9999999999
+        while worst_sell >= 9999999999:
+            worst_sell = next(sell_prices)
+        buy_prices = iter(self.central_orderbook["buy"].keys())
+        worst_buy = 0
+        while worst_buy <= 0:
+            worst_buy = next(buy_prices)
+        return worst_buy, worst_sell
 
     def get_initial_orderbook_from_orders(self, orders: List[LimitOrder]) -> Orderbook:
         assert all(order.internal_id == -1 for order in orders), "internal_ids of orders in the initial book must be -1"
@@ -165,7 +173,7 @@ class Exchange:
 
     def _get_highest_priority_matching_order(self, order: FillableOrder) -> LimitOrder:
         opposite_direction = "sell" if order.direction == "buy" else "buy"
-        best_price = self.best_ask_price if opposite_direction == "sell" else self.best_bid_price
+        best_price = self.best_sell_price if opposite_direction == "sell" else self.best_buy_price
         try:
             return self.central_orderbook[opposite_direction][best_price][0]  # type: ignore
         except KeyError:
@@ -175,9 +183,9 @@ class Exchange:
         if isinstance(order, MarketOrder):
             return True
         if order.direction == "buy":
-            return order.price >= self.best_ask_price
+            return order.price >= self.best_sell_price
         if order.direction == "sell":
-            return order.price <= self.best_bid_price
+            return order.price <= self.best_buy_price
 
     def _find_queue_position(
         self, order: Union[Cancellation, Deletion, LimitOrder], orderbook: Orderbook
