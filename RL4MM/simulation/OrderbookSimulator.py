@@ -37,17 +37,20 @@ class OrderbookSimulator:
         self.n_levels = n_levels
         self.database = database or HistoricalDatabase()
         # The following is for re-syncronisation with the historical data
-        self.max_initial_price: int = 0
-        self.min_initial_price: int = np.infty  # type:ignore
-        self.initial_price_range: int = self.max_initial_price - self.min_initial_price
+        self.max_sell_price: int = 0
+        self.min_buy_price: int = np.infty  # type:ignore
+        self.initial_buy_price_range: int = np.infty  # type:ignore
+        self.initial_sell_price_range: int = np.infty  # type:ignore
 
     def reset_episode(self, start_date: datetime, start_book: Optional[Orderbook] = None):
         if not start_book:
             start_book = self.get_historical_start_book(start_date)
         self.exchange.central_orderbook = start_book
         self.exchange.reset_internal_orderbook()
-        self.min_initial_price, self.max_initial_price = self.exchange.orderbook_price_range
-        self.initial_price_range = self.max_initial_price - self.min_initial_price
+        self.min_buy_price, self.max_sell_price = self.exchange.orderbook_price_range
+        self.initial_buy_price_range = self.exchange.best_buy_price - self.min_buy_price
+        self.initial_sell_price_range = self.max_sell_price - self.exchange.best_sell_price
+        self.initial_buy_price_range = self.exchange.best_buy_price - self.min_buy_price
         self.now_is = start_date
         return start_book
 
@@ -78,12 +81,7 @@ class OrderbookSimulator:
         return self.exchange.get_initial_orderbook_from_orders(initial_orders)
 
     def _initial_prices_filter_function(self, direction: Literal["buy", "ask"], price: int) -> bool:
-        if (
-            direction == "buy"
-            and price < self.min_initial_price
-            or direction == "sell"
-            and price > self.max_initial_price
-        ):
+        if direction == "buy" and price < self.min_buy_price or direction == "sell" and price > self.max_sell_price:
             return True
         else:
             return False
@@ -96,8 +94,8 @@ class OrderbookSimulator:
                 order.price not in self.exchange.internal_orderbook[order.direction].keys()  # type:ignore
             ), "Attempting to re-syncronise levels containing internal orders."
             self.exchange.central_orderbook[order.direction][order.price] = deque([order])  # type:ignore
-        self.min_initial_price = min(self.min_initial_price, self.exchange.orderbook_price_range[0])
-        self.max_initial_price = max(self.max_initial_price, self.exchange.orderbook_price_range[1])
+        self.min_buy_price = min(self.min_buy_price, self.exchange.orderbook_price_range[0])
+        self.max_sell_price = max(self.max_sell_price, self.exchange.orderbook_price_range[1])
 
     @staticmethod
     def _compress_order_dict(order_dict: Dict[str, Deque[Order]]) -> List:
@@ -142,6 +140,6 @@ class OrderbookSimulator:
     @property
     def _near_exiting_initial_price_range(self) -> bool:
         return (
-            self.exchange.best_bid_price < self.min_initial_price + OUTER_LEVELS * self.initial_price_range
-            or self.exchange.best_ask_price > self.max_initial_price - OUTER_LEVELS * self.initial_price_range
+            self.exchange.best_buy_price < self.min_buy_price + OUTER_LEVELS * self.initial_buy_price_range
+            or self.exchange.best_sell_price > self.max_sell_price - OUTER_LEVELS * self.initial_sell_price_range
         )

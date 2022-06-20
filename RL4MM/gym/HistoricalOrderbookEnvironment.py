@@ -259,8 +259,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         return internal_volumes  # type: ignore
 
     def _get_best_prices(self):
-        best_buy = self.simulator.exchange.best_bid_price
-        best_sell = self.simulator.exchange.best_ask_price
+        best_buy = self.simulator.exchange.best_buy_price
+        best_sell = self.simulator.exchange.best_sell_price
         tick_size = self.central_orderbook["tick_size"]
         buy_prices = np.arange(best_buy - self.quote_levels * tick_size, best_buy, tick_size)
         sell_prices = np.arange(best_sell, best_sell + self.quote_levels * tick_size, tick_size)
