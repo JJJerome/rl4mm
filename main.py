@@ -21,6 +21,8 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=False)
     elif reward_function == "PnL":
         return PnL()
+    else:
+        raise NotImplementedError("You must specify one of 'AS', 'SD' or 'PnL'")
 
 
 def env_creator(env_config):
@@ -88,8 +90,8 @@ def main(args):
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
         "evaluation_config": {"env_config": eval_env_config},
-        "recreate_failed_workers": False, #True,
-        "disable_env_checking":True,
+        "recreate_failed_workers": False,  # True,
+        "disable_env_checking": True,
     }
 
     tensorboard_logdir = args["tensorboard_logdir"]
