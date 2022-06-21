@@ -3,7 +3,9 @@ import os
 from datetime import timedelta
 import ray
 from ray import tune
+from ray.tune.schedulers import PopulationBasedTraining
 from ray.tune.registry import register_env
+import random
 
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL
@@ -13,6 +15,10 @@ from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.utils.utils import get_date_time, save_best_checkpoint_path
 from RL4MM.utils.utils import boolean_string
 
+# --------------TMP import for debugging start
+from ray.rllib.agents import ppo
+# --------------TMP import for debugging end
+
 def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
     if reward_function == "AD":  # asymmetrically dampened
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=True)
@@ -20,6 +26,8 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=False)
     elif reward_function == "PnL":
         return PnL()
+
+
 
 
 def env_creator(env_config):
@@ -42,7 +50,35 @@ def env_creator(env_config):
 
 def main(args):
     #ray.init()
-    ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"])
+
+    # Postprocess the perturbed config to ensure it's still valid
+    def explore(config):
+        # ensure we collect enough timesteps to do sgd
+        if config["train_batch_size"] < config["sgd_minibatch_size"] * 2:
+            config["train_batch_size"] = config["sgd_minibatch_size"] * 2
+        # ensure we run at least one sgd iter
+        if config["num_sgd_iter"] < 1:
+            config["num_sgd_iter"] = 1
+        return config
+
+    pbt = PopulationBasedTraining(
+        time_attr="time_total_s",
+        perturbation_interval=120,
+        resample_probability=0.25,
+        # Specifies the mutations of these hyperparams
+        hyperparam_mutations={
+            "lambda": lambda: random.uniform(0.9, 1.0),
+            "clip_param": lambda: random.uniform(0.01, 0.5),
+            "lr": [1e-3, 5e-4, 1e-4, 5e-5, 1e-5],
+            "num_sgd_iter": lambda: random.randint(1, 30),
+            "sgd_minibatch_size": lambda: random.randint(128, 16384),
+            "train_batch_size": lambda: random.randint(2000, 160000),
+            "rollout_fragment_length": lambda: random.randint(200, 3600),
+        },
+        custom_explore_fn=explore,
+    )
+
+    ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"]+2)
     env_config = {
         "ticker": args["ticker"],
         "min_date": args["min_date"],
@@ -59,7 +95,8 @@ def main(args):
     eval_env_config = copy.deepcopy(env_config)
     eval_env_config["min_date"] = args["min_date_eval"]
     eval_env_config["max_date"] = args["max_date_eval"]
-    eval_env_config["per_step_reward_function"] = (args["eval_per_step_reward_function"],)
+    #eval_env_config["per_step_reward_function"] = (args["eval_per_step_reward_function"],)
+    eval_env_config["per_step_reward_function"] = args["eval_per_step_reward_function"]
     eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
 
     register_env("HistoricalOrderbookEnvironment", env_creator)
@@ -70,13 +107,12 @@ def main(args):
         "num_workers": args["num_workers"],
         "framework": args["framework"],
         "callbacks": Custom_Callbacks,
-        "rollout_fragment_length": args["rollout_fragment_length"],
         "sgd_minibatch_size":100,
         "num_sgd_iter":10,
+        "num_cpus_per_worker": 1,
         "lambda": args["lambda"],
         "lr": args["learning_rate"],
         "gamma": args["discount_factor"],
-        "train_batch_size": args["train_batch_size"],
         "model": {
             "fcnet_hiddens": [256, 256],
             "fcnet_activation": "tanh",  # torch.nn.Sigmoid,
@@ -90,15 +126,28 @@ def main(args):
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
         "evaluation_config": {"env_config": eval_env_config},
-        "recreate_failed_workers": True,
+        #"recreate_failed_workers": True,
+        #"train_batch_size": args["train_batch_size"],
+        # ---------------------------------------------
+        # --------------- Tuning: ---------------------
+        "rollout_fragment_length": tune.choice([200, 500, 900, 1800, 3600]), #args["rollout_fragment_length"],
+        "num_sgd_iter": tune.choice([10, 20, 30]),
+        "sgd_minibatch_size": tune.choice([128, 512, 2048]),
+        "train_batch_size": tune.choice([10000, 20000, 40000]),
     }
-
+    
+    #trainer = ppo.PPOTrainer(env="HistoricalOrderbookEnvironment", config=config) #, logger_creator=custom_logger(prefix=args["ticker"]))
+    #print(trainer.train()) 
     tensorboard_logdir = args["tensorboard_logdir"]
     if not os.path.exists(tensorboard_logdir):
         os.makedirs(tensorboard_logdir)
 
     analysis = tune.run(
         "PPO",
+        scheduler=pbt,
+        num_samples=8,
+        metric="episode_reward_mean",
+        mode="max",
         stop={"training_iteration": args["iterations"]},
         config=config,
         local_dir=tensorboard_logdir,
@@ -110,7 +159,6 @@ def main(args):
     path_to_save_dir = args["output"] or "/home/ray"
     print(best_checkpoint)
     save_best_checkpoint_path(path_to_save_dir, best_checkpoint[0][0])
-
 
 if __name__ == "__main__":
     # -------------------- Training Args ----------------------
@@ -140,7 +188,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-tbd",
         "--tensorboard_logdir",
-        default="/home/data/tensorboard",
+        default="./ray_results/tensorboard",
         help="Directory to save tensorboard logs to.",
         type=str,
     )
@@ -154,9 +202,9 @@ if __name__ == "__main__":
         type=int,
     )
     # -------------------- Training env Args ---------------------------
-    parser.add_argument("-mind", "--min_date", default="2019-01-02", help="Train data start date.", type=str)
-    parser.add_argument("-maxd", "--max_date", default="2019-01-02", help="Train data end date.", type=str)
-    parser.add_argument("-t", "--ticker", default="MSFT", help="Specify stock ticker.", type=str)
+    parser.add_argument("-mind", "--min_date", default="2018-02-20", help="Train data start date.", type=str)
+    parser.add_argument("-maxd", "--max_date", default="2018-03-05", help="Train data end date.", type=str)
+    parser.add_argument("-t", "--ticker", default="SPY", help="Specify stock ticker.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
     parser.add_argument("-sz", "--step_size", default=1, help="Step size in seconds.", type=int)
@@ -164,7 +212,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-psr",
         "--per_step_reward_function",
-        default="PnL",
+        default="AD",
         choices=["AD", "SD", "PnL"],
         help="Per step reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
@@ -182,8 +230,8 @@ if __name__ == "__main__":
     )
 
     # ------------------ Eval env args -------------------------------
-    parser.add_argument("-minde", "--min_date_eval", default="2019-01-03", help="Evaluation data start date.", type=str)
-    parser.add_argument("-maxde", "--max_date_eval", default="2019-01-03", help="Evaluation data end date.", type=str)
+    parser.add_argument("-minde", "--min_date_eval", default="2018-03-07", help="Evaluation data start date.", type=str)
+    parser.add_argument("-maxde", "--max_date_eval", default="2018-03-14", help="Evaluation data end date.", type=str)
     parser.add_argument(
         "-epsr",
         "--eval_per_step_reward_function",
