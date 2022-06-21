@@ -1,6 +1,7 @@
 import argparse
 import logging
 from subprocess import run
+import py7zr
 
 from RL4MM.utils.utils import (
     get_date_time,
@@ -15,6 +16,7 @@ from RL4MM.database.populate_database import populate_database
 parser = argparse.ArgumentParser(description="Populate a postgres database with LOBSTER data")
 parser.add_argument("-nl", "--n_levels", action="store", type=int, default=200, help="the number of orderbook levels")
 parser.add_argument(
+    "-ptld",
     "--path_to_lobster_data",
     action="store",
     type=str,
@@ -50,14 +52,17 @@ if __name__ == "__main__":
         n_levels = int(filename.split("_")[-1].split(".")[0])
         next_trading_dt = get_next_trading_dt(start_date)
         last_trading_dt = get_last_trading_dt(end_date)
-        if daterange_in_db(next_trading_dt, last_trading_dt):
+        if daterange_in_db(next_trading_dt, last_trading_dt, ticker):
             logging.info(f"Data for {ticker} between {start_date} and {end_date} already in database so not re-added.")
             continue
-        run(["7z", "x", filename])
+        print(filename)
+        run(['7z', 'x', args.path_to_lobster_data + filename])
         populate_database(
             tickers=(ticker,),
             trading_datetimes=get_trading_datetimes(start_date, end_date),
             path_to_lobster_data=args.path_to_lobster_data,
             book_snapshot_freq=args.book_snapshot_freq,
             batch_size=args.batch_size,
+            n_levels=args.n_levels,
         )
+        run('rm', args.path_to_lobster_data + "*.csv")

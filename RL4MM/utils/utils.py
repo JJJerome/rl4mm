@@ -5,7 +5,6 @@ import os
 import pandas_market_calendars as mcal
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from run_populate_database_from_zipped import ticker
 
 
 def get_date_time(date_string: str):
@@ -63,8 +62,12 @@ def get_trading_datetimes(start_date: datetime, end_date: datetime):
     return ncal.schedule(start_date=start_date, end_date=end_date).market_open.index
 
 
-def daterange_in_db(start: datetime, end: datetime):
+def daterange_in_db(start: datetime, end: datetime, ticker: str):
     database = HistoricalDatabase()
-    bool_1 = database.get_next_snapshot(start, ticker).name - start < timedelta(minutes=1)
-    bool_2 = end - database.get_last_snapshot(end, ticker).name < timedelta(minutes=1)
+    next_snapshot = database.get_next_snapshot(start, ticker)
+    last_snapshot = database.get_last_snapshot(end, ticker)
+    if len(next_snapshot) == 0 or len(last_snapshot)==0:
+        return False
+    bool_1 = next_snapshot.name - start < timedelta(minutes=1)
+    bool_2 = end - last_snapshot.name < timedelta(minutes=1)
     return bool_1 and bool_2

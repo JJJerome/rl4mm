@@ -1,6 +1,5 @@
 import argparse
 import os
-import sys
 from datetime import timedelta
 import ray
 from ray import tune
