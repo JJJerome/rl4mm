@@ -20,6 +20,7 @@ stochastic~=0.6.0
 tqdm~=4.62.3
 py7zr
 pandas_market_calendars
+tensorboard
 #gym~=0.21.0
 #pfrl
 #jupyter
