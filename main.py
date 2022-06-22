@@ -26,6 +26,8 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=False)
     elif reward_function == "PnL":
         return PnL()
+    else:
+        raise NotImplementedError("You must specify one of 'AS', 'SD' or 'PnL'")
 
 
 
@@ -126,7 +128,6 @@ def main(args):
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
         "evaluation_config": {"env_config": eval_env_config},
-        #"recreate_failed_workers": True,
         #"train_batch_size": args["train_batch_size"],
         # ---------------------------------------------
         # --------------- Tuning: ---------------------
@@ -134,6 +135,8 @@ def main(args):
         "num_sgd_iter": tune.choice([10, 20, 30]),
         "sgd_minibatch_size": tune.choice([128, 512, 2048]),
         "train_batch_size": tune.choice([10000, 20000, 40000]),
+        "recreate_failed_workers": False,
+        "disable_env_checking": True,
     }
     
     #trainer = ppo.PPOTrainer(env="HistoricalOrderbookEnvironment", config=config) #, logger_creator=custom_logger(prefix=args["ticker"]))

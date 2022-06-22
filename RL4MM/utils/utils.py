@@ -2,6 +2,9 @@ from datetime import datetime, timedelta
 from ray.tune.logger import UnifiedLogger
 import tempfile
 import os
+import pandas_market_calendars as mcal
+
+from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 
 
 def get_date_time(date_string: str):
@@ -40,3 +43,31 @@ def save_best_checkpoint_path(path_to_save_dir: str, best_checkpoint_path: str):
     text_file = open(path_to_save_dir + "/best_checkpoint_path.txt", "wt")
     text_file.write(best_checkpoint_path)
     text_file.close()
+
+
+def get_last_trading_dt(timestamp: datetime):
+    ncal = mcal.get_calendar("NASDAQ")
+    last_trading_date = ncal.schedule(start_date=timestamp - timedelta(days=4), end_date=timestamp).iloc[-1, 0].date()
+    return datetime.combine(last_trading_date, datetime.min.time()) + timedelta(hours=16)
+
+
+def get_next_trading_dt(timestamp: datetime):
+    ncal = mcal.get_calendar("NASDAQ")
+    next_trading_date = ncal.schedule(start_date=timestamp, end_date=timestamp + timedelta(days=4)).iloc[0, 0].date()
+    return datetime.combine(next_trading_date, datetime.min.time()) + timedelta(hours=9, minutes=30)
+
+
+def get_trading_datetimes(start_date: datetime, end_date: datetime):
+    ncal = mcal.get_calendar("NASDAQ")
+    return ncal.schedule(start_date=start_date, end_date=end_date).market_open.index
+
+
+def daterange_in_db(start: datetime, end: datetime, ticker: str):
+    database = HistoricalDatabase()
+    next_snapshot = database.get_next_snapshot(start, ticker)
+    last_snapshot = database.get_last_snapshot(end, ticker)
+    if len(next_snapshot) == 0 or len(last_snapshot)==0:
+        return False
+    bool_1 = next_snapshot.name - start < timedelta(minutes=1)
+    bool_2 = end - last_snapshot.name < timedelta(minutes=1)
+    return bool_1 and bool_2
