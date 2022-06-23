@@ -11,6 +11,7 @@ RUN apt-get -y update \
     lsb-release \
     python3.8 \
     python3-pip \
+    p7zip-full \
     postgresql \
     python-dev \
     libpq-dev \ 
