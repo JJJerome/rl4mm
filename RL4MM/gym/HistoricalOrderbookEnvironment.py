@@ -72,6 +72,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         simulator: OrderbookSimulator = None,
         order_distributor: OrderDistributor = None,
         market_order_clearing: bool = False,
+        inc_prev_action_in_obs: bool = True,
         max_inventory: int = 100000,
         per_step_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=10 ** (-4)),
         terminal_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=0.1),
@@ -85,11 +86,19 @@ class HistoricalOrderbookEnvironment(gym.Env):
             low = np.append(self.action_space.low, [0.0])
             high = np.append(self.action_space.high, [max_inventory])
             self.action_space = Box(low=low, high=high, dtype=np.float64)
+       
         # Observation space is determined by the features used
         self.features = features or [Spread(), MidpriceMove(), Volatility(), Inventory(), TimeRemaining(), MicroPrice()]
+        self.inc_prev_action_in_obs = inc_prev_action_in_obs
+        low_obs = np.array([feature.min_value for feature in self.features])
+        high_obs = np.array([feature.max_value for feature in self.features])
+        # If the previous action is included in the observation: 
+        if self.inc_prev_action_in_obs:       
+            low_obs = np.concatenate((low_obs, low))
+            high_obs = np.concatenate((high_obs, high))
         self.observation_space = Box(
-            low=np.array([feature.min_value for feature in self.features]),
-            high=np.array([feature.max_value for feature in self.features]),
+            low=low_obs,
+            high=high_obs,
             dtype=np.float64,
         )
         self.max_distribution_param = max_distribution_param
@@ -125,8 +134,10 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.now_is = self._get_random_start_time()
         self.simulator.reset_episode(start_date=self.now_is)
         self._reset_internal_state()
-        observation = self.get_observation()
-        return observation
+        if self.inc_prev_action_in_obs:
+            return self.get_observation(np.zeros(shape=self.action_space.shape))  
+        else:
+            return self.get_observation()
 
     def step(self, action: np.ndarray):
         done = False  # rllib requires a bool
@@ -145,14 +156,18 @@ class HistoricalOrderbookEnvironment(gym.Env):
             )
         next_state = self.internal_state
         reward = self.per_step_reward_function.calculate(current_state, next_state)
-        observation = self.get_observation()
+        observation = self.get_observation(action) if self.inc_prev_action_in_obs else self.get_observation()
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
             reward = self.terminal_reward_function.calculate(current_state, next_state)
             done = True  # rllib requires a bool
         return observation, reward, done, info
 
-    def get_observation(self) -> np.ndarray:
-        return np.array([feature.calculate(self.internal_state) for feature in self.features])
+    def get_observation(self, previous_action: np.ndarray = None) -> np.ndarray:
+        obs = np.array([feature.calculate(self.internal_state) for feature in self.features])
+        if previous_action is not None:
+            return np.concatenate((obs, previous_action))
+        else:
+            return obs
 
     def _get_random_start_time(self):
         return self._get_random_trading_day() + self._random_offset_timestamp()

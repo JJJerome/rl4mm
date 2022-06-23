@@ -15,10 +15,6 @@ from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.utils.utils import get_date_time, save_best_checkpoint_path
 from RL4MM.utils.utils import boolean_string
 
-# --------------TMP import for debugging start
-from ray.rllib.agents import ppo
-# --------------TMP import for debugging end
-
 def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
     if reward_function == "AD":  # asymmetrically dampened
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=True)
@@ -29,11 +25,7 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
     else:
         raise NotImplementedError("You must specify one of 'AS', 'SD' or 'PnL'")
 
-
-
-
 def env_creator(env_config):
-    print(env_config)
     obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
     return HistoricalOrderbookEnvironment(
         ticker=env_config["ticker"],
@@ -51,8 +43,6 @@ def env_creator(env_config):
 
 
 def main(args):
-    #ray.init()
-
     # Postprocess the perturbed config to ensure it's still valid
     def explore(config):
         # ensure we collect enough timesteps to do sgd
@@ -92,6 +82,7 @@ def main(args):
         "per_step_reward_function": args["per_step_reward_function"],
         "terminal_reward_function": args["terminal_reward_function"],
         "market_order_clearing": args["market_order_clearing"],
+        "inc_prev_action_in_obs": args["inc_prev_action_in_obs"],
     }
 
     eval_env_config = copy.deepcopy(env_config)
@@ -118,7 +109,8 @@ def main(args):
         "model": {
             "fcnet_hiddens": [256, 256],
             "fcnet_activation": "tanh",  # torch.nn.Sigmoid,
-            "use_lstm": args["lstm"],
+            #"use_lstm": args["lstm"],
+            #"lstm_use_prev_action": True,
         },
         "output": args["output"],
         "output_max_file_size": args["output_max_file_size"],
@@ -128,19 +120,16 @@ def main(args):
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
         "evaluation_config": {"env_config": eval_env_config},
-        #"train_batch_size": args["train_batch_size"],
         # ---------------------------------------------
         # --------------- Tuning: ---------------------
-        "rollout_fragment_length": tune.choice([200, 500, 900, 1800, 3600]), #args["rollout_fragment_length"],
+        "rollout_fragment_length": tune.choice([1800, 3600]), #args["rollout_fragment_length"],
         "num_sgd_iter": tune.choice([10, 20, 30]),
         "sgd_minibatch_size": tune.choice([128, 512, 2048]),
         "train_batch_size": tune.choice([10000, 20000, 40000]),
-        "recreate_failed_workers": False,
-        "disable_env_checking": True,
+        #"recreate_failed_workers": False, # Get an error for some reason when this is enabled.
+        #"disable_env_checking": True,
     }
     
-    #trainer = ppo.PPOTrainer(env="HistoricalOrderbookEnvironment", config=config) #, logger_creator=custom_logger(prefix=args["ticker"]))
-    #print(trainer.train()) 
     tensorboard_logdir = args["tensorboard_logdir"]
     if not os.path.exists(tensorboard_logdir):
         os.makedirs(tensorboard_logdir)
@@ -205,13 +194,14 @@ if __name__ == "__main__":
         type=int,
     )
     # -------------------- Training env Args ---------------------------
+    parser.add_argument("-ia", "--inc_prev_action_in_obs", default=True, help="Include prev action in obs.", type=bool)
     parser.add_argument("-mind", "--min_date", default="2018-02-20", help="Train data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2018-03-05", help="Train data end date.", type=str)
-    parser.add_argument("-t", "--ticker", default="SPY", help="Specify stock ticker.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
-    parser.add_argument("-sz", "--step_size", default=1, help="Step size in seconds.", type=int)
     parser.add_argument("-nl", "--n_levels", default=200, help="Number of orderbook levels.", type=int)
+    parser.add_argument("-sz", "--step_size", default=1, help="Step size in seconds.", type=int)
+    parser.add_argument("-t", "--ticker", default="SPY", help="Specify stock ticker.", type=str)
     parser.add_argument(
         "-psr",
         "--per_step_reward_function",
