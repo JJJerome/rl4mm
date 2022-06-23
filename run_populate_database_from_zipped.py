@@ -2,6 +2,8 @@ import argparse
 import logging
 from subprocess import run
 import py7zr
+import glob
+import os
 
 from RL4MM.utils.utils import (
     get_date_time,
@@ -40,10 +42,22 @@ parser.add_argument(
     help="the batch size used to populate the db (for reducing memory requirements)",
 )
 
+def delete_csvs():
+    csv_fpaths =  glob.glob(args.path_to_lobster_data + '/*.csv')
+    for fp in csv_fpaths:
+        run(['rm', fp])
+
 if __name__ == "__main__":
     args = parser.parse_args()
-    filenames = run(["ls", args.path_to_lobster_data], capture_output=True).stdout.decode("utf-8").split("\n")
-    for filename in filenames[:1]:
+    #filenames = run(["ls", args.path_to_lobster_data], capture_output=True).stdout.decode("utf-8").split("\n")
+    #for filename in filenames[:1]:
+
+    ##########################
+
+    fpaths =  glob.glob(args.path_to_lobster_data + '/*.7z')
+    for fpath in fpaths:
+        filename = os.path.basename(fpath)
+        print("DEBUG:", filename)
         if len(filename) == 0:
             continue
         ticker = filename.split("_")[-4]
@@ -54,9 +68,11 @@ if __name__ == "__main__":
         last_trading_dt = get_last_trading_dt(end_date)
         if daterange_in_db(next_trading_dt, last_trading_dt, ticker):
             logging.info(f"Data for {ticker} between {start_date} and {end_date} already in database so not re-added.")
+            delete_csvs()
             continue
         print(filename)
-        run(['7z', 'x', args.path_to_lobster_data + filename])
+        #run(['7z', 'x', args.path_to_lobster_data + filename])
+        run(['7z', 'x', args.path_to_lobster_data + filename, '-o' + args.path_to_lobster_data])
         populate_database(
             tickers=(ticker,),
             trading_datetimes=get_trading_datetimes(start_date, end_date),
@@ -65,4 +81,4 @@ if __name__ == "__main__":
             batch_size=args.batch_size,
             n_levels=args.n_levels,
         )
-        run('rm', args.path_to_lobster_data + "*.csv")
+        delete_csvs()
