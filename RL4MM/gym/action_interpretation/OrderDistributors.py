@@ -20,18 +20,21 @@ class OrderDistributor(metaclass=abc.ABCMeta):
     def _convert_action(self, action: np.ndarray) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         pass
 
-
 class BetaOrderDistributor(OrderDistributor):
-    def __init__(self, quote_levels: int = 10, active_volume: int = 100):
+    def __init__(self, quote_levels: int = 10, active_volume: int = 100, concentration: float = None):
         self.n_levels = quote_levels
         self.distribution = betabinom
         self.tick_range = range(0, self.n_levels)
         self.active_volume = active_volume
+        self.c = concentration
 
-    def _convert_action(self, action: np.ndarray) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
+    def _convert_action(self, action: np.ndarray, eps=1e-5) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         assert all(action) > 0, "Action must be positive"
-        beta_binom_buy = betabinom(n=self.n_levels - 1, a=action[0], b=action[1])
-        beta_binom_sell = betabinom(n=self.n_levels - 1, a=action[2], b=action[3])
+        b_buy = self.c - action[0] if self.c is not None else action[1]
+        b_sell = self.c - action[1] if self.c is not None else action[3]
+        beta_binom_buy = betabinom(n=self.n_levels - 1, a=action[0], b=max(b_buy, eps))
+        beta_binom_sell = betabinom(n=self.n_levels - 1, a=action[2], b=max(b_sell, eps))
         buy_volumes = np.round(beta_binom_buy.pmf(self.tick_range) * self.active_volume).astype(int)
         sell_volumes = np.round(beta_binom_sell.pmf(self.tick_range) * self.active_volume).astype(int)
         return {"buy": buy_volumes, "sell": sell_volumes}
+
