@@ -58,7 +58,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
     def __init__(
         self,
         features: List[Feature] = None,
-        max_distribution_param: float = 1000.0,
+        max_distribution_param: float = 10.0,  #1000.0,
         ticker: str = "MSFT",
         step_size: timedelta = ORDERBOOK_MIN_STEP,
         episode_length: timedelta = timedelta(minutes=30),
@@ -77,12 +77,13 @@ class HistoricalOrderbookEnvironment(gym.Env):
         terminal_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=0.1),
         info_calculator: InfoCalculator = None,
         order_distributor: OrderDistributor = None,
-        concentration: float = 1000.
+        concentration: float = 10.0,
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
 
         # Actions are the parameters governing the distribution over levels in the orderbook
         if concentration is not None or (order_distributor is not None and order_distributor.c is not None): 
+            assert concentration >= max_distribution_param, "concentration is less than max_distribution_param"
             self.action_space = Box(low=0.0, high=max_distribution_param, shape=(2,), dtype=np.float64)
         else: 
             self.action_space = Box(low=0.0, high=max_distribution_param, shape=(4,), dtype=np.float64)
