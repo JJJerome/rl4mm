@@ -70,18 +70,22 @@ class HistoricalOrderbookEnvironment(gym.Env):
         min_start_timedelta: timedelta = timedelta(hours=10),  # Ignore the first half an hour of trading
         max_end_timedelta: timedelta = timedelta(hours=15, minutes=30),  # Same for the last half an hour
         simulator: OrderbookSimulator = None,
-        order_distributor: OrderDistributor = None,
         market_order_clearing: bool = False,
         inc_prev_action_in_obs: bool = True,
         max_inventory: int = 100000,
         per_step_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=10 ** (-4)),
         terminal_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=0.1),
         info_calculator: InfoCalculator = None,
+        order_distributor: OrderDistributor = None,
+        concentration: float = 1000.
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
 
         # Actions are the parameters governing the distribution over levels in the orderbook
-        self.action_space = Box(low=0.0, high=max_distribution_param, shape=(4,), dtype=np.float64)
+        if concentration is not None or (order_distributor is not None and order_distributor.c is not None): 
+            self.action_space = Box(low=0.0, high=max_distribution_param, shape=(2,), dtype=np.float64)
+        else: 
+            self.action_space = Box(low=0.0, high=max_distribution_param, shape=(4,), dtype=np.float64)
         if market_order_clearing:
             low = np.append(self.action_space.low, [0.0])
             high = np.append(self.action_space.high, [max_inventory])
@@ -120,7 +124,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.simulator = simulator or OrderbookSimulator(
             ticker=ticker, order_generators=[HistoricalOrderGenerator(ticker)], n_levels=200
         )
-        self.order_distributor = order_distributor or BetaOrderDistributor(self.quote_levels)
+        self.order_distributor = order_distributor or BetaOrderDistributor(self.quote_levels, concentration=concentration)
         self.market_order_clearing = market_order_clearing
         self.per_step_reward_function = per_step_reward_function
         self.terminal_reward_function = terminal_reward_function
