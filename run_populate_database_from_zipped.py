@@ -70,9 +70,8 @@ if __name__ == "__main__":
             logging.info(f"Data for {ticker} between {start_date} and {end_date} already in database so not re-added.")
             delete_csvs()
             continue
-        print(filename)
-        #run(['7z', 'x', args.path_to_lobster_data + filename])
-        run(['7z', 'x', args.path_to_lobster_data + filename, '-o' + args.path_to_lobster_data])
+        print('About to extract:', fpath, 'inside', args.path_to_lobster_data)
+        run(['7z', 'x', fpath, '-o' + args.path_to_lobster_data])
         populate_database(
             tickers=(ticker,),
             trading_datetimes=get_trading_datetimes(start_date, end_date),
