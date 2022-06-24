@@ -20,7 +20,13 @@ class SimpleInfoCalculator(InfoCalculator):
             price=internal_state["asset_price"],
             inventory=internal_state["inventory"],
             spread=last_snapshot.sell_price_0 - last_snapshot.buy_price_0,
-            bid_action=action[[0, 1]],
-            ask_action=action[[1, 2]],
         )
+        if len(action) == 3:
+            info_dict['bid_action']=action[[0]],
+            info_dict['ask_action']=action[[1]],
+            info_dict['market_order_action']=action[[2]],
+        else:
+            info_dict['bid_action']=action[[0, 1]],
+            info_dict['ask_action']=action[[2, 3]],
+            info_dict['market_order_action']=action[[4]],
         return info_dict
