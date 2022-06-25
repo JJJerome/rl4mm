@@ -10,3 +10,4 @@
 /data/
 /experiments/
 *.ipynb\_checkpoints*
+ray_results
