@@ -4,6 +4,7 @@ from subprocess import run
 import py7zr
 import glob
 import os
+import sys
 
 from RL4MM.utils.utils import (
     get_date_time,
@@ -55,6 +56,13 @@ if __name__ == "__main__":
     ##########################
 
     fpaths =  glob.glob(args.path_to_lobster_data + '/*.7z')
+    # print('\n'.join(fpaths))
+    # Need to process data in chronologicaly order!
+    fpaths.sort(reverse=True)
+    # print('----------')
+    # print('\n'.join(fpaths))
+    # sys.exit()
+
     for fpath in fpaths:
         filename = os.path.basename(fpath)
         print("DEBUG:", filename)
