@@ -221,8 +221,8 @@ if __name__ == "__main__":
     ###########################################################################
     # Teradactyl
     ###########################################################################
-    agent = TeradactylAgent()
-
-    # obs, acts, rews, infs = generate_trajectory(agent, env)
-
-    plot_reward_distributions(agent, env, n_iterations=10)
+    for max_inv in [10,100,500]:
+        for kappa in [5,10,20]:
+            agent = TeradactylAgent(max_inventory=max_inv, kappa=kappa)
+            # obs, acts, rews, infs = generate_trajectory(agent, env)
+            plot_reward_distributions(agent, env, n_iterations=50)
