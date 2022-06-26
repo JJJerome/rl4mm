@@ -1,1 +1,1 @@
-python rule_based_main.py -mind 2020-02-20 -maxd 2020-03-01 -ticker SPY
+python rule_based_main.py -mind 2018-02-20 -maxd 2018-03-01 --ticker SPY
