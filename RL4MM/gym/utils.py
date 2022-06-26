@@ -41,7 +41,8 @@ def get_episode_summary_dict(agent: Agent, env: gym.Env, n_iterations: int = 100
 
 def get_output_prefix(agent: Agent, env: gym.Env):
     env_str = f'{env.ticker}_{str(env.min_date.date())}_{str(env.max_date.date())}'
-    agent_str = type(agent).__name__
+    # agent_str = type(agent).__name__
+    agent_str = agent.get_name()
     return agent_str + '_' + env_str
 
 def plot_reward_distributions(agent: Agent, env: gym.Env, n_iterations: int = 100):
@@ -49,7 +50,7 @@ def plot_reward_distributions(agent: Agent, env: gym.Env, n_iterations: int = 10
     episode_mean_dict = get_episode_summary_dict(agent, env, n_iterations)
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10, 6))
 
-    plt.suptitle(f"{env.ticker} {type(agent).__name__}")
+    plt.suptitle(f"{env.ticker} {agent.get_name()}")
 
     ax1.hist(episode_mean_dict["rewards"], bins=20)
     for action_loc in [0, 1, 2, 3]:

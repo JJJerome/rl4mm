@@ -1,3 +1,4 @@
+*.pdf
 /.env
 *.csv
 *.swp
@@ -11,3 +12,4 @@
 /experiments/
 *.ipynb\_checkpoints*
 ray_results
+process_output

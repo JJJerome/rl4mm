@@ -1,12 +1,13 @@
 import argparse
 import os
 import copy
+import numpy as np
 
 from main import env_creator
 
 from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions
 
-from RL4MM.agents.baseline_agents import RandomAgent
+from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent
 
 # from datetime import timedelta
 # import ray
@@ -197,8 +198,31 @@ if __name__ == "__main__":
     env_config, _ = get_configs(args)
     env = env_creator(env_config)
 
-    agent = RandomAgent(env)
+    ###########################################################################
+    # Random agent
+    ###########################################################################
+    # agent = RandomAgent(env)
+
+    ###########################################################################
+    # two (1,1) beta distributions and a 1000 max inventory limit
+    ###########################################################################
+    # agent = FixedActionAgent(np.array([1,1,1,1,1000]))
+
+    ###########################################################################
+    # Away from best prices
+    ###########################################################################
+    # agent = FixedActionAgent(np.array([10,1,10,1,1000]))
+
+    ###########################################################################
+    # Close to best prices
+    ###########################################################################
+    # agent = FixedActionAgent(np.array([1,10,1,10,1000]))
+
+    ###########################################################################
+    # Teradactyl
+    ###########################################################################
+    agent = TeradactylAgent()
 
     # obs, acts, rews, infs = generate_trajectory(agent, env)
 
-    plot_reward_distributions(agent, env, n_iterations=5)
+    plot_reward_distributions(agent, env, n_iterations=10)
