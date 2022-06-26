@@ -60,11 +60,27 @@ if __name__ == "__main__":
     print('ORIGINAL ORDER:')
     print('\n'.join(fpaths))
     # Need to process data in chronologicaly order!
-    fpaths.sort(reverse=False)
+    # But can't just sort whole filename because e.g.,
+    # ORIGINAL ORDER:
+    # /home/data/KO/_data_dwn_50_385__KO_2018-04-01_2018-04-30_200.7z
+    # /home/data/KO/_data_dwn_50_389__KO_2018-02-01_2018-02-28_200.7z
+    # /home/data/KO/_data_dwn_50_386__KO_2018-03-01_2018-03-31_200.7z
+    # /home/data/KO/_data_dwn_50_384__KO_2018-05-01_2018-05-31_200.7z
+    # ----------
+    # ORDER AFTER SORTING:
+    # /home/data/KO/_data_dwn_50_384__KO_2018-05-01_2018-05-31_200.7z
+    # /home/data/KO/_data_dwn_50_385__KO_2018-04-01_2018-04-30_200.7z
+    # /home/data/KO/_data_dwn_50_386__KO_2018-03-01_2018-03-31_200.7z
+    # /home/data/KO/_data_dwn_50_389__KO_2018-02-01_2018-02-28_200.7z
+    # 
+    # Need to sort only by dates, and it suffices to just use
+    # everything after the __
+    # 
+    fpaths.sort(reverse=False, key=lambda f: f.split('__')[1])
     print('----------')
     print('ORDER AFTER SORTING:')
     print('\n'.join(fpaths))
-    sys.exit()
+    # sys.exit()
 
     for fpath in fpaths:
         filename = os.path.basename(fpath)
