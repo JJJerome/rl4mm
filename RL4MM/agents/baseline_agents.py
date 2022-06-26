@@ -78,7 +78,7 @@ class TeradactylAgent(Agent):
             return tmp
 
     def get_name(self):
-        return(f'Teradactyl')
+        return(f'Teradactyl_kappa_{self.kappa}_max_inv_{self.max_inventory}')
 
 class HumanAgent(Agent):
     def get_action(self, state: np.ndarray):
