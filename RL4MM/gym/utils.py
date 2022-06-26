@@ -9,7 +9,7 @@ from tqdm import tqdm
 from RL4MM.agents.Agent import Agent
 
 
-def generate_trajectory(env: gym.Env, agent: Agent):
+def generate_trajectory(agent: Agent, env: gym.Env):
     observations = []
     rewards = []
     actions = []
