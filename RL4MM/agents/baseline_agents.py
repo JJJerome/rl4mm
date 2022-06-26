@@ -56,7 +56,6 @@ class TeradactylAgent(Agent):
         if inventory == 0:
             return np.array([1,1,1,1,self.max_inventory]) 
         else:
-            print("inventory:", inventory)
 
             omega_bid = 0.5 * (1 + (inventory/self.max_inventory))
             omega_ask = 0.5 * (1 - (inventory/self.max_inventory))
@@ -73,7 +72,8 @@ class TeradactylAgent(Agent):
                              beta_ask,
                              self.max_inventory])
 
-            print(tmp)
+            # print("inventory:", inventory)
+            # print(tmp)
 
             return tmp
 
