@@ -39,6 +39,11 @@ def get_episode_summary_dict(agent: Agent, env: gym.Env, n_iterations: int = 100
     return episode_mean_dict
 
 
+def get_output_prefix(agent: Agent, env: gym.Env):
+    env_str = f'{env.ticker}_{str(env.min_date.date())}_{str(env.max_date.date())}'
+    agent_str = type(agent).__name__
+    return agent_str + '_' + env_str
+
 def plot_reward_distributions(agent: Agent, env: gym.Env, n_iterations: int = 100):
     sns.set()
     episode_mean_dict = get_episode_summary_dict(agent, env, n_iterations)
@@ -55,4 +60,6 @@ def plot_reward_distributions(agent: Agent, env: gym.Env, n_iterations: int = 10
     ax3.title.set_text("Mean inventory")
     ax4.title.set_text("Mean spread")
     fig.tight_layout()
-    plt.show()
+    # plt.show()
+
+    fig.savefig(f'{get_output_prefix(agent,env)}.pdf')
