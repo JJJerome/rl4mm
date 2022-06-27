@@ -45,7 +45,7 @@ def get_output_prefix(agent: Agent, env: gym.Env):
     agent_str = agent.get_name()
     return agent_str + '_' + env_str
 
-def plot_reward_distributions(agent: Agent, env: gym.Env, n_iterations: int = 100):
+def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int = 100):
     sns.set()
     episode_mean_dict = get_episode_summary_dict(agent, env, n_iterations)
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10, 6))
@@ -62,6 +62,37 @@ def plot_reward_distributions(agent: Agent, env: gym.Env, n_iterations: int = 10
     ax2.title.set_text("Mean action")
     ax3.title.set_text("Mean inventory")
     ax4.title.set_text("Mean spread")
+    fig.tight_layout()
+    # plt.show()
+
+    fig.savefig(f'{get_output_prefix(agent,env)}.pdf')
+
+def plot_reward_distributions(agent: Agent, env: gym.Env, n_iterations: int = 100):
+    sns.set()
+    episode_mean_dict = get_episode_summary_dict(agent, env, n_iterations)
+    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2, figsize=(10, 6))
+
+    plt.suptitle(f"{env.ticker} {agent.get_name()}")
+
+    ax1.hist(episode_mean_dict["rewards"], bins=20)
+    ax1.title.set_text("Mean rewards")
+
+    for action_loc, ax in zip([0, 1, 2, 3],[ax3,ax4,ax5,ax6]):
+        ax.hist(np.array(episode_mean_dict["actions"])[action_loc, :], bins=5, label="action " + str(action_loc))
+        ax.legend()
+
+    ax3.title.set_text("Mean action - bid 1")
+    ax4.title.set_text("Mean action - bid 2")
+    ax5.title.set_text("Mean action - ask 1")
+    ax6.title.set_text("Mean action - ask 2")
+
+    ax7.hist(episode_mean_dict["inventory"], bins=20)
+    ax8.hist(episode_mean_dict["spread"], bins=20)
+    ax7.title.set_text("Mean inventory")
+    ax8.title.set_text("Mean spread")
+
+
+
     fig.tight_layout()
     # plt.show()
 

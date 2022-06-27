@@ -219,10 +219,25 @@ if __name__ == "__main__":
     # agent = FixedActionAgent(np.array([1,10,1,10,1000]))
 
     ###########################################################################
-    # Teradactyl
+    # FixedAction - sweep
     ###########################################################################
-    for max_inv in [10,100,500]:
-        for kappa in [5,10,20]:
-            agent = TeradactylAgent(max_inventory=max_inv, kappa=kappa)
-            # obs, acts, rews, infs = generate_trajectory(agent, env)
+    for a in [1, 5, 10]:
+        for b in [5,10,20]:
+            for max_inv in [10, 100, 1000]:
+            agent = FixedActionAgent(np.array([a,b,a,b,max_inv]))
             plot_reward_distributions(agent, env, n_iterations=50)
+
+    ###########################################################################
+    # Teradactyl - sweep
+    ###########################################################################
+    # for max_inv in [10,100,500]:
+        # for kappa in [5,10,20]:
+            # agent = TeradactylAgent(max_inventory=max_inv, kappa=kappa)
+            # # obs, acts, rews, infs = generate_trajectory(agent, env)
+            # plot_reward_distributions(agent, env, n_iterations=50)
+
+    ###########################################################################
+    # Teradactyl - single run
+    ###########################################################################
+    # agent = TeradactylAgent(max_inventory=10, kappa=10)
+    # plot_reward_distributions(agent, env, n_iterations=50)

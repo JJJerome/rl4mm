@@ -28,9 +28,11 @@ class FixedActionAgent(Agent):
 
 class TeradactylAgent(Agent):
 
-    def __init__(self, max_inventory=100, kappa=10):
+    def __init__(self, max_inventory=100, kappa=10, default_a=3, default_b=1):
         self.max_inventory = max_inventory
         self.kappa = kappa
+        self.default_a = default_a
+        self.default_b = default_b
 
     def get_action(self, state: np.ndarray) -> np.ndarray:
 
@@ -54,7 +56,11 @@ class TeradactylAgent(Agent):
         inventory = state[3]
 
         if inventory == 0:
-            return np.array([1,1,1,1,self.max_inventory]) 
+            return np.array([self.default_a,
+                             self.default_b,
+                             self.default_a,
+                             self.default_b,
+                             self.max_inventory]) 
         else:
 
             omega_bid = 0.5 * (1 + (inventory/self.max_inventory))
@@ -78,7 +84,7 @@ class TeradactylAgent(Agent):
             return tmp
 
     def get_name(self):
-        return(f'Teradactyl_kappa_{self.kappa}_max_inv_{self.max_inventory}')
+        return(f'Teradactyl_def_a_{self.default_a}_def_b_{self.default_b}_kappa_{self.kappa}_max_inv_{self.max_inventory}')
 
 class HumanAgent(Agent):
     def get_action(self, state: np.ndarray):
