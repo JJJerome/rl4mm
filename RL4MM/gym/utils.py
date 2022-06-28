@@ -204,3 +204,4 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_me
     fname = get_output_prefix(ticker, min_date, max_date, agent_name)
 
     fig.savefig(f'{fname}.pdf')
+    plt.close(fig)
