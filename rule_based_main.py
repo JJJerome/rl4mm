@@ -183,11 +183,10 @@ if __name__ == "__main__":
 
     env_config, _ = get_configs(args)
 
-
-    env_config['ticker'] = 'SPY'
-    env_config['min_date'] = '2018-02-20'
-    env_config['max_date'] = '2018-02-20'
-    env_config['episode_length'] = 10
+    # env_config['ticker'] = 'SPY'
+    # env_config['min_date'] = '2018-02-20'
+    # env_config['max_date'] = '2018-02-20'
+    # env_config['episode_length'] = 10
 
     env = env_creator(env_config)
 
@@ -218,7 +217,7 @@ if __name__ == "__main__":
         # for b in [5,10,20]:
             # for max_inv in [10, 100, 1000]:
                 # agent = FixedActionAgent(np.array([a,b,a,b,max_inv]))
-                # plot_reward_distributions(agent, env, n_iterations=50)
+                # plot_reward_distributions(agent, env, n_iterations=30)
 
     ###########################################################################
     # Teradactyl - sweep
@@ -235,15 +234,39 @@ if __name__ == "__main__":
     # agent = TeradactylAgent(max_inventory=10, kappa=10)
     # plot_reward_distributions(agent, env, n_iterations=50)
 
-    agent = TeradactylAgent(max_inventory=10, kappa=10)
+    # agent = TeradactylAgent(max_inventory=10, kappa=10)
 
-    n_iterations = 20
+    # n_iterations = 20
 
-    emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True)    
+    # emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True)    
     # emd2 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=False)    
 
-    plot_reward_distributions(ticker=env_config['ticker'], 
-                              min_date=env_config['min_date'],
-                              max_date=env_config['min_date'],
-                              agent_name=agent.get_name(), 
-                              episode_mean_dict=emd1)
+    # plot_reward_distributions(ticker=env_config['ticker'], 
+                              # min_date=env_config['min_date'],
+                              # max_date=env_config['min_date'],
+                              # agent_name=agent.get_name(), 
+                              # episode_mean_dict=emd1)
+
+    ###########################################################################
+    # Teradactyl - sweep
+    ###########################################################################
+
+    n_iterations = 10
+
+    for a in [1,5]:
+        for b in [1,5]:
+            for max_inv in [10,100]:
+                for kappa in [5,10]:
+
+                    agent = TeradactylAgent(default_a=a,
+                                            default_b=b,
+                                            max_inventory=max_inv, 
+                                            kappa=kappa)
+
+                    emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True)    
+
+                    plot_reward_distributions(ticker=env_config['ticker'], 
+                                            min_date=env_config['min_date'],
+                                            max_date=env_config['min_date'],
+                                            agent_name=agent.get_name(), 
+                                            episode_mean_dict=emd1)
