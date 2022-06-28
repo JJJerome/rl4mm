@@ -225,7 +225,7 @@ if __name__ == "__main__":
         for b in [5,10,20]:
             for max_inv in [10, 100, 1000]:
                 agent = FixedActionAgent(np.array([a,b,a,b,max_inv]))
-                plot_reward_distributions(agent, env, n_iterations=50)
+                plot_reward_distributions(agent, env, n_iterations=30)
 
     ###########################################################################
     # Teradactyl - sweep
