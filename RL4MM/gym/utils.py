@@ -172,15 +172,15 @@ def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int 
 
 ###############################################################################
 
-def get_output_prefix(ticker, min_date, max_date, agent_name):
-    env_str = f'{ticker}_{min_date}_{max_date}'
+def get_output_prefix(ticker, min_date, max_date, agent_name, episode_length):
+    env_str = f'{ticker}_{min_date}_{max_date}_{episode_length}'
     return agent_name + '_' + env_str
 
-def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_mean_dict):
+def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_length, episode_mean_dict):
     sns.set()
     fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2, figsize=(10, 6))
 
-    plt.suptitle(f"{ticker} {agent_name}")
+    plt.suptitle(f"{ticker} {agent_name} EL: {episode_length}")
 
     ###########################################################################
     # Rewards histogram
@@ -237,7 +237,7 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_me
     fig.tight_layout()
     # plt.show()
 
-    fname = get_output_prefix(ticker, min_date, max_date, agent_name)
+    fname = get_output_prefix(ticker, min_date, max_date, agent_name, episode_length)
 
     fig.savefig(f'{fname}.pdf')
     plt.close(fig)
