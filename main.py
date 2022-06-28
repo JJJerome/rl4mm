@@ -1,45 +1,21 @@
 import argparse
 import os
-from datetime import timedelta
+# from datetime import timedelta
 import ray
 from ray import tune
 from ray.tune.schedulers import PopulationBasedTraining
 from ray.tune.registry import register_env
 import random
 
-from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
-from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL
+# from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
+from RL4MM.gym.utils import env_creator
+
+# from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL
 from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
 import copy
-from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
-from RL4MM.utils.utils import get_date_time, save_best_checkpoint_path
+# from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
+from RL4MM.utils.utils import save_best_checkpoint_path
 from RL4MM.utils.utils import boolean_string
-
-def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
-    if reward_function == "AD":  # asymmetrically dampened
-        return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=True)
-    elif reward_function == "SD":  # symmetrically dampened
-        return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=False)
-    elif reward_function == "PnL":
-        return PnL()
-    else:
-        raise NotImplementedError("You must specify one of 'AS', 'SD' or 'PnL'")
-
-def env_creator(env_config):
-    obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
-    return HistoricalOrderbookEnvironment(
-        ticker=env_config["ticker"],
-        episode_length=timedelta(minutes=env_config["episode_length"]),
-        simulator=obs,
-        quote_levels=10,
-        min_date=get_date_time(env_config["min_date"]),  # datetime
-        max_date=get_date_time(env_config["max_date"]),  # datetime
-        step_size=timedelta(seconds=env_config["step_size"]),
-        initial_portfolio=env_config["initial_portfolio"],  #: dict = None
-        per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
-        terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
-        market_order_clearing=env_config["market_order_clearing"],
-    )
 
 
 def main(args):

@@ -3,25 +3,11 @@ import os
 import copy
 import numpy as np
 
-from main import env_creator
-
-from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions
-
+from RL4MM.gym.utils import env_creator
+from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions, get_episode_summary_dict
 from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent
-
-# from datetime import timedelta
-# import ray
-# from ray import tune
-# from ray.tune.registry import register_env
-
-# from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
-# from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL
-# from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
-# from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
-# from RL4MM.utils.utils import get_date_time, save_best_checkpoint_path
 from RL4MM.utils.utils import boolean_string
-
-
+ 
 def get_configs(args):
     # ray.init()
     env_config = {
@@ -196,6 +182,12 @@ if __name__ == "__main__":
     # env_config, eval_env_config = get_configs(args)
 
     env_config, _ = get_configs(args)
+
+    # env_config['ticker'] = 'SPY'
+    # env_config['min_date'] = '2018-02-20'
+    # env_config['max_date'] = '2018-02-20'
+    # env_config['episode_length'] = 10
+
     env = env_creator(env_config)
 
     ###########################################################################
@@ -221,11 +213,11 @@ if __name__ == "__main__":
     ###########################################################################
     # FixedAction - sweep
     ###########################################################################
-    for a in [1, 5, 10]:
-        for b in [5,10,20]:
-            for max_inv in [10, 100, 1000]:
-                agent = FixedActionAgent(np.array([a,b,a,b,max_inv]))
-                plot_reward_distributions(agent, env, n_iterations=30)
+    # for a in [1, 5, 10]:
+        # for b in [5,10,20]:
+            # for max_inv in [10, 100, 1000]:
+                # agent = FixedActionAgent(np.array([a,b,a,b,max_inv]))
+                # plot_reward_distributions(agent, env, n_iterations=30)
 
     ###########################################################################
     # Teradactyl - sweep
@@ -241,3 +233,40 @@ if __name__ == "__main__":
     ###########################################################################
     # agent = TeradactylAgent(max_inventory=10, kappa=10)
     # plot_reward_distributions(agent, env, n_iterations=50)
+
+    # agent = TeradactylAgent(max_inventory=10, kappa=10)
+
+    # n_iterations = 20
+
+    # emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True)    
+    # emd2 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=False)    
+
+    # plot_reward_distributions(ticker=env_config['ticker'], 
+                              # min_date=env_config['min_date'],
+                              # max_date=env_config['min_date'],
+                              # agent_name=agent.get_name(), 
+                              # episode_mean_dict=emd1)
+
+    ###########################################################################
+    # Teradactyl - sweep
+    ###########################################################################
+
+    n_iterations = 10
+
+    for a in [1,5]:
+        for b in [1,5]:
+            for max_inv in [10,100]:
+                for kappa in [5,10]:
+
+                    agent = TeradactylAgent(default_a=a,
+                                            default_b=b,
+                                            max_inventory=max_inv, 
+                                            kappa=kappa)
+
+                    emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True)    
+
+                    plot_reward_distributions(ticker=env_config['ticker'], 
+                                            min_date=env_config['min_date'],
+                                            max_date=env_config['min_date'],
+                                            agent_name=agent.get_name(), 
+                                            episode_mean_dict=emd1)
