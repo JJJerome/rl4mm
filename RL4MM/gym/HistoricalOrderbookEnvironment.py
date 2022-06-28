@@ -40,11 +40,10 @@ from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
-MINIMUM_START_DELTA = timedelta(hours=10)
-MAXIMUM_END_DELTA = timedelta(hours=13, minutes=30)
 ORDERBOOK_FREQ = "1S"
 ORDERBOOK_MIN_STEP = pd.to_timedelta(ORDERBOOK_FREQ)
 LEVELS_FOR_FEATURE_CALCULATION = 1
+MARKET_ORDER_FRACTION_OF_INVENTORY = 0.1
 
 
 class Portfolio(TypedDict):
@@ -78,6 +77,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         info_calculator: InfoCalculator = None,
         order_distributor: OrderDistributor = None,
         concentration: float = 10.0,
+        market_order_fraction_of_inventory = 0.1
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
 
@@ -134,6 +134,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.info_calculator = info_calculator or SimpleInfoCalculator()
         self.now_is = min_date
         self.feature_window_size = feature_window_size
+        self.market_order_fraction_of_inventory = market_order_fraction_of_inventory
         self.price = MidPrice()
         self._check_params()
 
@@ -234,7 +235,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         inventory = self.internal_state["inventory"]
         order_direction = "buy" if inventory < 0 else "sell"
         order_dict = self._get_default_order_dict(order_direction)  # type:ignore
-        order_dict["volume"] = np.abs(inventory)
+        order_dict["volume"] = np.abs(inventory) * self.market_order_fraction_of_inventory
         market_order = create_order("market", order_dict)
         return [market_order]
 
