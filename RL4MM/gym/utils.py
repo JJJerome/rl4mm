@@ -2,6 +2,7 @@ from typing import Dict
 
 import gym
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
@@ -181,8 +182,39 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_me
 
     plt.suptitle(f"{ticker} {agent_name}")
 
+    ###########################################################################
+    # Rewards histogram
+    ###########################################################################
+
     ax1.hist(episode_mean_dict["rewards"], bins=20)
     ax1.title.set_text("Mean rewards")
+
+    ###########################################################################
+    # Rewards summary table
+    ###########################################################################
+    
+    rewards = episode_mean_dict["rewards"]
+    df = pd.DataFrame(rewards).describe()
+    df = np.round(df)
+    df = df.astype(int)
+
+    # cell_text = []
+    # for row in range(len(table)):
+        # cell_text.append(table.iloc[row])
+
+    table = ax2.table(cellText=df.values, 
+              rowLabels=df.index,
+              # colLabels=df.columns, 
+              loc='center')
+
+    table.set_fontsize(8)
+    table.scale(0.5, 1.25) 
+
+    ax2.set_axis_off()
+
+    ###########################################################################
+    # Actions
+    ###########################################################################
 
     for action_loc, ax in zip([0, 1, 2, 3],[ax3,ax4,ax5,ax6]):
         ax.hist(np.array(episode_mean_dict["actions"])[action_loc, :], bins=5, label="action " + str(action_loc))
@@ -192,6 +224,10 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_me
     ax4.title.set_text("Mean action - bid 2")
     ax5.title.set_text("Mean action - ask 1")
     ax6.title.set_text("Mean action - ask 2")
+
+    ###########################################################################
+    # Inventory and Spread
+    ###########################################################################
 
     ax7.hist(episode_mean_dict["inventory"], bins=20)
     ax8.hist(episode_mean_dict["spread"], bins=20)
@@ -205,3 +241,6 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_me
 
     fig.savefig(f'{fname}.pdf')
     plt.close(fig)
+
+    return rewards
+
