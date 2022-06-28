@@ -15,6 +15,7 @@ class RandomAgent(Agent):
     def get_name(self):
         return "RandomAgent"
 
+
 class FixedActionAgent(Agent):
     def __init__(self, fixed_action: np.ndarray):
         self.fixed_action = fixed_action
@@ -23,11 +24,11 @@ class FixedActionAgent(Agent):
         return self.fixed_action
 
     def get_name(self):
-        tmp = "_".join(map(str,self.fixed_action))
-        return(f'FixedAction_{tmp}')
+        tmp = "_".join(map(str, self.fixed_action))
+        return f"FixedAction_{tmp}"
+
 
 class TeradactylAgent(Agent):
-
     def __init__(self, max_inventory=100, kappa=10, default_a=3, default_b=1):
         self.max_inventory = max_inventory
         self.kappa = kappa
@@ -39,44 +40,36 @@ class TeradactylAgent(Agent):
         ############################
         # self.features
         ############################
-        # 0: Spread, 
-        # 1: MidpriceMove, 
-        # 2: Volatility, 
-        # 3: Inventory, 
-        # 4: TimeRemaining, 
+        # 0: Spread,
+        # 1: MidpriceMove,
+        # 2: Volatility,
+        # 3: Inventory,
+        # 4: TimeRemaining,
         # 5: MicroPrice
         ############################
 
-        def get_alpha(omega,kappa):
-            return (omega * (kappa-2)) + 1
+        def get_alpha(omega, kappa):
+            return (omega * (kappa - 2)) + 1
 
-        def get_beta(omega,kappa):
-            return (1-omega) * (kappa - 2) + 1
+        def get_beta(omega, kappa):
+            return (1 - omega) * (kappa - 2) + 1
 
         inventory = state[3]
 
         if inventory == 0:
-            return np.array([self.default_a,
-                             self.default_b,
-                             self.default_a,
-                             self.default_b,
-                             self.max_inventory]) 
+            return np.array([self.default_a, self.default_b, self.default_a, self.default_b, self.max_inventory])
         else:
 
-            omega_bid = 0.5 * (1 + (inventory/self.max_inventory))
-            omega_ask = 0.5 * (1 - (inventory/self.max_inventory))
+            omega_bid = 0.5 * (1 + (inventory / self.max_inventory))
+            omega_ask = 0.5 * (1 - (inventory / self.max_inventory))
 
-            alpha_bid = get_alpha(omega_bid,self.kappa)
-            alpha_ask = get_alpha(omega_ask,self.kappa)
-        
-            beta_bid = get_beta(omega_bid,self.kappa)
-            beta_ask = get_beta(omega_ask,self.kappa)
+            alpha_bid = get_alpha(omega_bid, self.kappa)
+            alpha_ask = get_alpha(omega_ask, self.kappa)
 
-            tmp =  np.array([alpha_bid,
-                             beta_bid,
-                             alpha_ask,
-                             beta_ask,
-                             self.max_inventory])
+            beta_bid = get_beta(omega_bid, self.kappa)
+            beta_ask = get_beta(omega_ask, self.kappa)
+
+            tmp = np.array([alpha_bid, beta_bid, alpha_ask, beta_ask, self.max_inventory])
 
             # print("inventory:", inventory)
             # print(tmp)
@@ -84,7 +77,10 @@ class TeradactylAgent(Agent):
             return tmp
 
     def get_name(self):
-        return(f'Teradactyl_def_a_{self.default_a}_def_b_{self.default_b}_kappa_{self.kappa}_max_inv_{self.max_inventory}')
+        return (
+            f"Teradactyl_def_a_{self.default_a}_def_b_{self.default_b}_kappa_{self.kappa}_max_inv_{self.max_inventory}"
+        )
+
 
 class HumanAgent(Agent):
     def get_action(self, state: np.ndarray):
