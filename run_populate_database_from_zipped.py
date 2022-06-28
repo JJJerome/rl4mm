@@ -43,22 +43,24 @@ parser.add_argument(
     help="the batch size used to populate the db (for reducing memory requirements)",
 )
 
+
 def delete_csvs():
-    csv_fpaths =  glob.glob(args.path_to_lobster_data + '/*.csv')
+    csv_fpaths = glob.glob(args.path_to_lobster_data + "/*.csv")
     for fp in csv_fpaths:
-        run(['rm', fp])
+        run(["rm", fp])
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    #filenames = run(["ls", args.path_to_lobster_data], capture_output=True).stdout.decode("utf-8").split("\n")
-    #for filename in filenames[:1]:
+    # filenames = run(["ls", args.path_to_lobster_data], capture_output=True).stdout.decode("utf-8").split("\n")
+    # for filename in filenames[:1]:
 
     ##########################
 
-    fpaths =  glob.glob(args.path_to_lobster_data + '/*.7z')
-    print('----------')
-    print('ORIGINAL ORDER:')
-    print('\n'.join(fpaths))
+    fpaths = glob.glob(args.path_to_lobster_data + "/*.7z")
+    print("----------")
+    print("ORIGINAL ORDER:")
+    print("\n".join(fpaths))
     # Need to process data in chronologicaly order!
     # But can't just sort whole filename because e.g.,
     # ORIGINAL ORDER:
@@ -72,14 +74,14 @@ if __name__ == "__main__":
     # /home/data/KO/_data_dwn_50_385__KO_2018-04-01_2018-04-30_200.7z
     # /home/data/KO/_data_dwn_50_386__KO_2018-03-01_2018-03-31_200.7z
     # /home/data/KO/_data_dwn_50_389__KO_2018-02-01_2018-02-28_200.7z
-    # 
+    #
     # Need to sort only by dates, and it suffices to just use
     # everything after the __
-    # 
-    fpaths.sort(reverse=False, key=lambda f: f.split('__')[1])
-    print('----------')
-    print('ORDER AFTER SORTING:')
-    print('\n'.join(fpaths))
+    #
+    fpaths.sort(reverse=False, key=lambda f: f.split("__")[1])
+    print("----------")
+    print("ORDER AFTER SORTING:")
+    print("\n".join(fpaths))
     # sys.exit()
 
     for fpath in fpaths:
@@ -97,8 +99,8 @@ if __name__ == "__main__":
             logging.info(f"Data for {ticker} between {start_date} and {end_date} already in database so not re-added.")
             delete_csvs()
             continue
-        print('About to extract:', fpath, 'inside', args.path_to_lobster_data)
-        run(['7z', 'x', fpath, '-o' + args.path_to_lobster_data])
+        print("About to extract:", fpath, "inside", args.path_to_lobster_data)
+        run(["7z", "x", fpath, "-o" + args.path_to_lobster_data])
         populate_database(
             tickers=(ticker,),
             trading_datetimes=get_trading_datetimes(start_date, end_date),

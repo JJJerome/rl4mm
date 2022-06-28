@@ -27,6 +27,7 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
     else:
         raise NotImplementedError("You must specify one of 'AS', 'SD' or 'PnL'")
 
+
 def env_creator(env_config):
     obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
     return HistoricalOrderbookEnvironment(
@@ -67,13 +68,13 @@ def get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True
 
     if PARALLEL_FLAG:
 
-        # create list of agents and environments for the 
+        # create list of agents and environments for the
         agent_lst = [copy.deepcopy(agent) for _ in range(n_iterations)]
-        env_lst = [env_creator(env_config) for _ in range(n_iterations)] 
+        env_lst = [env_creator(env_config) for _ in range(n_iterations)]
         ret = get_episode_summary_dict_PARALLEL(agent_lst, env_lst)
 
     else:
-    
+
         ret = get_episode_summary_dict_NONPARALLEL(agent, env_creator(env_config), n_iterations)
 
     return ret
@@ -91,10 +92,10 @@ def get_episode_summary_dict_NONPARALLEL(agent: Agent, env: gym.Env, n_iteration
 
 
 def process_parallel_results(results):
-    """ 
+    """
 
     results is a list of length n_iterations
-   
+
     each element is list with elements:
 
     0: observations
@@ -123,10 +124,11 @@ def process_parallel_results(results):
 
     return episode_mean_dict
 
+
 def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
     assert len(agent_lst) == len(env_lst)
-    l = len(agent_lst) 
+    l = len(agent_lst)
     print(f"In get_episode_summary_dict_PARALLEL, running for {l} iterations")
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -135,17 +137,19 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
         futures = [executor.submit(generate_trajectory, *arg) for arg in zip(agent_lst, env_lst)]
         results = []
-       
+
         with tqdm(total=l) as pbar:
             for future in concurrent.futures.as_completed(futures):
-                    results.append(future.result())
-                    pbar.update(1)
+                results.append(future.result())
+                pbar.update(1)
 
     episode_mean_dict = process_parallel_results(results)
 
     return episode_mean_dict
 
+
 ###############################################################################
+
 
 def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int = 100):
     sns.set()
@@ -167,7 +171,7 @@ def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int 
     fig.tight_layout()
     # plt.show()
 
-    fig.savefig(f'{get_output_prefix(agent,env)}.pdf')
+    fig.savefig(f"{get_output_prefix(agent,env)}.pdf")
 
 
 ###############################################################################
@@ -192,7 +196,7 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_le
     ###########################################################################
     # Rewards summary table
     ###########################################################################
-    
+
     rewards = episode_mean_dict["rewards"]
     df = pd.DataFrame(rewards).describe()
     df = np.round(df)
@@ -200,15 +204,17 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_le
 
     # cell_text = []
     # for row in range(len(table)):
-        # cell_text.append(table.iloc[row])
+    # cell_text.append(table.iloc[row])
 
-    table = ax2.table(cellText=df.values, 
-              rowLabels=df.index,
-              # colLabels=df.columns, 
-              loc='center')
+    table = ax2.table(
+        cellText=df.values,
+        rowLabels=df.index,
+        # colLabels=df.columns,
+        loc="center",
+    )
 
     table.set_fontsize(8)
-    table.scale(0.5, 1.25) 
+    table.scale(0.5, 1.25)
 
     ax2.set_axis_off()
 
@@ -216,7 +222,7 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_le
     # Actions
     ###########################################################################
 
-    for action_loc, ax in zip([0, 1, 2, 3],[ax3,ax4,ax5,ax6]):
+    for action_loc, ax in zip([0, 1, 2, 3], [ax3, ax4, ax5, ax6]):
         ax.hist(np.array(episode_mean_dict["actions"])[action_loc, :], bins=5, label="action " + str(action_loc))
         ax.legend()
 
@@ -239,8 +245,7 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_le
 
     fname = get_output_prefix(ticker, min_date, max_date, agent_name, episode_length)
 
-    fig.savefig(f'{fname}.pdf')
+    fig.savefig(f"{fname}.pdf")
     plt.close(fig)
 
     return rewards
-

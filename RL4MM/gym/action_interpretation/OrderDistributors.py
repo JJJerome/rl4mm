@@ -20,6 +20,7 @@ class OrderDistributor(metaclass=abc.ABCMeta):
     def _convert_action(self, action: np.ndarray) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         pass
 
+
 class BetaOrderDistributor(OrderDistributor):
     def __init__(self, quote_levels: int = 10, active_volume: int = 100, concentration: float = None):
         self.n_levels = quote_levels
@@ -37,4 +38,3 @@ class BetaOrderDistributor(OrderDistributor):
         buy_volumes = np.round(beta_binom_buy.pmf(self.tick_range) * self.active_volume).astype(int)
         sell_volumes = np.round(beta_binom_sell.pmf(self.tick_range) * self.active_volume).astype(int)
         return {"buy": buy_volumes, "sell": sell_volumes}
-

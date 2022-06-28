@@ -1,5 +1,6 @@
 import argparse
 import os
+
 # from datetime import timedelta
 import ray
 from ray import tune
@@ -13,6 +14,7 @@ from RL4MM.gym.utils import env_creator
 # from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL
 from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
 import copy
+
 # from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.utils.utils import save_best_checkpoint_path
 from RL4MM.utils.utils import boolean_string
@@ -46,7 +48,7 @@ def main(args):
         custom_explore_fn=explore,
     )
 
-    ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"]+2)
+    ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"] + 2)
     env_config = {
         "ticker": args["ticker"],
         "min_date": args["min_date"],
@@ -64,7 +66,7 @@ def main(args):
     eval_env_config = copy.deepcopy(env_config)
     eval_env_config["min_date"] = args["min_date_eval"]
     eval_env_config["max_date"] = args["max_date_eval"]
-    #eval_env_config["per_step_reward_function"] = (args["eval_per_step_reward_function"],)
+    # eval_env_config["per_step_reward_function"] = (args["eval_per_step_reward_function"],)
     eval_env_config["per_step_reward_function"] = args["eval_per_step_reward_function"]
     eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
 
@@ -76,8 +78,8 @@ def main(args):
         "num_workers": args["num_workers"],
         "framework": args["framework"],
         "callbacks": Custom_Callbacks,
-        "sgd_minibatch_size":100,
-        "num_sgd_iter":10,
+        "sgd_minibatch_size": 100,
+        "num_sgd_iter": 10,
         "num_cpus_per_worker": 1,
         "lambda": args["lambda"],
         "lr": args["learning_rate"],
@@ -85,8 +87,8 @@ def main(args):
         "model": {
             "fcnet_hiddens": [256, 256],
             "fcnet_activation": "tanh",  # torch.nn.Sigmoid,
-            #"use_lstm": args["lstm"],
-            #"lstm_use_prev_action": True,
+            # "use_lstm": args["lstm"],
+            # "lstm_use_prev_action": True,
         },
         "output": args["output"],
         "output_max_file_size": args["output_max_file_size"],
@@ -98,14 +100,14 @@ def main(args):
         "evaluation_config": {"env_config": eval_env_config},
         # ---------------------------------------------
         # --------------- Tuning: ---------------------
-        "rollout_fragment_length": tune.choice([1800, 3600]), #args["rollout_fragment_length"],
+        "rollout_fragment_length": tune.choice([1800, 3600]),  # args["rollout_fragment_length"],
         "num_sgd_iter": tune.choice([10, 20, 30]),
         "sgd_minibatch_size": tune.choice([128, 512, 2048]),
         "train_batch_size": tune.choice([10000, 20000, 40000]),
-        #"recreate_failed_workers": False, # Get an error for some reason when this is enabled.
-        #"disable_env_checking": True,
+        # "recreate_failed_workers": False, # Get an error for some reason when this is enabled.
+        # "disable_env_checking": True,
     }
-    
+
     tensorboard_logdir = args["tensorboard_logdir"]
     if not os.path.exists(tensorboard_logdir):
         os.makedirs(tensorboard_logdir)
@@ -127,6 +129,7 @@ def main(args):
     path_to_save_dir = args["output"] or "/home/ray"
     print(best_checkpoint)
     save_best_checkpoint_path(path_to_save_dir, best_checkpoint[0][0])
+
 
 if __name__ == "__main__":
     # -------------------- Training Args ----------------------
