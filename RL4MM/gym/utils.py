@@ -29,10 +29,16 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
 
 
 def env_creator(env_config):
-    obs = OrderbookSimulator(ticker=env_config["ticker"], n_levels=env_config["n_levels"])
+    
+    episode_length=timedelta(minutes=env_config["episode_length"])
+
+    obs = OrderbookSimulator(ticker=env_config["ticker"], 
+                             n_levels=env_config["n_levels"],
+                             episode_length=episode_length)
+
     return HistoricalOrderbookEnvironment(
         ticker=env_config["ticker"],
-        episode_length=timedelta(minutes=env_config["episode_length"]),
+        episode_length=episode_length,
         simulator=obs,
         quote_levels=10,
         min_date=get_date_time(env_config["min_date"]),  # datetime
@@ -84,10 +90,10 @@ def get_episode_summary_dict_NONPARALLEL(agent: Agent, env: gym.Env, n_iteration
     episode_mean_dict: Dict = {"rewards": [], "actions": [], "inventory": [], "spread": []}
     for _ in tqdm(range(n_iterations), desc="Simulating trajectories"):
         _, actions, rewards, infos = generate_trajectory(agent=agent, env=env)
-        episode_mean_dict["rewards"].append(np.mean(rewards))
-        episode_mean_dict["actions"].append(np.mean(np.array(actions), axis=0)[:-1])
-        episode_mean_dict["inventory"].append(np.mean([info["inventory"] for info in infos]))
-        episode_mean_dict["spread"].append(np.mean([info["spread"] for info in infos]))
+        # episode_mean_dict["rewards"].append(np.mean(rewards))
+        # episode_mean_dict["actions"].append(np.mean(np.array(actions), axis=0)[:-1])
+        # episode_mean_dict["inventory"].append(np.mean([info["inventory"] for info in infos]))
+        # episode_mean_dict["spread"].append(np.mean([info["spread"] for info in infos]))
     return episode_mean_dict
 
 
@@ -96,31 +102,36 @@ def process_parallel_results(results):
 
     results is a list of length n_iterations
 
-    each element is list with elements:
+    each element is dictionary with keys:
 
-    0: observations
-    1: actions
-    2: rewards
-    3: infos
+    observations
+    actions
+    rewards
+    infos
 
     infos is a tuple of dictionaries with keys and values e.g.,
 
-    {'price': 2729950.0,
+    {'asset_price': 2729950.0,
      'inventory': -76.0,
-     'spread': 100.0,
+     'market_spread': 100.0,
+     'agent_weighted_spread':,
+     'midprice_offset':, 
      'bid_action': (array([3, 1]),),
      'ask_action': (array([3, 1]),),
-     'market_order_action': (array([10]),)}])
+     'market_order_count': 0,
+     'market_order_total_volume'
+     }
+
 
     """
 
     episode_mean_dict: Dict = {"rewards": [], "actions": [], "inventory": [], "spread": []}
 
-    for _, actions, rewards, infos in results:
-        episode_mean_dict["rewards"].append(np.mean(rewards))
-        episode_mean_dict["actions"].append(np.mean(np.array(actions), axis=0)[:-1])
-        episode_mean_dict["inventory"].append(np.mean([info["inventory"] for info in infos]))
-        episode_mean_dict["spread"].append(np.mean([info["spread"] for info in infos]))
+    for d in results:
+        episode_mean_dict["rewards"].append(np.mean(d['rewards']))
+        episode_mean_dict["actions"].append(np.mean(np.array(d['actions']), axis=0)[:-1])
+        episode_mean_dict["inventory"].append(np.mean([info["inventory"] for info in d['infos']]))
+        episode_mean_dict["spread"].append(np.mean([info["market_spread"] for info in d['infos']]))
 
     return episode_mean_dict
 
@@ -144,6 +155,7 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
                 pbar.update(1)
 
     episode_mean_dict = process_parallel_results(results)
+    # episode_mean_dict = None
 
     return episode_mean_dict
 
