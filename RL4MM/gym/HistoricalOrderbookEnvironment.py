@@ -5,6 +5,7 @@ from copy import deepcopy, copy
 from datetime import datetime, timedelta
 import sys
 
+from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.gym.order_tracking.InfoCalculators import InfoCalculator, SimpleInfoCalculator
 from RL4MM.utils.utils import convert_timedelta_to_freq
 
@@ -70,7 +71,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         max_end_timedelta: timedelta = timedelta(hours=15, minutes=30),  # Same for the last half an hour
         simulator: OrderbookSimulator = None,
         market_order_clearing: bool = False,
-        inc_prev_action_in_obs: bool = True,
+        inc_prev_action_in_obs: bool = False,
         max_inventory: int = 100000,
         per_step_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=10 ** (-4)),
         terminal_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=0.1),
@@ -79,6 +80,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         concentration: float = 10.0,
         market_order_fraction_of_inventory: Optional[float] = None,
         enter_spread: bool = False,
+        save_messages_locally: bool = True,
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
 
@@ -124,7 +126,11 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.min_start_timedelta = min_start_timedelta
         self.max_end_timedelta = max_end_timedelta
         self.simulator = simulator or OrderbookSimulator(
-            ticker=ticker, order_generators=[HistoricalOrderGenerator(ticker)], n_levels=200
+            ticker=ticker,
+            order_generators=[HistoricalOrderGenerator(ticker, HistoricalDatabase(), save_messages_locally)],
+            n_levels=200,
+            save_messages_locally=save_messages_locally,
+            episode_length=episode_length,
         )
         self.order_distributor = order_distributor or BetaOrderDistributor(
             self.quote_levels, concentration=concentration
@@ -285,9 +291,14 @@ class HistoricalOrderbookEnvironment(gym.Env):
         return internal_volumes  # type: ignore
 
     def _get_best_prices(self):
-        best_buy = self.simulator.exchange.best_buy_price
-        best_sell = self.simulator.exchange.best_sell_price
         tick_size = self.central_orderbook["tick_size"]
+        if self.enter_spread:
+            midprice = (self.simulator.exchange.best_buy_price + self.simulator.exchange.best_sell_price) / 2
+            best_buy = np.floor(midprice / tick_size) * tick_size
+            best_sell = np.ceil(midprice / tick_size) * tick_size  # TODO: check me when quoting withing spread.
+        if not self.enter_spread:
+            best_buy = self.simulator.exchange.best_buy_price
+            best_sell = self.simulator.exchange.best_sell_price
         buy_prices = np.arange(best_buy - self.quote_levels * tick_size, best_buy, tick_size)
         sell_prices = np.arange(best_sell, best_sell + self.quote_levels * tick_size, tick_size)
         return {"buy": buy_prices, "sell": sell_prices}
