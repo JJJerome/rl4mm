@@ -66,7 +66,7 @@ def daterange_in_db(start: datetime, end: datetime, ticker: str):
     database = HistoricalDatabase()
     next_snapshot = database.get_next_snapshot(start, ticker)
     last_snapshot = database.get_last_snapshot(end, ticker)
-    if len(next_snapshot) == 0 or len(last_snapshot)==0:
+    if len(next_snapshot) == 0 or len(last_snapshot) == 0:
         return False
     bool_1 = next_snapshot.name - start < timedelta(minutes=1)
     bool_2 = end - last_snapshot.name < timedelta(minutes=1)

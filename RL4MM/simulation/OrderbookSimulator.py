@@ -76,7 +76,9 @@ class OrderbookSimulator:
     def get_historical_start_book(self, start_date: datetime) -> Orderbook:
         start_series = self.database.get_last_snapshot(start_date, ticker=self.ticker)
         assert len(start_series) > 0, f"There is no data before the episode start time: {start_date}"
-        assert start_date - start_series.name <= timedelta(days=1), "Attempting to get data from more than a day ago"
+        assert start_date - start_series.name <= timedelta(
+            days=1
+        ), f"Attempting to get data from more than a day ago (start_date: {start_date}; start_series.name: {start_series.name})"
         initial_orders = self._get_initial_orders_from_book(start_series)
         return self.exchange.get_initial_orderbook_from_orders(initial_orders)
 

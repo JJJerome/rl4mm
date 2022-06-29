@@ -58,7 +58,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
     def __init__(
         self,
         features: List[Feature] = None,
-        max_distribution_param: float = 10.0,  #1000.0,
+        max_distribution_param: float = 10.0,  # 1000.0,
         ticker: str = "MSFT",
         step_size: timedelta = ORDERBOOK_MIN_STEP,
         episode_length: timedelta = timedelta(minutes=30),
@@ -82,10 +82,10 @@ class HistoricalOrderbookEnvironment(gym.Env):
         super(HistoricalOrderbookEnvironment, self).__init__()
 
         # Actions are the parameters governing the distribution over levels in the orderbook
-        if concentration is not None or (order_distributor is not None and order_distributor.c is not None): 
+        if concentration is not None or (order_distributor is not None and order_distributor.c is not None):
             assert concentration >= max_distribution_param, "concentration is less than max_distribution_param"
-            self.action_space = Box(low=0.0, high=max_distribution_param, shape=(2,), dtype=np.float64)
-        else: 
+            self.action_space = Box(low=0.0, high=concentration, shape=(2,), dtype=np.float64)  # alpha < kappa for beta
+        else:
             self.action_space = Box(low=0.0, high=max_distribution_param, shape=(4,), dtype=np.float64)
         if market_order_clearing:
             low_action = np.append(self.action_space.low, [0.0])
@@ -100,6 +100,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.inc_prev_action_in_obs = inc_prev_action_in_obs
         low_obs = np.array([feature.min_value for feature in self.features])
         high_obs = np.array([feature.max_value for feature in self.features])
+        
         # If the previous action is included in the observation: 
         if self.inc_prev_action_in_obs:       
             low_obs = np.concatenate((low_obs, low_action))
@@ -128,7 +129,9 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.simulator = simulator or OrderbookSimulator(
             ticker=ticker, order_generators=[HistoricalOrderGenerator(ticker)], n_levels=200
         )
-        self.order_distributor = order_distributor or BetaOrderDistributor(self.quote_levels, concentration=concentration)
+        self.order_distributor = order_distributor or BetaOrderDistributor(
+            self.quote_levels, concentration=concentration
+        )
         self.market_order_clearing = market_order_clearing
         self.per_step_reward_function = per_step_reward_function
         self.terminal_reward_function = terminal_reward_function
@@ -147,7 +150,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         #for feature in self.features:
         #    feature.reset()
         if self.inc_prev_action_in_obs:
-            return self.get_observation(np.zeros(shape=self.action_space.shape))  
+            return self.get_observation(np.zeros(shape=self.action_space.shape))
         else:
             return self.get_observation()
 
