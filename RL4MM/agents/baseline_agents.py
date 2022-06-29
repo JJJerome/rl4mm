@@ -60,8 +60,10 @@ class TeradactylAgent(Agent):
             return np.array([self.default_a, self.default_b, self.default_a, self.default_b, self.max_inventory])
         else:
 
-            omega_bid = 0.5 * (1 + (inventory / self.max_inventory))
-            omega_ask = 0.5 * (1 - (inventory / self.max_inventory))
+            clamp_to_unit_interval = lambda x: max(min(x, 1), -1)
+
+            omega_bid = 0.5 * (1 + clamp_to_unit_interval(inventory / self.max_inventory))
+            omega_ask = 0.5 * (1 - clamp_to_unit_interval(inventory / self.max_inventory))
 
             alpha_bid = get_alpha(omega_bid, self.kappa)
             alpha_ask = get_alpha(omega_ask, self.kappa)
