@@ -58,10 +58,10 @@ class SimpleInfoCalculator(InfoCalculator):
         orders = self.order_distributor.convert_action(action)
         total_volume = self.order_distributor.active_volume
         n_levels = self.order_distributor.n_levels
-        buy_centre_of_mass = np.dot(orders["buy"], range(n_levels)) / total_volume
-        sell_centre_of_mass = np.dot(orders["sell"], range(n_levels)) / total_volume
+        level_distances = np.array(range(n_levels))
+        buy_centre_of_mass = np.dot(orders["buy"], level_distances) / total_volume
+        sell_centre_of_mass = np.dot(orders["sell"], level_distances) / total_volume
         midprice_offset = (sell_centre_of_mass - buy_centre_of_mass) / 2
-        print(sell_centre_of_mass, buy_centre_of_mass)
         if self.enter_spread:
             return (buy_centre_of_mass + sell_centre_of_mass), midprice_offset
         else:
