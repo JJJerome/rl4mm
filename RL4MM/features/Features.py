@@ -130,7 +130,7 @@ class MicroPrice(Feature):
 
 
 class Inventory(Feature):
-    min_value = 0
+    min_value = -1000
     max_value = 1000
 
     def _calculate(self, internal_state: InternalState) -> float:
