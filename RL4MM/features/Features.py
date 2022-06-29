@@ -1,3 +1,5 @@
+from collections import deque
+from scipy import stats
 import abc
 import sys
 
@@ -36,10 +38,19 @@ class Feature(metaclass=abc.ABCMeta):
         pass
 
     def calculate(self, internal_state: InternalState) -> float:
-        return self.clamp(self._calculate(internal_state), min_value=self.min_value, max_value=self.max_value)
+        value = self.clamp(self._calculate(internal_state), min_value=self.min_value, max_value=self.max_value)
+        return self.normalise(value) if self.normalisation_on else value
 
     @abc.abstractmethod
     def _calculate(self, internal_state: InternalState) -> float:
+        pass
+
+    @abc.abstractmethod
+    def normalise(self, value: float) -> float:
+        pass
+    
+    @abc.abstractmethod
+    def reset(self):
         pass
 
     @staticmethod
@@ -48,27 +59,74 @@ class Feature(metaclass=abc.ABCMeta):
 
 
 # Book features
-
-
 class Spread(Feature):
-    max_value = int(100 * 100)  # 100 ticks
-    min_value = 0.0
+    def __init__(
+            self, 
+            min_value: float=0, 
+            max_value: float=(100 * 100), # 100 ticks
+            maxlen: int=100000, 
+            normalisation_on: bool=False):
+        self._min_value = min_value
+        self._max_value = max_value
+        self.normalisation_on = normalisation_on
+        if self.normalisation_on:
+            self.history = deque(maxlen=maxlen) 
+    
+    @property
+    def max_value(self) -> float: return self._max_value
 
-    def __init__(self, min_value=0.0, max_value=int(100 * 100)):
-        self.min_value = min_value
-        self.max_value = max_value
+    @property
+    def min_value(self) -> float: return self._min_value
+
+    def reset(self):
+        if self.normalisation_on:
+            self.history.clear()
+
+    def normalise(self, value: float) -> float:
+        if len(self.history) == 0:
+            # To prevent a Nan vlaue from being returned
+            # if the queue is empty:
+            self.history.append(value+1e-06)
+        self.history.append(value)
+        return stats.zscore(self.history)[-1]
 
     def _calculate(self, internal_state: InternalState) -> float:
         current_book = internal_state["book_snapshots"].iloc[-1]
         return current_book.sell_price_0 - current_book.buy_price_0
 
-
 class MidpriceMove(Feature):
-    max_value = 100 * 100  # 100 tick upward move
-    min_value = -100 * 100  # 100 tick downward move
 
-    def __init__(self, lookback_period: int = 1):
+    def __init__(
+            self, 
+            min_value: float=-100 * 100,  # 100 tick downward move
+            max_value: float=100 * 100,  # 100 tick upward move
+            lookback_period: int=1, 
+            maxlen: int=100000, 
+            normalisation_on: bool=False):
         self.lookback_period = lookback_period
+        self._min_value = min_value
+        self._max_value = max_value
+        self.normalisation_on = normalisation_on
+        if normalisation_on:
+            self.history = deque(maxlen=maxlen) 
+
+    @property
+    def max_value(self) -> float: return self._max_value
+
+    @property
+    def min_value(self) -> float: return self._min_value
+
+    def reset(self):
+        if self.normalisation_on:
+            self.history.clear()
+
+    def normalise(self, value: float) -> float:
+        if len(self.history) == 0:
+            # To prevent a Nan vlaue from being returned
+            # if the queue is empty:
+            self.history.append(value+1e-06)
+        self.history.append(value)
+        return stats.zscore(self.history)[-1]
 
     def _calculate(self, internal_state: InternalState):
         book_snapshots = internal_state["book_snapshots"]
@@ -78,8 +136,35 @@ class MidpriceMove(Feature):
 
 
 class PriceRange(Feature):
-    max_value = int(100 * 100)  # 100 ticks
-    min_value = 0
+    def __init__(
+            self, 
+            min_value: float=0, 
+            max_value: float=(100 * 100), # 100 ticks
+            maxlen: int=100000, 
+            normalisation_on: bool=False):
+        self._min_value = min_value
+        self._max_value = max_value
+        self.normalisation_on = normalisation_on
+        if normalisation_on:
+            self.history = deque(maxlen=maxlen) 
+
+    @property
+    def max_value(self) -> float: return self._max_value
+
+    @property
+    def min_value(self) -> float: return self._min_value
+
+    def reset(self):
+        if self.normalisation_on:
+            self.history.clear()
+
+    def normalise(self, value: float) -> float:
+        if len(self.history) == 0:
+            # To prevent a Nan vlaue from being returned
+            # if the queue is empty:
+            self.history.append(value+1e-06)
+        self.history.append(value)
+        return stats.zscore(self.history)[-1]
 
     def _calculate(self, internal_state: InternalState):
         max_price = internal_state["book_snapshots"].sell_price_0.max()
@@ -89,8 +174,35 @@ class PriceRange(Feature):
 
 
 class Volatility(Feature):
-    min_value = 0
-    max_value = (100 * 100) ** 2
+    def __init__(
+            self, 
+            min_value: float=0, 
+            max_value: float=((100 * 100) ** 2), 
+            maxlen: int=100000, 
+            normalisation_on: bool=False):
+        self._min_value = min_value
+        self._max_value = max_value
+        self.normalisation_on = normalisation_on
+        if normalisation_on:
+            self.history = deque(maxlen=maxlen) 
+    
+    @property
+    def max_value(self) -> float: return self._max_value
+
+    @property
+    def min_value(self) -> float: return self._min_value
+
+    def reset(self):
+        if self.normalisation_on:
+            self.history.clear()
+
+    def normalise(self, value: float) -> float:
+        if len(self.history) == 0:
+            # To prevent a Nan vlaue from being returned
+            # if the queue is empty:
+            self.history.append(value+1e-06)
+        self.history.append(value)
+        return stats.zscore(self.history)[-1]
 
     def _calculate(self, internal_state: InternalState):
         book_snapshots = internal_state["book_snapshots"]
@@ -100,8 +212,35 @@ class Volatility(Feature):
 
 
 class MidPrice(Feature):
-    min_value = 0
-    max_value = 1000 * 10000  # Here, we assume that stock prices are less than $1000
+    def __init__(
+            self, 
+            min_value: float=0, 
+            max_value: float=(1000 * 10000), # Here, we assume that stock prices are less than $1000
+            maxlen: int=100000, 
+            normalisation_on: bool=False):
+        self._min_value = min_value
+        self._max_value = max_value
+        self.normalisation_on = normalisation_on
+        if normalisation_on:
+            self.history = deque(maxlen=maxlen) 
+
+    @property
+    def max_value(self) -> float: return self._max_value
+
+    @property
+    def min_value(self) -> float: return self._min_value
+
+    def reset(self):
+        if self.normalisation_on:
+            self.history.clear()
+
+    def normalise(self, value: float) -> float:
+        if len(self.history) == 0:
+            # To prevent a Nan vlaue from being returned
+            # if the queue is empty:
+            self.history.append(value+1e-06)
+        self.history.append(value)
+        return stats.zscore(self.history)[-1]
 
     def _calculate(self, internal_state: InternalState):
         current_book = internal_state["book_snapshots"].iloc[-1]
@@ -113,8 +252,35 @@ class MidPrice(Feature):
 
 
 class MicroPrice(Feature):
-    min_value = 0
-    max_value = 1000 * 10000  # Here, we assume that stock prices are less than $1000
+    def __init__(
+            self, 
+            min_value: float=0, 
+            max_value: float=(1000 * 10000), # Here, we assume that stock prices are less than $1000 
+            maxlen: int=100000, 
+            normalisation_on: bool=False):
+        self._min_value = min_value
+        self._max_value = max_value
+        self.normalisation_on = normalisation_on
+        if normalisation_on:
+            self.history = deque(maxlen=maxlen)
+
+    @property
+    def max_value(self) -> float: return self._max_value
+
+    @property
+    def min_value(self) -> float: return self._min_value
+
+    def reset(self):
+        if self.normalisation_on:
+            self.history.clear()
+
+    def normalise(self, value: float) -> float:
+        if len(self.history) == 0:
+            # To prevent a Nan vlaue from being returned
+            # if the queue is empty:
+            self.history.append(value+1e-06)
+        self.history.append(value)
+        return stats.zscore(self.history)[-1]
 
     def _calculate(self, internal_state: InternalState):
         current_book = internal_state["book_snapshots"].iloc[-1]
@@ -130,8 +296,34 @@ class MicroPrice(Feature):
 
 
 class Inventory(Feature):
-    min_value = 0
-    max_value = 1000
+    def __init__(
+            self, 
+            max_value:float=100000., 
+            maxlen: int=100000, 
+            normalisation_on: bool=False):
+        self._max_value = max_value
+        self._min_value = -max_value
+        self.normalisation_on = normalisation_on
+        if normalisation_on:
+            self.history = deque(maxlen=maxlen) 
+
+    def reset(self):
+        if self.normalisation_on:
+            self.history.clear()
+    
+    @property
+    def max_value(self) -> float: return self._max_value
+
+    @property
+    def min_value(self) -> float: return self._min_value
+
+    def normalise(self, value: float) -> float:
+        if len(self.history) == 0:
+            # To prevent a Nan vlaue from being returned
+            # if the queue is empty:
+            self.history.append(value+1e-06)
+        self.history.append(value)
+        return stats.zscore(self.history)[-1]
 
     def _calculate(self, internal_state: InternalState) -> float:
         return internal_state["inventory"]
@@ -140,6 +332,15 @@ class Inventory(Feature):
 class TimeRemaining(Feature):
     min_value = 0
     max_value = 1.0
+    
+    def __init__(self):
+        self.normalisation_on = False
+
+    def reset(self):
+        pass
+    
+    def normalise(self, value: float) -> float:
+        pass
 
     def _calculate(self, internal_state: InternalState) -> float:
         return internal_state["proportion_of_episode_remaining"]
