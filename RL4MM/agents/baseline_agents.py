@@ -29,7 +29,7 @@ class FixedActionAgent(Agent):
 
 
 class TeradactylAgent(Agent):
-    def __init__(self, max_inventory=100, kappa=10, default_a=3, default_b=1):
+    def __init__(self, max_inventory=None, kappa=10, default_a=3, default_b=1):
         self.max_inventory = max_inventory
         self.kappa = kappa
         self.default_a = default_a
@@ -69,8 +69,9 @@ class TeradactylAgent(Agent):
             beta_bid = get_beta(omega_bid, self.kappa)
             beta_ask = get_beta(omega_ask, self.kappa)
 
-            tmp = np.array([alpha_bid, beta_bid, alpha_ask, beta_ask, self.max_inventory])
-
+            tmp = np.array([alpha_bid, beta_bid, alpha_ask, beta_ask])
+            if self.max_inventory is not None:
+                tmp = np.append(tmp, self.max_inventory)
             # print("inventory:", inventory)
             # print(tmp)
 
