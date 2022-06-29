@@ -61,7 +61,7 @@ def generate_trajectory(agent: Agent, env: gym.Env):
         infos.append(info)
         if done:
             break
-    return observations, actions, rewards, infos
+    return {"observations": observations, "actions": actions, "rewards": rewards, "infos": infos}
 
 
 def get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True):
