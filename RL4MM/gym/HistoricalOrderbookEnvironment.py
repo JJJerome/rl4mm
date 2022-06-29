@@ -9,7 +9,7 @@ from RL4MM.gym.order_tracking.InfoCalculators import InfoCalculator, SimpleInfoC
 from RL4MM.utils.utils import convert_timedelta_to_freq
 
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from typing import List, TypedDict, Literal, Union
+    from typing import List, TypedDict, Literal, Union, Optional
 else:
     from typing import List
     from typing_extensions import TypedDict, Literal
@@ -77,7 +77,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         info_calculator: InfoCalculator = None,
         order_distributor: OrderDistributor = None,
         concentration: float = 10.0,
-        market_order_fraction_of_inventory = 0.1
+        market_order_fraction_of_inventory: Optional[float] = None,
+        enter_spread: bool = False,
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
 
@@ -99,8 +100,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         high_obs = np.array([feature.max_value for feature in self.features])
         # If the previous action is included in the observation:
         if self.inc_prev_action_in_obs:
-            low_obs = np.concatenate((low_obs, low))
-            high_obs = np.concatenate((high_obs, high))
+            low_obs = np.concatenate((low_obs, self.action_space.low))
+            high_obs = np.concatenate((high_obs, self.action_space.high))
         self.observation_space = Box(
             low=low_obs,
             high=high_obs,
@@ -129,12 +130,14 @@ class HistoricalOrderbookEnvironment(gym.Env):
             self.quote_levels, concentration=concentration
         )
         self.market_order_clearing = market_order_clearing
+        self.market_order_fraction_of_inventory = market_order_fraction_of_inventory
+        self._check_market_order_clearing_well_defined()
         self.per_step_reward_function = per_step_reward_function
         self.terminal_reward_function = terminal_reward_function
-        self.info_calculator = info_calculator or SimpleInfoCalculator()
         self.now_is = min_date
         self.feature_window_size = feature_window_size
-        self.market_order_fraction_of_inventory = market_order_fraction_of_inventory
+        self.enter_spread = enter_spread
+        self.info_calculator = info_calculator or SimpleInfoCalculator(market_order_fraction_of_inventory, enter_spread)
         self.price = MidPrice()
         self._check_params()
 
@@ -352,3 +355,11 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def mark_to_market_value(self):
         return self.internal_state["inventory"] * self.internal_state["asset_price"] + self.internal_state["cash"]
+
+    def _check_market_order_clearing_well_defined(self):
+        if (self.market_order_clearing and self.market_order_fraction_of_inventory is None) or (
+            not self.market_order_clearing and self.market_order_fraction_of_inventory is not None
+        ):
+            raise Exception(
+                "market_order_fraction_of_inventory must be defined if and only if market order clearing is on"
+            )
