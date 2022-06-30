@@ -50,8 +50,8 @@ class HistoricalOrderGenerator(OrderGenerator):
     def store_messages(self, start_date: datetime, end_date: datetime):
         messages = self.database.get_messages(start_date, end_date, self.ticker)
         self.episode_messages = self._process_messages_and_add_internal(messages)
-        self.start_of_episode = self.episode_messages.timestamp.iloc[0] - timedelta(seconds=10)  # If first bucket empty
-        self.end_of_episode = self.episode_messages.timestamp.iloc[-1] + timedelta(seconds=10)
+        self.start_of_episode = start_date
+        self.end_of_episode = end_date
 
     @staticmethod
     def _get_mid_datetime(datetime_1: datetime, datetime_2: datetime):
