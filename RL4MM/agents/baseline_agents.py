@@ -35,6 +35,13 @@ class TeradactylAgent(Agent):
         self.default_a = default_a
         self.default_b = default_b
 
+        # TODO: fix
+        if max_inventory is None:
+            self.denom = 100
+        else:
+            self.denom = self.max_inventory
+
+
     def get_action(self, state: np.ndarray) -> np.ndarray:
 
         ############################
@@ -57,13 +64,14 @@ class TeradactylAgent(Agent):
         inventory = state[3]
 
         if inventory == 0:
-            return np.array([self.default_a, self.default_b, self.default_a, self.default_b, self.max_inventory])
+            tmp = np.array([self.default_a, self.default_b, self.default_a, self.default_b])
+
         else:
 
             clamp_to_unit_interval = lambda x: max(min(x, 1), -1)
 
-            omega_bid = 0.5 * (1 + clamp_to_unit_interval(inventory / self.max_inventory))
-            omega_ask = 0.5 * (1 - clamp_to_unit_interval(inventory / self.max_inventory))
+            omega_bid = 0.5 * (1 + clamp_to_unit_interval(inventory / self.denom))
+            omega_ask = 0.5 * (1 - clamp_to_unit_interval(inventory / self.denom))
 
             alpha_bid = get_alpha(omega_bid, self.kappa)
             alpha_ask = get_alpha(omega_ask, self.kappa)
@@ -72,12 +80,11 @@ class TeradactylAgent(Agent):
             beta_ask = get_beta(omega_ask, self.kappa)
 
             tmp = np.array([alpha_bid, beta_bid, alpha_ask, beta_ask])
-            if self.max_inventory is not None:
-                tmp = np.append(tmp, self.max_inventory)
-            # print("inventory:", inventory)
-            # print(tmp)
 
-            return tmp
+        if self.max_inventory is not None:
+            tmp = np.append(tmp, self.max_inventory)
+
+        return tmp 
 
     def get_name(self):
         return (
