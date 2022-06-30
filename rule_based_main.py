@@ -25,7 +25,7 @@ def get_configs(args):
         "market_order_fraction_of_inventory": args["market_order_fraction"],
         "min_quote_level": args["min_quote_level"],
         "max_quote_level": args["max_quote_level"],
-        "enter_spread": args["enter_spread"]
+        "enter_spread": args["enter_spread"],
     }
 
     eval_env_config = copy.deepcopy(env_config)
@@ -236,17 +236,17 @@ if __name__ == "__main__":
     for a in [1, 5]:
         for b in [1, 5]:
             for max_inv in [100, 500]:
-                for kappa in [10, 100]:
+                # for kappa in [10, 100]:
+                agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
+                # TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
 
-                    agent = TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
+                emd1 = get_episode_summary_dict(agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"])
 
-                    emd1 = get_episode_summary_dict(agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"])
-
-                    plot_reward_distributions(
-                        ticker=env_config["ticker"],
-                        min_date=env_config["min_date"],
-                        max_date=env_config["max_date"],
-                        agent_name=agent.get_name(),
-                        episode_length=env_config["episode_length"],
-                        episode_mean_dict=emd1,
-                    )
+                plot_reward_distributions(
+                    ticker=env_config["ticker"],
+                    min_date=env_config["min_date"],
+                    max_date=env_config["max_date"],
+                    agent_name=agent.get_name(),
+                    episode_length=env_config["episode_length"],
+                    episode_mean_dict=emd1,
+                )
