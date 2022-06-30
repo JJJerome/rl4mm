@@ -298,7 +298,7 @@ class MicroPrice(Feature):
 class Inventory(Feature):
     def __init__(
             self, 
-            max_value:float=100000., 
+            max_value:float=1000., 
             maxlen: int=100000, 
             normalisation_on: bool=False):
         self._max_value = max_value

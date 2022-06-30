@@ -1,10 +1,8 @@
 import argparse
 import logging
 from subprocess import run
-import py7zr
 import glob
 import os
-import sys
 
 from RL4MM.utils.utils import (
     get_date_time,

@@ -83,6 +83,8 @@ def env_creator(env_config):
         per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
         terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
         market_order_clearing=env_config["market_order_clearing"],
+        market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+        concentration=env_config["concentration"],
     )
 
 """
@@ -120,7 +122,7 @@ def generate_trajectory(agent: Agent, env: gym.Env):
         infos.append(info)
         if done:
             break
-    return observations, actions, rewards, infos
+    return {"observations": observations, "actions": actions, "rewards": rewards, "infos": infos}
 
 
 def get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True):

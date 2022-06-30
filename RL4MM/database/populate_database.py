@@ -27,6 +27,7 @@ from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.models import Book
 from RL4MM.database.PostgresEngine import PostgresEngine
 from RL4MM.orderbook.helpers import get_book_columns
+from RL4MM.utils.utils import get_next_trading_dt, get_last_trading_dt, daterange_in_db
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(message)s",
@@ -62,6 +63,11 @@ def populate_database(
     for ticker in tickers:
         for trading_datetime in trading_datetimes:
             trading_date = datetime.strftime(trading_datetime, "%Y-%m-%d")
+            next_trading_dt = get_next_trading_dt(trading_datetime)
+            last_trading_dt = get_last_trading_dt(trading_datetime)
+            if daterange_in_db(next_trading_dt, last_trading_dt, ticker):
+                logging.info(f"Data for {ticker} on {trading_date} already in database and so not re-added.")
+                continue
             if is_sample_data:
                 download_lobster_sample_data(ticker, trading_date, n_levels, path_to_lobster_data)
             book_path, message_path = _get_book_and_message_paths(path_to_lobster_data, ticker, trading_date, n_levels)
