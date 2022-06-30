@@ -262,7 +262,7 @@ if __name__ == "__main__":
     # max_date=env_config['min_date'],
     # agent_name=agent.get_name(),
     # episode_length=env_config['episode_length'],
-    # episode_mean_dict=data)
+    # episode_summary_dict=data)
 
     ###########################################################################
     # Teradactyl - sweep
