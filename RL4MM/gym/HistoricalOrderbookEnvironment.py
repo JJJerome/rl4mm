@@ -318,7 +318,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         )
         return {"buy": buy_prices, "sell": sell_prices}
 
-    def Up_get_volumes_at_prices(self, direction: Literal["buy", "sell"], price_levels: np.ndarray, orderbook: Orderbook):
+    def _get_volumes_at_prices(self, direction: Literal["buy", "sell"], price_levels: np.ndarray, orderbook: Orderbook):
         volumes = list()
         for price in price_levels:
             try:
