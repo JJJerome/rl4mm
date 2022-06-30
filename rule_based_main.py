@@ -130,7 +130,7 @@ def parse_args():
     parser.add_argument("-t", "--ticker", default="SPY", help="Specify stock ticker.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
-    parser.add_argument("-sz", "--step_size", default=1, help="Step size in seconds.", type=int)
+    parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=int)
     parser.add_argument("-nl", "--n_levels", default=200, help="Number of orderbook levels.", type=int)
     parser.add_argument(
         "-psr",
@@ -268,6 +268,6 @@ if __name__ == "__main__":
                         min_date=env_config["min_date"],
                         max_date=env_config["min_date"],
                         agent_name=agent.get_name(),
-                        episode_length=env_config['episode_length'],
+                        episode_length=env_config["episode_length"],
                         episode_mean_dict=emd1,
                     )

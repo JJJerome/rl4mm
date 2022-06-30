@@ -176,9 +176,11 @@ def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int 
 
 ###############################################################################
 
+
 def get_output_prefix(ticker, min_date, max_date, agent_name, episode_length):
-    env_str = f'{ticker}_{min_date}_{max_date}_{episode_length}'
-    return agent_name + '_' + env_str
+    env_str = f"{ticker}_{min_date}_{max_date}_{episode_length}"
+    return agent_name + "_" + env_str
+
 
 def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_length, episode_mean_dict):
     sns.set()
