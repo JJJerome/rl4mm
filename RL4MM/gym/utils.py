@@ -35,14 +35,14 @@ def env_creator(env_config):
     
     episode_length=timedelta(minutes=env_config["episode_length"])
 
-    obs = OrderbookSimulator(ticker=env_config["ticker"], 
+    orderbook_simulator = OrderbookSimulator(ticker=env_config["ticker"], 
                              n_levels=env_config["n_levels"],
                              episode_length=episode_length)
 
     return HistoricalOrderbookEnvironment(
         ticker=env_config["ticker"],
         episode_length=episode_length,
-        simulator=obs,
+        simulator=orderbook_simulator,
         quote_levels=10,
         min_date=get_date_time(env_config["min_date"]),  # datetime
         max_date=get_date_time(env_config["max_date"]),  # datetime
