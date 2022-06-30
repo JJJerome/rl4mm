@@ -1,5 +1,5 @@
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Deque
 import warnings
 
@@ -50,8 +50,8 @@ class HistoricalOrderGenerator(OrderGenerator):
 
     def store_messages(self, start_date: datetime, end_date: datetime):
         self.episode_messages = self.database.get_messages(start_date, end_date, self.ticker)
-        self.start_of_episode = self.episode_messages.timestamp.iloc[0]
-        self.end_of_episode = self.episode_messages.timestamp.iloc[-1]
+        self.start_of_episode = self.episode_messages.timestamp.iloc[0] - timedelta(seconds=10)  # If first bucket empty
+        self.end_of_episode = self.episode_messages.timestamp.iloc[-1] + timedelta(seconds=10)
 
     @staticmethod
     def _get_mid_datetime(datetime_1: datetime, datetime_2: datetime):

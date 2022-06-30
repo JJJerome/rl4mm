@@ -239,7 +239,6 @@ if __name__ == "__main__":
     # Teradactyl - single run
     ###########################################################################
 
-    
     # agent = TeradactylAgent(max_inventory=10, kappa=10)
 
     # No max_inventory so there will only be 4 actions
@@ -255,15 +254,15 @@ if __name__ == "__main__":
     # import json
 
     # with open(f'{fname}.json') as json_file:
-        # data = json.load(json_file)
-        # print(data)
+    # data = json.load(json_file)
+    # print(data)
 
     # plot_reward_distributions(ticker=env_config['ticker'],
-                                # min_date=env_config['min_date'],
-                                # max_date=env_config['min_date'],
-                                # agent_name=agent.get_name(),
-                                # episode_length=env_config['episode_length'],
-                                # episode_mean_dict=data)
+    # min_date=env_config['min_date'],
+    # max_date=env_config['min_date'],
+    # agent_name=agent.get_name(),
+    # episode_length=env_config['episode_length'],
+    # episode_mean_dict=data)
 
     ###########################################################################
     # Teradactyl - sweep
@@ -285,6 +284,6 @@ if __name__ == "__main__":
                         min_date=env_config["min_date"],
                         max_date=env_config["min_date"],
                         agent_name=agent.get_name(),
-                        episode_length=env_config['episode_length'],
+                        episode_length=env_config["episode_length"],
                         episode_mean_dict=emd1,
                     )

@@ -372,6 +372,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
             not self.market_order_clearing and self.market_order_fraction_of_inventory is not None
         ):
             raise Exception(
-                f"market_order_fraction_of_inventory {self.market_order_fraction_of_inventory} "\
-                 "must be defined if and only if market order clearing (self.market_order_clearing} is on"
+                f"market_order_fraction_of_inventory {self.market_order_fraction_of_inventory} "
+                "must be defined if and only if market order clearing (self.market_order_clearing} is on"
             )
