@@ -24,17 +24,18 @@ print(Path(RL4MM.__file__).parent)
 class Test_populate_database(TestCase):
     path_to_test_data = str(Path(RL4MM.__file__).parent.parent) + "/test_data/"
     ticker = "MSFT"
-    trading_date = "2012-06-21"
+    trading_date = datetime(2012,6,21)
     n_levels = 50
     start_of_trading = datetime(2012, 6, 21, 9, 30)
     end_of_trading = datetime(2012, 6, 21, 16)
     total_daily_messages = 1000
-    book_path, message_path = _get_book_and_message_paths(path_to_test_data, ticker, trading_date, n_levels)
+    td = datetime.strftime(trading_date, "%Y-%m-%d")
+    book_path, message_path = _get_book_and_message_paths(path_to_test_data, ticker, td, n_levels)
     book_cols, message_cols = _get_book_and_message_columns(n_levels)
 
     def test_get_book_and_messages_paths(self):
         book_path, message_path = _get_book_and_message_paths(
-            self.path_to_test_data, self.ticker, self.trading_date, self.n_levels
+            self.path_to_test_data, self.ticker, self.td, self.n_levels
         )
         expected_message_path = Path(self.path_to_test_data + "MSFT_2012-06-21_34200000_37800000_message_50.csv")
         expected_book_path = Path(self.path_to_test_data + "MSFT_2012-06-21_34200000_37800000_orderbook_50.csv")
@@ -101,7 +102,7 @@ class Test_populate_database(TestCase):
     def get_all_messages_and_books(self):
         _, message_cols = _get_book_and_message_columns(self.n_levels)
         _, message_path = _get_book_and_message_paths(
-            self.path_to_test_data, self.ticker, self.trading_date, self.n_levels
+            self.path_to_test_data, self.ticker, self.td, self.n_levels
         )
         messages = pd.read_csv(
             message_path,
@@ -111,7 +112,7 @@ class Test_populate_database(TestCase):
         )
         messages = reformat_message_data(messages, self.trading_date)
         book_path, _ = _get_book_and_message_paths(
-            self.path_to_test_data, self.ticker, self.trading_date, self.n_levels
+            self.path_to_test_data, self.ticker, self.td, self.n_levels
         )
         book_cols, _ = _get_book_and_message_columns(self.n_levels)
         books = get_book_snapshots(book_path, book_cols, messages, None, self.n_levels, self.total_daily_messages)
