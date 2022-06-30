@@ -87,44 +87,7 @@ def get_configs(args):
 def parse_args():
     # -------------------- Training Args ----------------------
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("-g", "--num_gpus", default=1, help="Number of GPUs to use during training.", type=int)
-    parser.add_argument("-nw", "--num_workers", default=5, help="Number of workers to use during training.", type=int)
-    parser.add_argument(
-        "-nwe", "--num_workers_eval", default=1, help="Number of workers used during evaluation.", type=int
-    )
-    parser.add_argument("-fw", "--framework", default="torch", help="Framework, torch or tf.", type=str)
-    parser.add_argument("-l", "--lstm", default=False, help="LSTM on/off.", type=boolean_string)
-    parser.add_argument("-i", "--iterations", default=1000, help="Training iterations.", type=int)
-    parser.add_argument("-la", "--lambda", default=1.0, help="Training iterations.", type=float)
-    parser.add_argument(
-        "-rfl",
-        "--rollout_fragment_length",
-        default=3600,
-        help="Rollout fragment length, collected per worker..",
-        type=int,
-    )
-    parser.add_argument("-mp", "--model_path", default=None, help="Path to existing model.", type=str)
-    parser.add_argument("-lr", "--learning_rate", default=0.0001, help="Learning rate.", type=float)
-    parser.add_argument("-df", "--discount_factor", default=0.99, help="Discount factor gamma of the MDP.", type=float)
-    parser.add_argument(
-        "-tb", "--train_batch_size", default=3600, help="The size of the training batch used for updates.", type=int
-    )
-    parser.add_argument(
-        "-tbd",
-        "--tensorboard_logdir",
-        default="/home/data/tensorboard",
-        help="Directory to save tensorboard logs to.",
-        type=str,
-    )
-    # -------------------- Generating a dataset of eval episodes
-    parser.add_argument("-o", "--output", default=None, help="Directory to save episode data to.", type=str)
-    parser.add_argument(
-        "-omfs",
-        "--output_max_file_size",
-        default=5000000,
-        help="Max size of json file that transitions are saved to.",
-        type=int,
-    )
+    parser.add_argument("-ni", "--n_iterations", default=1000, help="Training iterations.", type=int)
     # -------------------- Training env Args ---------------------------
     parser.add_argument("-mind", "--min_date", default="2018-02-20", help="Train data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2018-02-20", help="Train data end date.", type=str)
@@ -149,14 +112,22 @@ def parse_args():
         help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
-
     parser.add_argument(
         "-moc", "--market_order_clearing", default=True, help="Market order clearing on/off.", type=boolean_string
     )
-
     parser.add_argument(
-        "-mof", "--market_order_fraction", default=1, help="Market order clearing fraction of inventory.", type=float
+        "-mof", "--market_order_fraction", default=0.2, help="Market order clearing fraction of inventory.", type=float
     )
+    parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
+    parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
+    parser.add_argument(
+        "-es",
+        "--enter_spread",
+        default=False,
+        help="Bool for whether best quote is the midprice. Otherwise it is the best bid/best ask price",
+        type=bool,
+    )
+    # parser.add_argument("-con", "--concentration", default=10, help="Concentration of the order distributor.", type=int)
 
     # ------------------ Eval env args -------------------------------
     parser.add_argument("-minde", "--min_date_eval", default="2019-01-03", help="Evaluation data start date.", type=str)
@@ -268,8 +239,6 @@ if __name__ == "__main__":
     # Teradactyl - sweep
     ###########################################################################
 
-    n_iterations = 5
-
     for a in [1, 5]:
         for b in [1, 5]:
             for max_inv in [10, 100]:
@@ -277,7 +246,7 @@ if __name__ == "__main__":
 
                     agent = TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
 
-                    emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True)
+                    emd1 = get_episode_summary_dict(agent, env_config, args["n_iterations"], PARALLEL_FLAG=True)
 
                     plot_reward_distributions(
                         ticker=env_config["ticker"],
