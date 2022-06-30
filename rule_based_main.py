@@ -282,7 +282,7 @@ if __name__ == "__main__":
                     plot_reward_distributions(
                         ticker=env_config["ticker"],
                         min_date=env_config["min_date"],
-                        max_date=env_config["min_date"],
+                        max_date=env_config["max_date"],
                         agent_name=agent.get_name(),
                         episode_length=env_config["episode_length"],
                         episode_mean_dict=emd1,
