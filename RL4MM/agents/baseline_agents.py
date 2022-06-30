@@ -41,7 +41,6 @@ class TeradactylAgent(Agent):
         else:
             self.denom = self.max_inventory
 
-
     def get_action(self, state: np.ndarray) -> np.ndarray:
 
         ############################
@@ -84,7 +83,7 @@ class TeradactylAgent(Agent):
         if self.max_inventory is not None:
             tmp = np.append(tmp, self.max_inventory)
 
-        return tmp 
+        return tmp
 
     def get_name(self):
         return (

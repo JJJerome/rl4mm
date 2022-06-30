@@ -1,4 +1,4 @@
-from typing import Deque
+from typing import List
 
 import abc
 from datetime import datetime
@@ -13,5 +13,5 @@ class OrderGenerator(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def generate_orders(self, start_date: datetime, end_date: datetime) -> Deque[Order]:
-        pass  # return a deque of orders, _ordered by arrival time_.
+    def generate_orders(self, start_date: datetime, end_date: datetime) -> List[Order]:
+        pass  # return a list of orders, _ordered by arrival time_.
