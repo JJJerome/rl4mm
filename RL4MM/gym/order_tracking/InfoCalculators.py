@@ -38,7 +38,7 @@ class SimpleInfoCalculator(InfoCalculator):
             agent_spread=spreads_and_offsets[0],
             agent_weighted_spread=[1],
             midprice_offset=spreads_and_offsets[2],
-            weighted_midprice_offset=spreads_and_offsets[3]
+            weighted_midprice_offset=spreads_and_offsets[3],
         )
         if len(action) == 2 or len(action) == 3:
             info_dict["bid_action"] = (action[[0]],)
@@ -66,7 +66,7 @@ class SimpleInfoCalculator(InfoCalculator):
         best_buy = np.sign(orders["buy"]).argmax()
         best_sell = np.sign(orders["sell"]).argmax()
         midprice_offset = (best_sell - best_buy) / 2
-        spread = (best_buy + best_sell)
+        spread = best_buy + best_sell
         # calculate weighted spread and midprice offset
         buy_centre_of_mass = np.dot(orders["buy"], level_distances) / total_volume
         sell_centre_of_mass = np.dot(orders["sell"], level_distances) / total_volume
@@ -77,10 +77,8 @@ class SimpleInfoCalculator(InfoCalculator):
             weighted_midprice_offset += self.calculate_market_spread(internal_state)
         return spread, weighted_spread, midprice_offset, weighted_midprice_offset
 
-    def _calculate_agent_spread(self, action:np.ndarray):
+    def _calculate_agent_spread(self, action: np.ndarray):
         orders = self.order_distributor.convert_action(action)
-
-
 
     def calculate_market_spread(self, internal_state: InternalState):
         last_snapshot = internal_state["book_snapshots"].iloc[-1]

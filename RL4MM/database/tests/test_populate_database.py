@@ -24,7 +24,7 @@ print(Path(RL4MM.__file__).parent)
 class Test_populate_database(TestCase):
     path_to_test_data = str(Path(RL4MM.__file__).parent.parent) + "/test_data/"
     ticker = "MSFT"
-    trading_date = datetime(2012,6,21)
+    trading_date = datetime(2012, 6, 21)
     n_levels = 50
     start_of_trading = datetime(2012, 6, 21, 9, 30)
     end_of_trading = datetime(2012, 6, 21, 16)
@@ -101,9 +101,7 @@ class Test_populate_database(TestCase):
 
     def get_all_messages_and_books(self):
         _, message_cols = _get_book_and_message_columns(self.n_levels)
-        _, message_path = _get_book_and_message_paths(
-            self.path_to_test_data, self.ticker, self.td, self.n_levels
-        )
+        _, message_path = _get_book_and_message_paths(self.path_to_test_data, self.ticker, self.td, self.n_levels)
         messages = pd.read_csv(
             message_path,
             header=None,
@@ -111,9 +109,7 @@ class Test_populate_database(TestCase):
             usecols=[0, 1, 2, 3, 4, 5],
         )
         messages = reformat_message_data(messages, self.trading_date)
-        book_path, _ = _get_book_and_message_paths(
-            self.path_to_test_data, self.ticker, self.td, self.n_levels
-        )
+        book_path, _ = _get_book_and_message_paths(self.path_to_test_data, self.ticker, self.td, self.n_levels)
         book_cols, _ = _get_book_and_message_columns(self.n_levels)
         books = get_book_snapshots(book_path, book_cols, messages, None, self.n_levels, self.total_daily_messages)
         return messages, books

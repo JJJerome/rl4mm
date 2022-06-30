@@ -18,7 +18,7 @@ from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 class TestHistoricalOrderGenerator(TestCase):
     path_to_test_data = str(Path(RL4MM.__file__).parent.parent) + "/test_data/"
     ticker = "MSFT"
-    trading_date = datetime(2012,6,21)
+    trading_date = datetime(2012, 6, 21)
     n_levels = 50
     exchange_name = "NASDAQ"
     test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
