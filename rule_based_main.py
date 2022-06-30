@@ -131,7 +131,7 @@ def parse_args():
         type=bool,
     )
     # parser.add_argument("-con", "--concentration", default=10, help="Concentration of the order distributor.", type=int)
-
+    parser.add_argument("-par", "--parallel", default=True, help="Whether to run in parallel or not.", type=bool)
     # ------------------ Eval env args -------------------------------
     parser.add_argument("-minde", "--min_date_eval", default="2019-01-03", help="Evaluation data start date.", type=str)
     parser.add_argument("-maxde", "--max_date_eval", default="2019-01-03", help="Evaluation data end date.", type=str)
@@ -235,12 +235,12 @@ if __name__ == "__main__":
 
     for a in [1, 5]:
         for b in [1, 5]:
-            for max_inv in [10, 100]:
-                for kappa in [5, 10]:
+            for max_inv in [100, 500]:
+                for kappa in [10, 100]:
 
                     agent = TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
 
-                    emd1 = get_episode_summary_dict(agent, env_config, args["n_iterations"], PARALLEL_FLAG=True)
+                    emd1 = get_episode_summary_dict(agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"])
 
                     plot_reward_distributions(
                         ticker=env_config["ticker"],
