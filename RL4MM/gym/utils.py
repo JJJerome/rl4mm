@@ -43,7 +43,7 @@ def env_creator(env_config):
         ticker=env_config["ticker"],
         episode_length=episode_length,
         simulator=orderbook_simulator,
-        quote_levels=10,
+        max_quote_level=10,
         min_date=get_date_time(env_config["min_date"]),  # datetime
         max_date=get_date_time(env_config["max_date"]),  # datetime
         step_size=timedelta(seconds=env_config["step_size"]),
