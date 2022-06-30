@@ -28,14 +28,20 @@ class OrderbookSimulator:
         order_generators: List[OrderGenerator] = None,
         n_levels: int = 50,
         database: HistoricalDatabase = None,
+        save_messages_locally: bool = True,
+        episode_length: Optional[datetime] = None,
     ) -> None:
         self.ticker = ticker
         self.exchange = exchange or Exchange(ticker)
-        order_generators = order_generators or [HistoricalOrderGenerator(ticker)]
+        order_generators = order_generators or [HistoricalOrderGenerator(ticker, database, save_messages_locally)]
         self.order_generators = {gen.name: gen for gen in order_generators}
         self.now_is: datetime = datetime(2000, 1, 1)
         self.n_levels = n_levels
         self.database = database or HistoricalDatabase()
+        self.save_messages_locally = save_messages_locally
+        if save_messages_locally:
+            assert episode_length is not None, "When saving messages locally, episode length must be pre-specified."
+        self.episode_length = episode_length
         # The following is for re-syncronisation with the historical data
         self.max_sell_price: int = 0
         self.min_buy_price: int = np.infty  # type:ignore
@@ -52,6 +58,9 @@ class OrderbookSimulator:
         self.initial_sell_price_range = self.max_sell_price - self.exchange.best_sell_price
         self.initial_buy_price_range = self.exchange.best_buy_price - self.min_buy_price
         self.now_is = start_date
+        if self.save_messages_locally:
+            for order_generator_name in self.order_generators.keys():
+                self.order_generators[order_generator_name].store_messages(start_date, start_date + self.episode_length)
         return start_book
 
     def forward_step(self, until: datetime, internal_orders: Optional[List[Order]] = None) -> List[FillableOrder]:

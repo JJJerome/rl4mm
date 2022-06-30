@@ -22,6 +22,7 @@ def get_configs(args):
         "per_step_reward_function": args["per_step_reward_function"],
         "terminal_reward_function": args["terminal_reward_function"],
         "market_order_clearing": args["market_order_clearing"],
+        "market_order_fraction_of_inventory": args["market_order_fraction"],
     }
 
     eval_env_config = copy.deepcopy(env_config)
@@ -148,8 +149,13 @@ def parse_args():
         help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
+
     parser.add_argument(
         "-moc", "--market_order_clearing", default=True, help="Market order clearing on/off.", type=boolean_string
+    )
+
+    parser.add_argument(
+        "-mof", "--market_order_fraction", default=1, help="Market order clearing fraction of inventory.", type=float
     )
 
     # ------------------ Eval env args -------------------------------
@@ -232,27 +238,38 @@ if __name__ == "__main__":
     ###########################################################################
     # Teradactyl - single run
     ###########################################################################
-    # agent = TeradactylAgent(max_inventory=10, kappa=10)
-    # plot_reward_distributions(agent, env, n_iterations=50)
 
+    
     # agent = TeradactylAgent(max_inventory=10, kappa=10)
 
-    # n_iterations = 20
+    # No max_inventory so there will only be 4 actions
+    # agent = TeradactylAgent(kappa=10)
+
+    # n_iterations = 5
 
     # emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True)
     # emd2 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=False)
 
+    # fname = 'Teradactyl_def_a_3_def_b_1_kappa_10_max_inv_None_SPY_2018-02-20_2018-02-20_10'
+
+    # import json
+
+    # with open(f'{fname}.json') as json_file:
+        # data = json.load(json_file)
+        # print(data)
+
     # plot_reward_distributions(ticker=env_config['ticker'],
-    # min_date=env_config['min_date'],
-    # max_date=env_config['min_date'],
-    # agent_name=agent.get_name(),
-    # episode_mean_dict=emd1)
+                                # min_date=env_config['min_date'],
+                                # max_date=env_config['min_date'],
+                                # agent_name=agent.get_name(),
+                                # episode_length=env_config['episode_length'],
+                                # episode_mean_dict=data)
 
     ###########################################################################
     # Teradactyl - sweep
     ###########################################################################
 
-    n_iterations = 10
+    n_iterations = 5
 
     for a in [1, 5]:
         for b in [1, 5]:
