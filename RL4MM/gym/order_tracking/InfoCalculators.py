@@ -49,7 +49,7 @@ class SimpleInfoCalculator(InfoCalculator):
         if len(action) == 3 or len(action) == 5:
             info_dict["market_order_action"] = (action[[-1]],)
             if np.abs(internal_state["inventory"]) > action[-1]:
-                self._update_market_order_count_and_volume()
+                self._update_market_order_count_and_volume(internal_state["inventory"])
         info_dict["market_order_count"] = self.market_order_count
         info_dict["market_order_total_volume"] = self.market_order_total_volume
         return info_dict
@@ -71,6 +71,6 @@ class SimpleInfoCalculator(InfoCalculator):
         last_snapshot = internal_state["book_snapshots"].iloc[-1]
         return (last_snapshot.sell_price_0 - last_snapshot.buy_price_0) / TICK_SIZE
 
-    def _update_market_order_count_and_volume(self):
+    def _update_market_order_count_and_volume(self, inventory: int):
         self.market_order_count += 1
-        self.market_order_total_volume += self.market_order_fraction_of_inventory
+        self.market_order_total_volume += self.market_order_fraction_of_inventory * inventory
