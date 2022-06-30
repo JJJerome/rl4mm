@@ -23,6 +23,9 @@ def get_configs(args):
         "terminal_reward_function": args["terminal_reward_function"],
         "market_order_clearing": args["market_order_clearing"],
         "market_order_fraction_of_inventory": args["market_order_fraction"],
+        "min_quote_level": args["min_quote_level"],
+        "max_quote_level": args["max_quote_level"],
+        "enter_spread": args["enter_spread"]
     }
 
     eval_env_config = copy.deepcopy(env_config)
@@ -156,16 +159,7 @@ def parse_args():
 if __name__ == "__main__":
 
     args = parse_args()
-
-    # env_config, eval_env_config = get_configs(args)
-
     env_config, _ = get_configs(args)
-
-    # env_config['ticker'] = 'SPY'
-    # env_config['min_date'] = '2018-02-20'
-    # env_config['max_date'] = '2018-02-20'
-    # env_config['episode_length'] = 10
-
     env = env_creator(env_config)
 
     ###########################################################################
