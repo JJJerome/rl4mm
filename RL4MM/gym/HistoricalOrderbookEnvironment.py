@@ -78,7 +78,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         terminal_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=0.1),
         info_calculator: InfoCalculator = None,
         order_distributor: OrderDistributor = None,
-        concentration: float = 10.0,
+        concentration: Optional[float] = None,
         market_order_fraction_of_inventory: Optional[float] = None,
         enter_spread: bool = False,
         save_messages_locally: bool = True,
