@@ -20,6 +20,7 @@ sqlalchemy~=1.4.31
 sortedcontainers~=2.4.0
 stable-baselines3
 stochastic~=0.6.0
+swifter
 tqdm~=4.62.3
 tensorboard
 numpyencoder

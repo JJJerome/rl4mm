@@ -30,12 +30,15 @@ class SimpleInfoCalculator(InfoCalculator):
         self.order_distributor = order_distributor or BetaOrderDistributor()
 
     def calculate(self, filled_orders: List[FillableOrder], internal_state: InternalState, action: np.ndarray):
+        spreads_and_offsets = self.calculate_agent_spreads_and_midprice_offset(internal_state, action)
         info_dict = dict(
             asset_price=internal_state["asset_price"],
             inventory=internal_state["inventory"],
-            market_spread=self.calculate_spread(internal_state),
-            agent_weighted_spread=self.calculate_agent_weighted_spread_and_midprice_offset(internal_state, action)[0],
-            midprice_offset=self.calculate_agent_weighted_spread_and_midprice_offset(internal_state, action)[1],
+            market_spread=self.calculate_market_spread(internal_state),
+            agent_spread=spreads_and_offsets[0],
+            agent_weighted_spread=[1],
+            midprice_offset=spreads_and_offsets[2],
+            weighted_midprice_offset=spreads_and_offsets[3],
         )
         if len(action) == 2 or len(action) == 3:
             info_dict["bid_action"] = (action[[0]],)
@@ -54,23 +57,33 @@ class SimpleInfoCalculator(InfoCalculator):
         info_dict["market_order_total_volume"] = self.market_order_total_volume
         return info_dict
 
-    def calculate_agent_weighted_spread_and_midprice_offset(self, internal_state: InternalState, action: np.ndarray):
+    def calculate_agent_spreads_and_midprice_offset(self, internal_state: InternalState, action: np.ndarray):
         orders = self.order_distributor.convert_action(action)
         total_volume = self.order_distributor.active_volume
         n_levels = self.order_distributor.n_levels
         level_distances = np.array(range(n_levels))
+        # calculate regular spread and midprice offset
+        best_buy = np.sign(orders["buy"]).argmax()
+        best_sell = np.sign(orders["sell"]).argmax()
+        midprice_offset = (best_sell - best_buy) / 2
+        spread = best_buy + best_sell
+        # calculate weighted spread and midprice offset
         buy_centre_of_mass = np.dot(orders["buy"], level_distances) / total_volume
         sell_centre_of_mass = np.dot(orders["sell"], level_distances) / total_volume
-        midprice_offset = (sell_centre_of_mass - buy_centre_of_mass) / 2
-        if self.enter_spread:
-            return (buy_centre_of_mass + sell_centre_of_mass), midprice_offset
-        else:
-            return (buy_centre_of_mass + sell_centre_of_mass + self.calculate_spread(internal_state)), midprice_offset
+        weighted_midprice_offset = (sell_centre_of_mass - buy_centre_of_mass) / 2
+        weighted_spread = buy_centre_of_mass + sell_centre_of_mass
+        if not self.enter_spread:
+            midprice_offset += self.calculate_market_spread(internal_state)
+            weighted_midprice_offset += self.calculate_market_spread(internal_state)
+        return spread, weighted_spread, midprice_offset, weighted_midprice_offset
 
-    def calculate_spread(self, internal_state: InternalState):
+    def _calculate_agent_spread(self, action: np.ndarray):
+        orders = self.order_distributor.convert_action(action)
+
+    def calculate_market_spread(self, internal_state: InternalState):
         last_snapshot = internal_state["book_snapshots"].iloc[-1]
         return (last_snapshot.sell_price_0 - last_snapshot.buy_price_0) / TICK_SIZE
 
     def _update_market_order_count_and_volume(self, inventory: int):
         self.market_order_count += 1
-        self.market_order_total_volume += self.market_order_fraction_of_inventory * inventory
+        self.market_order_total_volume += self.market_order_fraction_of_inventory * abs(inventory)
