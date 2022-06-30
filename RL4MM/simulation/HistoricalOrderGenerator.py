@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List
 import warnings
 
 import pandas as pd
+import swifter
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.orderbook.create_order import create_order
@@ -59,7 +60,7 @@ class HistoricalOrderGenerator(OrderGenerator):
 
     def _process_messages_and_add_internal(self, messages: pd.DataFrame):
         messages = self._remove_hidden_executions(messages)
-        internal_messages = messages.apply(get_order_from_external_message, axis=1).values
+        internal_messages = messages.swifter.apply(get_order_from_external_message, axis=1).values
         return messages.assign(internal_message=internal_messages)
 
 
