@@ -272,7 +272,7 @@ if __name__ == "__main__":
 
     for a in [1, 5]:
         for b in [1, 5]:
-            for max_inv in [10, 100]:
+            for max_inv in [100, 1000]:
                 for kappa in [5, 10]:
 
                     agent = TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
@@ -285,5 +285,5 @@ if __name__ == "__main__":
                         max_date=env_config["max_date"],
                         agent_name=agent.get_name(),
                         episode_length=env_config["episode_length"],
-                        episode_mean_dict=emd1,
+                        episode_summary_dict=emd1,
                     )

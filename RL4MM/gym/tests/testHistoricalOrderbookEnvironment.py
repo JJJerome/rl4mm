@@ -19,12 +19,14 @@ ACTION_2 = np.array([1, 2, 1, 2])
 class testHistoricalOrderbookEnvironment(TestCase):
     path_to_test_data = str(Path(RL4MM.__file__).parent.parent) + "/test_data/"
     ticker = "MSFT"
-    trading_date = datetime(2012,6,21)
+    trading_date = datetime(2012, 6, 21)
     n_levels = 50
     test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
     test_db = HistoricalDatabase(engine=test_engine)
     generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
-    simulator = OrderbookSimulator(ticker=ticker, order_generators=[generator], n_levels=200, database=test_db, save_messages_locally=False)
+    simulator = OrderbookSimulator(
+        ticker=ticker, order_generators=[generator], n_levels=200, database=test_db, save_messages_locally=False
+    )
     env = HistoricalOrderbookEnvironment(
         step_size=timedelta(milliseconds=100),
         episode_length=timedelta(seconds=1),
