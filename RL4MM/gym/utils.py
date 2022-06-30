@@ -51,6 +51,7 @@ def env_creator(env_config):
         per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
         terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
         market_order_clearing=env_config["market_order_clearing"],
+        market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
     )
 
 
@@ -133,9 +134,14 @@ def process_parallel_results(results):
 
     """
 
-    episode_mean_dict: Dict = {"rewards": [], "actions": [], "inventory": [], "spread": []}
+    episode_mean_dict: Dict = {"equity_curves": [],
+                               "rewards": [], 
+                               "actions": [], 
+                               "inventory": [], 
+                               "spread": []}
 
     for d in results:
+        episode_mean_dict["equity_curves"].append(d['rewards'])
         episode_mean_dict["rewards"].append(np.mean(d['rewards']))
         episode_mean_dict["actions"].append(np.mean(np.array(d['actions']), axis=0)[:-1])
         episode_mean_dict["inventory"].append(np.mean([info["inventory"] for info in d['infos']]))
@@ -218,7 +224,7 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_le
     plt.suptitle(f"{ticker} {agent_name} EL: {episode_length}")
 
     ###########################################################################
-    # Equity curves
+    # Plot equity curves
     ###########################################################################
 
     tmp = episode_mean_dict['equity_curves'] 
@@ -227,14 +233,14 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_le
     ax_dict['A'].get_legend().remove()
 
     ###########################################################################
-    # Rewards histogram
+    # Plot rewards histogram
     ###########################################################################
 
     ax_dict['B'].hist(episode_mean_dict["rewards"], bins=20)
     ax_dict['B'].title.set_text("Mean rewards")
 
     ###########################################################################
-    # Rewards summary table
+    # Plot rewards summary table
     ###########################################################################
 
     rewards = episode_mean_dict["rewards"]
@@ -255,7 +261,7 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_le
     ax_dict['C'].set_axis_off()
 
     ###########################################################################
-    # Actions
+    # Plot actions
     ###########################################################################
 
     for action_loc, ax in zip([0, 1, 2, 3], [ax_dict[p] for p in ['D', 'E', 'F', 'G']]):
@@ -268,13 +274,17 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_le
     ax_dict['G'].title.set_text("Mean action - ask 2")
 
     ###########################################################################
-    # Inventory and Spread
+    # Plot inventory and Spread
     ###########################################################################
 
     ax_dict['H'].hist(episode_mean_dict["inventory"], bins=20)
     ax_dict['I'].hist(episode_mean_dict["spread"], bins=20)
     ax_dict['H'].title.set_text("Mean inventory")
     ax_dict['I'].title.set_text("Mean spread")
+
+    ###########################################################################
+    # Write output
+    ###########################################################################
 
     # fig.tight_layout()
     # plt.show()
