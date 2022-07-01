@@ -9,6 +9,8 @@ from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions, get_
 from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent
 from RL4MM.utils.utils import boolean_string
 
+from experiments.rule_based_main_sweep import a_range, b_range, min_quote_range, max_quote_range, max_inv_range
+
 
 def get_configs(args):
     # ray.init()
@@ -184,30 +186,32 @@ if __name__ == "__main__":
     # Teradactyl - sweep
     ###########################################################################
 
-    for a in [1, 5]:
-        for b in [1, 5]:
-            for max_inv in [100, 500]:
-                # for kappa in [10, 100]:
-                agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
-                # TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
+    for a in a_range:
+        for b in b_range:
+            for max_inv in max_inv_range:
+                for min_quote_level in min_quote_range:
+                    for max_quote_level in max_quote_range:
+                        # for kappa in [10, 100]:
+                        agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
+                        # TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
 
-                databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
+                        databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
 
-                emd1 = get_episode_summary_dict(
-                    agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"], databases=databases
-                )
+                        emd1 = get_episode_summary_dict(
+                            agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"], databases=databases
+                        )
 
-                plot_reward_distributions(
-                    ticker=env_config["ticker"],
-                    min_date=env_config["min_date"],
-                    max_date=env_config["max_date"],
-                    agent_name=agent.get_name(),
-                    episode_length=env_config["episode_length"],
-                    step_size=env_config["step_size"],
-                    market_order_clearing=env_config["market_order_clearing"],
-                    market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
-                    min_quote_level=env_config["min_quote_level"],
-                    max_quote_level=env_config["max_quote_level"],
-                    enter_spread=env_config["enter_spread"],
-                    episode_mean_dict=emd1,
-                )
+                        plot_reward_distributions(
+                            ticker=env_config["ticker"],
+                            min_date=env_config["min_date"],
+                            max_date=env_config["max_date"],
+                            agent_name=agent.get_name(),
+                            episode_length=env_config["episode_length"],
+                            step_size=env_config["step_size"],
+                            market_order_clearing=env_config["market_order_clearing"],
+                            market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+                            min_quote_level=min_quote_level,
+                            max_quote_level=max_quote_level,
+                            enter_spread=env_config["enter_spread"],
+                            episode_mean_dict=emd1,
+                        )
