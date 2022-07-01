@@ -3,6 +3,7 @@ import os
 import copy
 import numpy as np
 
+from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.gym.utils import env_creator
 from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions, get_episode_summary_dict
 from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent
@@ -33,56 +34,6 @@ def get_configs(args):
     eval_env_config["max_date"] = args["max_date_eval"]
     eval_env_config["per_step_reward_function"] = args["eval_per_step_reward_function"]
     eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
-
-    # register_env("HistoricalOrderbookEnvironment", env_creator)
-
-    # config = {
-    # "env": "HistoricalOrderbookEnvironment",
-    # "num_gpus": args["num_gpus"],
-    # "num_workers": args["num_workers"],
-    # "framework": args["framework"],
-    # "callbacks": Custom_Callbacks,
-    # "rollout_fragment_length": args["rollout_fragment_length"],
-    # "lambda": args["lambda"],
-    # "lr": args["learning_rate"],
-    # "gamma": args["discount_factor"],
-    # "train_batch_size": args["train_batch_size"],
-    # "model": {
-    # "fcnet_hiddens": [256, 256],
-    # "fcnet_activation": "tanh",  # torch.nn.Sigmoid,
-    # "use_lstm": args["lstm"],
-    # },
-    # "output": args["output"],
-    # "output_max_file_size": args["output_max_file_size"],
-    # "env_config": env_config,
-    # "evaluation_interval": 3,  # Run one evaluation step on every 3rd `Trainer.train()` call.
-    # "evaluation_num_workers": args["num_workers_eval"],
-    # "evaluation_parallel_to_training": True,
-    # "evaluation_duration": "auto",
-    # "evaluation_config": {"env_config": eval_env_config},
-    # "recreate_failed_workers": False, #True,
-    # "disable_env_checking":True,
-    # }
-
-    # tensorboard_logdir = args["tensorboard_logdir"]
-    # if not os.path.exists(tensorboard_logdir):
-    # os.makedirs(tensorboard_logdir)
-
-    # analysis = tune.run(
-    # "PPO",
-    # stop={"training_iteration": args["iterations"]},
-    # config=config,
-    # local_dir=tensorboard_logdir,
-    # checkpoint_at_end=True,
-    # )
-    # best_checkpoint = analysis.get_trial_checkpoints_paths(
-    # trial=analysis.get_best_trial("episode_reward_mean"), metric="episode_reward_mean"
-    # )
-    # path_to_save_dir = args["output"] or "/home/ray"
-    # print(best_checkpoint)
-    # save_best_checkpoint_path(path_to_save_dir, best_checkpoint[0][0])
-
-    # print(env_config)
 
     return env_config, eval_env_config
 
@@ -160,7 +111,7 @@ if __name__ == "__main__":
 
     args = parse_args()
     env_config, _ = get_configs(args)
-    env = env_creator(env_config)
+    # env = env_creator(env_config)
 
     ###########################################################################
     # Random agent
@@ -240,7 +191,11 @@ if __name__ == "__main__":
                 agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
                 # TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
 
-                emd1 = get_episode_summary_dict(agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"])
+                databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
+
+                emd1 = get_episode_summary_dict(
+                    agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"], databases=databases
+                )
 
                 plot_reward_distributions(
                     ticker=env_config["ticker"],

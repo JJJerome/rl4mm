@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 import gym
 import numpy as np
@@ -32,11 +32,9 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
         raise NotImplementedError("You must specify one of 'AS', 'SD' or 'PnL'")
 
 
-def env_creator(env_config):
+def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase()):
 
     episode_length = timedelta(minutes=env_config["episode_length"])
-
-    database = HistoricalDatabase()
 
     orderbook_simulator = OrderbookSimulator(
         ticker=env_config["ticker"], n_levels=env_config["n_levels"], episode_length=episode_length, database=database
@@ -77,18 +75,22 @@ def generate_trajectory(agent: Agent, env: gym.Env):
     return {"observations": observations, "actions": actions, "rewards": rewards, "infos": infos}
 
 
-def get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True):
+def get_episode_summary_dict(
+    agent, env_config, n_iterations, PARALLEL_FLAG=True, databases: List[HistoricalDatabase] = None
+):
+
+    if databases is None:
+        databases = [HistoricalDatabase() for _ in range(n_iterations)]
 
     if PARALLEL_FLAG:
-
         # create list of agents and environments for the
         agent_lst = [copy.deepcopy(agent) for _ in range(n_iterations)]
-        env_lst = [env_creator(env_config) for _ in range(n_iterations)]
+        env_lst = [env_creator(env_config, databases[i]) for i in range(n_iterations)]
         ret = get_episode_summary_dict_PARALLEL(agent_lst, env_lst)
 
     else:
 
-        ret = get_episode_summary_dict_NONPARALLEL(agent, env_creator(env_config), n_iterations)
+        ret = get_episode_summary_dict_NONPARALLEL(agent, env_creator(env_config, databases[0]), n_iterations)
 
     return ret
 
