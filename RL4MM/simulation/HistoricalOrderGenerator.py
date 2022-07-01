@@ -14,7 +14,13 @@ from RL4MM.simulation.OrderGenerator import OrderGenerator
 class HistoricalOrderGenerator(OrderGenerator):
     name = "historical"
 
-    def __init__(self, ticker: str = "MSFT", database: HistoricalDatabase = None, save_messages_locally: bool = True, use_swifter:bool = False):
+    def __init__(
+        self,
+        ticker: str = "MSFT",
+        database: HistoricalDatabase = None,
+        save_messages_locally: bool = True,
+        use_swifter: bool = False,
+    ):
         self.ticker = ticker
         self.database = database or HistoricalDatabase()
         self.save_messages_locally = save_messages_locally
@@ -60,9 +66,11 @@ class HistoricalOrderGenerator(OrderGenerator):
         return (max(datetime_1, datetime_2) - min(datetime_1, datetime_2)) / 2 + min(datetime_1, datetime_2)
 
     def _process_messages_and_add_internal(self, messages: pd.DataFrame):
-        messages = self._remove_hidden_executions(messages)#
+        messages = self._remove_hidden_executions(messages)  #
         if self.use_swifter:
-            internal_messages = messages.swifter.progress_bar(False).apply(get_order_from_external_message, axis=1).values
+            internal_messages = (
+                messages.swifter.progress_bar(False).apply(get_order_from_external_message, axis=1).values
+            )
         else:
             messages.apply(get_order_from_external_message, axis=1).values
         return messages.assign(internal_message=internal_messages)
