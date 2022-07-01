@@ -7,7 +7,7 @@ import sys
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.gym.order_tracking.InfoCalculators import InfoCalculator, SimpleInfoCalculator
-from RL4MM.utils.utils import convert_timedelta_to_freq
+from RL4MM.utils.utils import convert_timedelta_to_freq, get_next_trading_dt
 
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
     from typing import List, TypedDict, Literal, Union, Optional
@@ -339,7 +339,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def _get_random_trading_day(self):
         trading_dates = pd.bdate_range(self.min_date, self.max_date)
-        return pd.to_datetime(np.random.choice(trading_dates))
+        trading_date = get_next_trading_dt(pd.to_datetime(np.random.choice(trading_dates)))
+        return datetime.combine(trading_date.date(), datetime.min.time())
 
     def _reset_internal_state(self):
         snapshot_start = self.now_is - self.step_size * self.feature_window_size
