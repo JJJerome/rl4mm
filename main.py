@@ -76,6 +76,7 @@ def main(args):
     eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
     eval_env_config["per_step_reward_function"] = 'PnL'
     eval_env_config["terminal_reward_function"] = 'PnL'
+    
 
     register_env("HistoricalOrderbookEnvironment", env_creator)
 
@@ -104,7 +105,10 @@ def main(args):
         "evaluation_num_workers": args["num_workers_eval"],
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
-        "evaluation_config": {"env_config": eval_env_config},
+        "evaluation_config": {
+            "env_config": eval_env_config,
+            "explore": False
+            },
         "rollout_fragment_length": args["rollout_fragment_length"], #tune.choice([1800, 3600]), 
         # ---------------------------------------------
         # --------------- Tuning: ---------------------
