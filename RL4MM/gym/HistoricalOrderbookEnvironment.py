@@ -222,10 +222,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
                     order = create_order("limit", order_dict)
                     orders.append(order)
                 if order_volume < 0:
-                    try:
-                        current_orders = deepcopy(self.internal_orderbook[side][price])
-                    except:
-                        raise Exception("DEBUG")
+                    current_orders = deepcopy(self.internal_orderbook[side][price])
                     while order_volume < 0:
                         worst_order = current_orders[-1]
                         volume_to_remove = min(worst_order.volume, order_volume)
