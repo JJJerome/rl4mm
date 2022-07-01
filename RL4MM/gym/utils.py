@@ -14,6 +14,7 @@ from numpyencoder import NumpyEncoder
 
 
 from RL4MM.agents.Agent import Agent
+from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.utils.utils import get_date_time
@@ -35,8 +36,10 @@ def env_creator(env_config):
 
     episode_length = timedelta(minutes=env_config["episode_length"])
 
+    database = HistoricalDatabase()
+
     orderbook_simulator = OrderbookSimulator(
-        ticker=env_config["ticker"], n_levels=env_config["n_levels"], episode_length=episode_length
+        ticker=env_config["ticker"], n_levels=env_config["n_levels"], episode_length=episode_length, database=database
     )
 
     return HistoricalOrderbookEnvironment(
