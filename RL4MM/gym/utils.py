@@ -44,7 +44,6 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
         ticker=env_config["ticker"],
         episode_length=episode_length,
         simulator=orderbook_simulator,
-        max_quote_level=10,
         min_date=get_date_time(env_config["min_date"]),  # datetime
         max_date=get_date_time(env_config["max_date"]),  # datetime
         step_size=timedelta(seconds=env_config["step_size"]),
@@ -53,6 +52,9 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
         terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
         market_order_clearing=env_config["market_order_clearing"],
         market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+        min_quote_level=env_config["min_quote_level"],
+        max_quote_level=env_config["max_quote_level"],
+        enter_spread=env_config["enter_spread"],
     )
 
 
@@ -205,7 +207,20 @@ def get_output_prefix(ticker, min_date, max_date, agent_name, episode_length):
     return agent_name + "_" + env_str
 
 
-def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_length, episode_mean_dict):
+def plot_reward_distributions(
+    ticker,
+    min_date,
+    max_date,
+    agent_name,
+    episode_length,
+    step_size,
+    market_order_clearing,
+    market_order_fraction_of_inventory,
+    min_quote_level,
+    max_quote_level,
+    enter_spread,
+    episode_mean_dict,
+):
     sns.set()
 
     fig = plt.figure(constrained_layout=True, figsize=(12, 6))
@@ -220,7 +235,11 @@ def plot_reward_distributions(ticker, min_date, max_date, agent_name, episode_le
         """
     )
 
-    plt.suptitle(f"{ticker} {agent_name} EL: {episode_length}")
+    plt.suptitle(
+        f"{ticker} {agent_name} EL: {episode_length} SS: {step_size} mind: {min_date} maxd: {max_date} "
+        + f"moc: {market_order_clearing} mofi: {market_order_fraction_of_inventory} minq: {min_quote_level} "
+        + f"maxq: {max_quote_level} ES: {enter_spread}"
+    )
 
     ###########################################################################
     # Plot equity curves

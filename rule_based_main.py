@@ -82,7 +82,7 @@ def parse_args():
         type=bool,
     )
     # parser.add_argument("-con", "--concentration", default=10, help="Concentration of the order distributor.", type=int)
-    parser.add_argument("-par", "--parallel", action='store_true', default=False, help="Run in parallel or not.")
+    parser.add_argument("-par", "--parallel", action="store_true", default=False, help="Run in parallel or not.")
     # ------------------ Eval env args -------------------------------
     parser.add_argument("-minde", "--min_date_eval", default="2019-01-03", help="Evaluation data start date.", type=str)
     parser.add_argument("-maxde", "--max_date_eval", default="2019-01-03", help="Evaluation data end date.", type=str)
@@ -203,5 +203,11 @@ if __name__ == "__main__":
                     max_date=env_config["max_date"],
                     agent_name=agent.get_name(),
                     episode_length=env_config["episode_length"],
+                    step_size=env_config["step_size"],
+                    market_order_clearing=env_config["market_order_clearing"],
+                    market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+                    min_quote_level=env_config["min_quote_level"],
+                    max_quote_level=env_config["max_quote_level"],
+                    enter_spread=env_config["enter_spread"],
                     episode_mean_dict=emd1,
                 )
