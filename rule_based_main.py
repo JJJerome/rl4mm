@@ -6,10 +6,18 @@ import numpy as np
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.gym.utils import env_creator
 from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions, get_episode_summary_dict
-from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent
+from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent, ContinuousTeradactyl
 from RL4MM.utils.utils import boolean_string
 
-from experiments.rule_based_main_sweep import a_range, b_range, min_quote_range, max_quote_range, max_inv_range
+from experiments.rule_based_main_sweep import (
+    a_range,
+    b_range,
+    min_quote_range,
+    max_quote_range,
+    max_inv_range,
+    default_omega_range,
+    kappa_range,
+)
 
 
 def get_configs(args):
@@ -238,14 +246,17 @@ if __name__ == "__main__":
     # Teradactyl - sweep
     ###########################################################################
 
-    for a in a_range:
-        for b in b_range:
+    for defaul_omega in default_omega_range:
+        for kappa in kappa_range:
             for max_inv in max_inv_range:
                 for min_quote_level in min_quote_range:
                     for max_quote_level in max_quote_range:
                         # for kappa in [10, 100]:
-                        agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
+                        # agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
                         # TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
+                        agent = ContinuousTeradactyl(
+                            default_omega=defaul_omega,
+                        )
 
                         databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
 
