@@ -202,8 +202,8 @@ def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int 
 ###############################################################################
 
 
-def get_output_prefix(ticker, min_date, max_date, agent_name, episode_length):
-    env_str = f"{ticker}_{min_date}_{max_date}_el_{episode_length}"
+def get_output_prefix(ticker, min_date, max_date, agent_name, episode_length, min_quote_level, max_quote_level, enter_spread):
+    env_str = f"{ticker}_{min_date}_{max_date}_el_{episode_length}_minq_{min_quote_level}_maxq_{max_quote_level}_es_{enter_spread}"
     return agent_name + "_" + env_str
 
 
@@ -307,7 +307,7 @@ def plot_reward_distributions(
     # fig.tight_layout()
     # plt.show()
 
-    fname = get_output_prefix(ticker, min_date, max_date, agent_name, episode_length)
+    fname = get_output_prefix(ticker, min_date, max_date, agent_name, episode_length,  min_quote_level, max_quote_level, enter_spread)
 
     # Write plot to pdf
     fig.savefig(f"{fname}.pdf")
