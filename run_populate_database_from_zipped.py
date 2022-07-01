@@ -15,7 +15,6 @@ from RL4MM.utils.utils import (
 from RL4MM.database.populate_database import populate_database
 
 parser = argparse.ArgumentParser(description="Populate a postgres database with LOBSTER data")
-parser.add_argument("-nl", "--n_levels", action="store", type=int, default=200, help="the number of orderbook levels")
 parser.add_argument(
     "-ptld",
     "--path_to_lobster_data",
@@ -105,6 +104,6 @@ if __name__ == "__main__":
             path_to_lobster_data=args.path_to_lobster_data,
             book_snapshot_freq=args.book_snapshot_freq,
             batch_size=args.batch_size,
-            n_levels=args.n_levels,
+            n_levels=n_levels,
         )
         delete_csvs()
