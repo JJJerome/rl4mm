@@ -29,7 +29,7 @@ class HistoricalOrderGenerator(OrderGenerator):
             self.start_of_episode = datetime.max
             self.end_of_episode = datetime.min
         self.use_swifter = use_swifter
-        self.exchange_name = "NASDAQ"  # Here, we are only using LOBSTER data for now
+        self.exchange_name = "NASDAQ"  # Here, we are# only using LOBSTER data for now
 
     def generate_orders(self, start_date: datetime, end_date: datetime) -> List[Order]:
         if self.save_messages_locally:
@@ -72,7 +72,7 @@ class HistoricalOrderGenerator(OrderGenerator):
                 messages.swifter.progress_bar(False).apply(get_order_from_external_message, axis=1).values
             )
         else:
-            messages.apply(get_order_from_external_message, axis=1).values
+            internal_messages = messages.apply(get_order_from_external_message, axis=1).values
         return messages.assign(internal_message=internal_messages)
 
 
