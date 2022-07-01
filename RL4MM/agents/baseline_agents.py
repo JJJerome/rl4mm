@@ -102,6 +102,24 @@ class ContinuousTeradactyl(Agent):
         else:
             self.denom = self.max_inventory
 
+    def get_omega_bid_and_ask(self, inv: int):
+        if inv >= 0:
+            omega_bid = self.default_omega * (1 + (1 / self.default_omega - 1) * (self.clamp_to_unit(inv / self.denom)))
+            omega_ask = self.default_omega * (1 - (self.clamp_to_unit(inv / self.denom)))
+        else:
+            omega_bid = self.default_omega * (1 + (self.clamp_to_unit(inv / self.denom)))
+            omega_ask = self.default_omega * (1 - (1 / self.default_omega - 1) * (self.clamp_to_unit(inv / self.denom)))
+        return omega_bid, omega_ask
+
+    def get_alpha(self, omega, kappa):
+        return (omega * (kappa - 2)) + 1
+
+    def get_beta(self, omega, kappa):
+        return (1 - omega) * (kappa - 2) + 1
+
+    def clamp_to_unit(self, x: float):
+        return max(min(x, 1), -1)
+
     def get_action(self, state: np.ndarray) -> np.ndarray:
 
         ############################
@@ -115,43 +133,25 @@ class ContinuousTeradactyl(Agent):
         # 5: MicroPrice
         ############################
 
-        def get_omega_bid_and_ask(inv: int):
-            if inv >= 0:
-                omega_bid = self.default_omega * (1 + (1 / self.default_omega - 1) * (clamp_to_unit(inv / self.denom)))
-                omega_ask = self.default_omega * (1 - (clamp_to_unit(inv / self.denom)))
-            else:
-                omega_bid = self.default_omega * (1 + (clamp_to_unit(inv / self.denom)))
-                omega_ask = self.default_omega * (1 - (1 / self.default_omega - 1) * (clamp_to_unit(inv / self.denom)))
-            return omega_bid, omega_ask
-
-        def get_alpha(omega, kappa):
-            return (omega * (kappa - 2)) + 1
-
-        def get_beta(omega, kappa):
-            return (1 - omega) * (kappa - 2) + 1
-
-        def clamp_to_unit(x: float):
-            return max(min(x, 1), -1)
-
         inventory = state[3]
 
-        omega_bid, omega_ask = get_omega_bid_and_ask(inventory)
+        omega_bid, omega_ask = self.get_omega_bid_and_ask(inventory)
 
-        alpha_bid = get_alpha(omega_bid, self.kappa)
-        alpha_ask = get_alpha(omega_ask, self.kappa)
+        alpha_bid = self.get_alpha(omega_bid, self.kappa)
+        alpha_ask = self.get_alpha(omega_ask, self.kappa)
 
-        beta_bid = get_beta(omega_bid, self.kappa)
-        beta_ask = get_beta(omega_ask, self.kappa)
+        beta_bid = self.get_beta(omega_bid, self.kappa)
+        beta_ask = self.get_beta(omega_ask, self.kappa)
 
         tmp = np.array([alpha_bid, beta_bid, alpha_ask, beta_ask])
 
         if self.max_inventory is not None:
-            tmp = np.append(tmp, self.max_inventory)
+            tmp = np.append(tmp, self.max_inventory * 2)
 
         return tmp
 
     def get_name(self):
-        return f"ContinuousTeradactyl_def_a_{self.default_a}_def_b_{self.default_b}_kappa_{self.kappa}_max_inv_{self.max_inventory}"
+        return f"ContinuousTeradactyl_def_omega_{self.default_omega}_kappa_{self.kappa}_max_inv_{self.max_inventory}"
 
 
 class HumanAgent(Agent):
