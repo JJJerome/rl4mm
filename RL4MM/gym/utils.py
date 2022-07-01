@@ -44,6 +44,7 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
         ticker=env_config["ticker"],
         episode_length=episode_length,
         simulator=orderbook_simulator,
+        max_quote_level=10,
         min_date=get_date_time(env_config["min_date"]),  # datetime
         max_date=get_date_time(env_config["max_date"]),  # datetime
         step_size=timedelta(seconds=env_config["step_size"]),
@@ -85,6 +86,7 @@ def get_episode_summary_dict(
         databases = [HistoricalDatabase() for _ in range(n_iterations)]
 
     if PARALLEL_FLAG:
+
         # create list of agents and environments for the
         agent_lst = [copy.deepcopy(agent) for _ in range(n_iterations)]
         env_lst = [env_creator(env_config, databases[i]) for i in range(n_iterations)]
@@ -98,15 +100,15 @@ def get_episode_summary_dict(
 
 
 def get_episode_summary_dict_NONPARALLEL(agent: Agent, env: gym.Env, n_iterations: int = 100):
-    episode_mean_dict: Dict = {"equity_curves": [], "rewards": [], "actions": [], "inventory": [], "spread": []}
+    episode_summary_dict: Dict = {"equity_curves": [], "rewards": [], "actions": [], "inventory": [], "spread": []}
     for _ in tqdm(range(n_iterations), desc="Simulating trajectories"):
         d = generate_trajectory(agent=agent, env=env)
-        episode_mean_dict["equity_curves"].append(d["rewards"])
-        episode_mean_dict["rewards"].append(np.mean(d["rewards"]))
-        episode_mean_dict["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
-        episode_mean_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
-        episode_mean_dict["spread"].append(np.mean([info["market_spread"] for info in d["infos"]]))
-    return episode_mean_dict
+        episode_summary_dict["equity_curves"].append(d["rewards"])
+        episode_summary_dict["rewards"].append(np.mean(d["rewards"]))
+        episode_summary_dict["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
+        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
+        episode_summary_dict["spread"].append(np.mean([info["market_spread"] for info in d["infos"]]))
+    return episode_summary_dict
 
 
 def process_parallel_results(results):
@@ -137,16 +139,16 @@ def process_parallel_results(results):
 
     """
 
-    episode_mean_dict: Dict = {"equity_curves": [], "rewards": [], "actions": [], "inventory": [], "spread": []}
+    episode_summary_dict: Dict = {"equity_curves": [], "rewards": [], "actions": [], "inventory": [], "spread": []}
 
     for d in results:
-        episode_mean_dict["equity_curves"].append(d["rewards"])
-        episode_mean_dict["rewards"].append(np.mean(d["rewards"]))
-        episode_mean_dict["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
-        episode_mean_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
-        episode_mean_dict["spread"].append(np.mean([info["market_spread"] for info in d["infos"]]))
+        episode_summary_dict["equity_curves"].append(d["rewards"])
+        episode_summary_dict["rewards"].append(np.mean(d["rewards"]))
+        episode_summary_dict["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
+        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
+        episode_summary_dict["spread"].append(np.mean([info["market_spread"] for info in d["infos"]]))
 
-    return episode_mean_dict
+    return episode_summary_dict
 
 
 def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
@@ -167,10 +169,10 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
                 results.append(future.result())
                 pbar.update(1)
 
-    episode_mean_dict = process_parallel_results(results)
-    # episode_mean_dict = None
+    episode_summary_dict = process_parallel_results(results)
+    # episode_summary_dict = None
 
-    return episode_mean_dict
+    return episode_summary_dict
 
 
 ###############################################################################
@@ -178,18 +180,18 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
 def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int = 100):
     sns.set()
-    episode_mean_dict = get_episode_summary_dict(agent, env, n_iterations)
+    episode_summary_dict = get_episode_summary_dict(agent, env, n_iterations)
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10, 6))
 
     plt.suptitle(f"{env.ticker} {agent.get_name()}")
 
-    ax1.hist(episode_mean_dict["rewards"], bins=20)
+    ax1.hist(episode_summary_dict["rewards"], bins=20)
     for action_loc in [0, 1, 2, 3]:
-        ax2.hist(np.array(episode_mean_dict["actions"])[action_loc, :], bins=5, label="action " + str(action_loc))
+        ax2.hist(np.array(episode_summary_dict["actions"])[action_loc, :], bins=5, label="action " + str(action_loc))
         ax2.legend()
-    ax3.hist(episode_mean_dict["inventory"], bins=20)
-    ax4.hist(episode_mean_dict["spread"], bins=20)
-    ax1.title.set_text("Mean rewards")
+    ax3.hist(episode_summary_dict["inventory"], bins=20)
+    ax4.hist(episode_summary_dict["spread"], bins=20)
+    ax1.title.set_text("summary rewards")
     ax2.title.set_text("Mean action")
     ax3.title.set_text("Mean inventory")
     ax4.title.set_text("Mean spread")
@@ -221,7 +223,7 @@ def plot_reward_distributions(
     min_quote_level,
     max_quote_level,
     enter_spread,
-    episode_mean_dict,
+    episode_summary_dict,
 ):
     sns.set()
 
@@ -247,7 +249,7 @@ def plot_reward_distributions(
     # Plot equity curves
     ###########################################################################
 
-    tmp = episode_mean_dict["equity_curves"]
+    tmp = episode_summary_dict["equity_curves"]
     df = pd.DataFrame(tmp).transpose()
     df.cumsum().plot(ax=ax_dict["A"])
     ax_dict["A"].get_legend().remove()
@@ -256,14 +258,14 @@ def plot_reward_distributions(
     # Plot rewards histogram
     ###########################################################################
 
-    ax_dict["B"].hist(episode_mean_dict["rewards"], bins=20)
+    ax_dict["B"].hist(episode_summary_dict["rewards"], bins=20)
     ax_dict["B"].title.set_text("Mean rewards")
 
     ###########################################################################
     # Plot rewards summary table
     ###########################################################################
 
-    rewards = episode_mean_dict["rewards"]
+    rewards = episode_summary_dict["rewards"]
     df = pd.DataFrame(rewards).describe()
     df = np.round(df)
     df = df.astype(int)
@@ -285,7 +287,7 @@ def plot_reward_distributions(
     ###########################################################################
 
     for action_loc, ax in zip([0, 1, 2, 3], [ax_dict[p] for p in ["D", "E", "F", "G"]]):
-        ax.hist(np.array(episode_mean_dict["actions"])[action_loc, :], bins=5, label="action " + str(action_loc))
+        ax.hist(np.array(episode_summary_dict["actions"])[action_loc, :], bins=5, label="action " + str(action_loc))
         ax.legend()
 
     ax_dict["D"].title.set_text("Mean action - bid 1")
@@ -297,8 +299,8 @@ def plot_reward_distributions(
     # Plot inventory and Spread
     ###########################################################################
 
-    ax_dict["H"].hist(episode_mean_dict["inventory"], bins=20)
-    ax_dict["I"].hist(episode_mean_dict["spread"], bins=20)
+    ax_dict["H"].hist(episode_summary_dict["inventory"], bins=20)
+    ax_dict["I"].hist(episode_summary_dict["spread"], bins=20)
     ax_dict["H"].title.set_text("Mean inventory")
     ax_dict["I"].title.set_text("Mean spread")
 
@@ -319,6 +321,6 @@ def plot_reward_distributions(
 
     # Write data to json
     with open(f"{fname}.json", "w") as outfile:
-        json.dump(episode_mean_dict, outfile, cls=NumpyEncoder)
+        json.dump(episode_summary_dict, outfile, cls=NumpyEncoder)
 
     # return rewards

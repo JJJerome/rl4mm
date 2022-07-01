@@ -37,6 +37,56 @@ def get_configs(args):
     eval_env_config["per_step_reward_function"] = args["eval_per_step_reward_function"]
     eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
 
+    # register_env("HistoricalOrderbookEnvironment", env_creator)
+
+    # config = {
+    # "env": "HistoricalOrderbookEnvironment",
+    # "num_gpus": args["num_gpus"],
+    # "num_workers": args["num_workers"],
+    # "framework": args["framework"],
+    # "callbacks": Custom_Callbacks,
+    # "rollout_fragment_length": args["rollout_fragment_length"],
+    # "lambda": args["lambda"],
+    # "lr": args["learning_rate"],
+    # "gamma": args["discount_factor"],
+    # "train_batch_size": args["train_batch_size"],
+    # "model": {
+    # "fcnet_hiddens": [256, 256],
+    # "fcnet_activation": "tanh",  # torch.nn.Sigmoid,
+    # "use_lstm": args["lstm"],
+    # },
+    # "output": args["output"],
+    # "output_max_file_size": args["output_max_file_size"],
+    # "env_config": env_config,
+    # "evaluation_interval": 3,  # Run one evaluation step on every 3rd `Trainer.train()` call.
+    # "evaluation_num_workers": args["num_workers_eval"],
+    # "evaluation_parallel_to_training": True,
+    # "evaluation_duration": "auto",
+    # "evaluation_config": {"env_config": eval_env_config},
+    # "recreate_failed_workers": False, #True,
+    # "disable_env_checking":True,
+    # }
+
+    # tensorboard_logdir = args["tensorboard_logdir"]
+    # if not os.path.exists(tensorboard_logdir):
+    # os.makedirs(tensorboard_logdir)
+
+    # analysis = tune.run(
+    # "PPO",
+    # stop={"training_iteration": args["iterations"]},
+    # config=config,
+    # local_dir=tensorboard_logdir,
+    # checkpoint_at_end=True,
+    # )
+    # best_checkpoint = analysis.get_trial_checkpoints_paths(
+    # trial=analysis.get_best_trial("episode_reward_mean"), metric="episode_reward_mean"
+    # )
+    # path_to_save_dir = args["output"] or "/home/ray"
+    # print(best_checkpoint)
+    # save_best_checkpoint_path(path_to_save_dir, best_checkpoint[0][0])
+
+    # print(env_config)
+
     return env_config, eval_env_config
 
 
@@ -50,7 +100,7 @@ def parse_args():
     parser.add_argument("-t", "--ticker", default="SPY", help="Specify stock ticker.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
-    parser.add_argument("-sz", "--step_size", default=1, help="Step size in seconds.", type=int)
+    parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=int)
     parser.add_argument("-nl", "--n_levels", default=200, help="Number of orderbook levels.", type=int)
     parser.add_argument(
         "-psr",
@@ -68,9 +118,11 @@ def parse_args():
         help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
+
     parser.add_argument(
         "-moc", "--market_order_clearing", default=True, help="Market order clearing on/off.", type=boolean_string
     )
+
     parser.add_argument(
         "-mof", "--market_order_fraction", default=0.2, help="Market order clearing fraction of inventory.", type=float
     )
@@ -113,7 +165,7 @@ if __name__ == "__main__":
 
     args = parse_args()
     env_config, _ = get_configs(args)
-    # env = env_creator(env_config)
+    env = env_creator(env_config)
 
     ###########################################################################
     # Random agent
@@ -180,7 +232,7 @@ if __name__ == "__main__":
     # max_date=env_config['min_date'],
     # agent_name=agent.get_name(),
     # episode_length=env_config['episode_length'],
-    # episode_mean_dict=data)
+    # episode_summary_dict=data)
 
     ###########################################################################
     # Teradactyl - sweep
@@ -213,5 +265,5 @@ if __name__ == "__main__":
                             min_quote_level=min_quote_level,
                             max_quote_level=max_quote_level,
                             enter_spread=env_config["enter_spread"],
-                            episode_mean_dict=emd1,
+                            episode_summary_dict=emd1,
                         )
