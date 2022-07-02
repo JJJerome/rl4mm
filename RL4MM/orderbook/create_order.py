@@ -7,6 +7,13 @@ def create_order(order_type: str, order_dict: OrderDict):
 
 
 def _get_order_creator(order_type: str):
+
+    if type(order_type) != str:
+        print("====================================")
+        print("DEBUG")
+        print("type(order_type)", type(order_type))
+        print("====================================")
+
     if order_type == "market":
         return _create_market_order
     elif order_type == "limit":

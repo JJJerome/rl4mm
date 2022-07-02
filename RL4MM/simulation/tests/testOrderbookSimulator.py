@@ -18,13 +18,13 @@ from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 class TestHistoricalOrderGenerator(TestCase):
     path_to_test_data = str(Path(RL4MM.__file__).parent.parent) + "/test_data/"
     ticker = "MSFT"
-    trading_date = "2012-06-21"
+    trading_date = datetime(2012, 6, 21)
     n_levels = 50
     exchange_name = "NASDAQ"
     test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
     test_db = HistoricalDatabase(engine=test_engine)
-    generator = HistoricalOrderGenerator(ticker, test_db)
-    simulator = OrderbookSimulator(ticker, Exchange(ticker), [generator], 50, test_db)
+    generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
+    simulator = OrderbookSimulator(ticker, Exchange(ticker), [generator], 50, test_db, save_messages_locally=False)
 
     @classmethod
     def setUpClass(cls) -> None:

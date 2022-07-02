@@ -5,8 +5,9 @@ from copy import deepcopy, copy
 from datetime import datetime, timedelta
 import sys
 
+from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.gym.order_tracking.InfoCalculators import InfoCalculator, SimpleInfoCalculator
-from RL4MM.utils.utils import convert_timedelta_to_freq
+from RL4MM.utils.utils import convert_timedelta_to_freq, get_next_trading_dt
 
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
     from typing import List, TypedDict, Literal, Union, Optional
@@ -62,7 +63,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         step_size: timedelta = ORDERBOOK_MIN_STEP,
         episode_length: timedelta = timedelta(minutes=30),
         initial_portfolio: Portfolio = None,
-        quote_levels: int = 10,
+        min_quote_level: int = 0,
+        max_quote_level: int = 10,
         feature_window_size: int = 10,
         min_date: datetime = datetime(2019, 1, 2),
         max_date: datetime = datetime(2019, 1, 2),
@@ -70,15 +72,16 @@ class HistoricalOrderbookEnvironment(gym.Env):
         max_end_timedelta: timedelta = timedelta(hours=15, minutes=30),  # Same for the last half an hour
         simulator: OrderbookSimulator = None,
         market_order_clearing: bool = False,
-        inc_prev_action_in_obs: bool = True,
+        inc_prev_action_in_obs: bool = False,
         max_inventory: int = 100000,
         per_step_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=10 ** (-4)),
         terminal_reward_function: RewardFunction = InventoryAdjustedPnL(inventory_aversion=0.1),
         info_calculator: InfoCalculator = None,
         order_distributor: OrderDistributor = None,
-        concentration: float = 10.0,
+        concentration: Optional[float] = None,
         market_order_fraction_of_inventory: Optional[float] = None,
         enter_spread: bool = False,
+        save_messages_locally: bool = True,
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
 
@@ -110,7 +113,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.max_distribution_param = max_distribution_param
         self.ticker = ticker
         self.step_size = step_size
-        self.quote_levels = quote_levels
+        self.min_quote_level = min_quote_level
+        self.max_quote_level = max_quote_level
         assert episode_length % self.step_size == timedelta(0), "Episode length must be a multiple of step size!"
         self.n_steps = int(episode_length / self.step_size)
         self.episode_length = episode_length
@@ -124,10 +128,14 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.min_start_timedelta = min_start_timedelta
         self.max_end_timedelta = max_end_timedelta
         self.simulator = simulator or OrderbookSimulator(
-            ticker=ticker, order_generators=[HistoricalOrderGenerator(ticker)], n_levels=200
+            ticker=ticker,
+            order_generators=[HistoricalOrderGenerator(ticker, HistoricalDatabase(), save_messages_locally)],
+            n_levels=200,
+            save_messages_locally=save_messages_locally,
+            episode_length=episode_length,
         )
         self.order_distributor = order_distributor or BetaOrderDistributor(
-            self.quote_levels, concentration=concentration
+            self.max_quote_level - self.min_quote_level, concentration=concentration
         )
         self.market_order_clearing = market_order_clearing
         self.market_order_fraction_of_inventory = market_order_fraction_of_inventory
@@ -176,7 +184,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         observation = self.get_observation(action) if self.inc_prev_action_in_obs else self.get_observation()
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
             reward = self.terminal_reward_function.calculate(current_state, next_state)
-            done = True  # rllib requires a bool
+            done = True
         return observation, reward, done, info
 
     def get_observation(self, previous_action: np.ndarray = None) -> np.ndarray:
@@ -198,7 +206,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
     def convert_action_to_orders(self, action: np.ndarray) -> List[Union[Cancellation, LimitOrder]]:
         desired_volumes = self.order_distributor.convert_action(action)
         if self.market_order_clearing and np.abs(self.internal_state["inventory"]) > action[-1]:  # cancel all orders
-            desired_volumes = {d: np.zeros(self.quote_levels) for d in ["buy", "sell"]}  # type: ignore
+            desired_volumes = {d: np.zeros(self.max_quote_level - self.min_quote_level) for d in ["buy", "sell"]}  # type: ignore
         current_volumes = self._get_current_internal_order_volumes()
         difference_in_volumes = {d: desired_volumes[d] - current_volumes[d] for d in ["buy", "sell"]}  # type: ignore
         orders = self._volume_diff_to_orders(difference_in_volumes)
@@ -287,15 +295,30 @@ class HistoricalOrderbookEnvironment(gym.Env):
         best_prices = self._get_best_prices()
         internal_volumes = dict()
         for side in ["buy", "sell"]:
-            internal_volumes[side] = self._get_volumes_at_prices("buy", best_prices[side], self.internal_orderbook)
+            internal_volumes[side] = self._get_volumes_at_prices(side, best_prices[side], self.internal_orderbook)
         return internal_volumes  # type: ignore
 
     def _get_best_prices(self):
-        best_buy = self.simulator.exchange.best_buy_price
-        best_sell = self.simulator.exchange.best_sell_price
         tick_size = self.central_orderbook["tick_size"]
-        buy_prices = np.arange(best_buy - self.quote_levels * tick_size, best_buy, tick_size)
-        sell_prices = np.arange(best_sell, best_sell + self.quote_levels * tick_size, tick_size)
+        if self.enter_spread:
+            midprice = (self.simulator.exchange.best_buy_price + self.simulator.exchange.best_sell_price) / 2
+            best_buy = int(np.floor(midprice / tick_size) * tick_size)
+            best_sell = int(np.ceil(midprice / tick_size) * tick_size)  # TODO: check me when quoting withing spread.
+        if not self.enter_spread:
+            best_buy = self.simulator.exchange.best_buy_price
+            best_sell = self.simulator.exchange.best_sell_price
+        buy_prices = np.arange(
+            best_buy - (self.max_quote_level - 1) * tick_size,
+            best_buy - (self.min_quote_level - 1) * tick_size,
+            tick_size,
+            dtype=int,
+        )
+        sell_prices = np.arange(
+            best_sell + self.min_quote_level * tick_size,
+            best_sell + self.max_quote_level * tick_size,
+            tick_size,
+            dtype=int,
+        )
         return {"buy": buy_prices, "sell": sell_prices}
 
     def _get_volumes_at_prices(self, direction: Literal["buy", "sell"], price_levels: np.ndarray, orderbook: Orderbook):
@@ -322,7 +345,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def _get_random_trading_day(self):
         trading_dates = pd.bdate_range(self.min_date, self.max_date)
-        return pd.to_datetime(np.random.choice(trading_dates))
+        trading_date = get_next_trading_dt(pd.to_datetime(np.random.choice(trading_dates)))
+        return datetime.combine(trading_date.date(), datetime.min.time())
 
     def _reset_internal_state(self):
         snapshot_start = self.now_is - self.step_size * self.feature_window_size
@@ -367,5 +391,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
             not self.market_order_clearing and self.market_order_fraction_of_inventory is not None
         ):
             raise Exception(
-                "market_order_fraction_of_inventory must be defined if and only if market order clearing is on"
+                f"market_order_fraction_of_inventory {self.market_order_fraction_of_inventory} "
+                "must be defined if and only if market order clearing (self.market_order_clearing} is on"
             )

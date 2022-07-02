@@ -100,7 +100,7 @@ class MidpriceMove(Feature):
             self, 
             min_value: float=-100 * 100,  # 100 tick downward move
             max_value: float=100 * 100,  # 100 tick upward move
-            lookback_period: int=1, 
+            lookback_period: int=10, 
             maxlen: int=100000, 
             normalisation_on: bool=False):
         self.lookback_period = lookback_period
