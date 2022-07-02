@@ -1,6 +1,7 @@
-from typing import Dict
-
 import os
+from contextlib import suppress
+from typing import Dict, List
+
 import gym
 import numpy as np
 import pandas as pd
@@ -15,6 +16,7 @@ from numpyencoder import NumpyEncoder
 
 
 from RL4MM.agents.Agent import Agent
+from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.utils.utils import get_date_time
@@ -32,19 +34,18 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
         raise NotImplementedError("You must specify one of 'AS', 'SD' or 'PnL'")
 
 
-def env_creator(env_config):
+def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase()):
 
     episode_length = timedelta(minutes=env_config["episode_length"])
 
     orderbook_simulator = OrderbookSimulator(
-        ticker=env_config["ticker"], n_levels=env_config["n_levels"], episode_length=episode_length
+        ticker=env_config["ticker"], n_levels=env_config["n_levels"], episode_length=episode_length, database=database
     )
 
     return HistoricalOrderbookEnvironment(
         ticker=env_config["ticker"],
         episode_length=episode_length,
         simulator=orderbook_simulator,
-        max_quote_level=10,
         min_date=get_date_time(env_config["min_date"]),  # datetime
         max_date=get_date_time(env_config["max_date"]),  # datetime
         step_size=timedelta(seconds=env_config["step_size"]),
@@ -53,6 +54,9 @@ def env_creator(env_config):
         terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
         market_order_clearing=env_config["market_order_clearing"],
         market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+        min_quote_level=env_config["min_quote_level"],
+        max_quote_level=env_config["max_quote_level"],
+        enter_spread=env_config["enter_spread"],
     )
 
 
@@ -75,18 +79,23 @@ def generate_trajectory(agent: Agent, env: gym.Env):
     return {"observations": observations, "actions": actions, "rewards": rewards, "infos": infos}
 
 
-def get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True):
+def get_episode_summary_dict(
+    agent, env_config, n_iterations, PARALLEL_FLAG=True, databases: List[HistoricalDatabase] = None
+):
+
+    if databases is None:
+        databases = [HistoricalDatabase() for _ in range(n_iterations)]
 
     if PARALLEL_FLAG:
 
         # create list of agents and environments for the
         agent_lst = [copy.deepcopy(agent) for _ in range(n_iterations)]
-        env_lst = [env_creator(env_config) for _ in range(n_iterations)]
+        env_lst = [env_creator(env_config, databases[i]) for i in range(n_iterations)]
         ret = get_episode_summary_dict_PARALLEL(agent_lst, env_lst)
 
     else:
 
-        ret = get_episode_summary_dict_NONPARALLEL(agent, env_creator(env_config), n_iterations)
+        ret = get_episode_summary_dict_NONPARALLEL(agent, env_creator(env_config, databases[0]), n_iterations)
 
     return ret
 
@@ -168,16 +177,54 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
 
 ###############################################################################
+
+
+def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int = 100):
+    sns.set()
+    episode_summary_dict = get_episode_summary_dict(agent, env, n_iterations)
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(10, 6))
+
+    plt.suptitle(f"{env.ticker} {agent.get_name()}")
+
+    ax1.hist(episode_summary_dict["rewards"], bins=20)
+    for action_loc in [0, 1, 2, 3]:
+        ax2.hist(np.array(episode_summary_dict["actions"])[action_loc, :], bins=5, label="action " + str(action_loc))
+        ax2.legend()
+    ax3.hist(episode_summary_dict["inventory"], bins=20)
+    ax4.hist(episode_summary_dict["spread"], bins=20)
+    ax1.title.set_text("summary rewards")
+    ax2.title.set_text("Mean action")
+    ax3.title.set_text("Mean inventory")
+    ax4.title.set_text("Mean spread")
+    fig.tight_layout()
+    # plt.show()
+
+    fig.savefig(f"{get_output_prefix(agent,env)}.pdf")
+
+
 ###############################################################################
 
 
-def get_output_prefix(ticker, min_date, max_date, agent_name, episode_length):
-    env_str = f"{ticker}_{min_date}_{max_date}_el_{episode_length}"
+def get_output_prefix(
+    ticker, min_date, max_date, agent_name, episode_length, min_quote_level, max_quote_level, enter_spread
+):
+    env_str = f"{ticker}_{min_date}_{max_date}_el_{episode_length}_minq_{min_quote_level}_maxq_{max_quote_level}_es_{enter_spread}"
     return agent_name + "_" + env_str
 
 
 def plot_reward_distributions(
-    ticker, min_date, max_date, agent_name, episode_length, episode_summary_dict, output_dir=None
+    ticker,
+    min_date,
+    max_date,
+    agent_name,
+    episode_length,
+    step_size,
+    market_order_clearing,
+    market_order_fraction_of_inventory,
+    min_quote_level,
+    max_quote_level,
+    enter_spread,
+    episode_summary_dict,
 ):
     sns.set()
 
@@ -193,7 +240,11 @@ def plot_reward_distributions(
         """
     )
 
-    plt.suptitle(f"{ticker} {agent_name} EL: {episode_length}")
+    plt.suptitle(
+        f"{ticker} {agent_name} EL: {episode_length} SS: {step_size} mind: {min_date} maxd: {max_date} "
+        + f"moc: {market_order_clearing} mofi: {market_order_fraction_of_inventory} \n minq: {min_quote_level} "
+        + f"maxq: {max_quote_level} ES: {enter_spread}"
+    )
 
     ###########################################################################
     # Plot equity curves
@@ -261,23 +312,18 @@ def plot_reward_distributions(
     # fig.tight_layout()
     # plt.show()
 
-    fname = get_output_prefix(ticker, min_date, max_date, agent_name, episode_length)
+    fname = get_output_prefix(
+        ticker, min_date, max_date, agent_name, episode_length, min_quote_level, max_quote_level, enter_spread
+    )
 
+    os.makedirs("outputs/pdfs", exist_ok=True)
+    os.makedirs("outputs/jsons", exist_ok=True)
     # Write plot to pdf
-
-    fpath = f"{fname}.pdf"
-    if output_dir is not None:
-        fpath = os.path.join(output_dir, fpath)
-
-    fig.savefig(fpath)
+    fig.savefig(f"outputs/pdfs/{fname}.pdf")
     plt.close(fig)
 
-    fpath = f"{fname}.json"
-    if output_dir is not None:
-        fpath = os.path.join(output_dir, fpath)
-
     # Write data to json
-    with open(fpath, "w") as outfile:
+    with open(f"outputs/jsons/{fname}.json", "w") as outfile:
         json.dump(episode_summary_dict, outfile, cls=NumpyEncoder)
 
     # return rewards
