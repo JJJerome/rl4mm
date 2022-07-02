@@ -283,4 +283,5 @@ if __name__ == "__main__":
                 max_quote_level=env_config["max_quote_level"],
                 enter_spread=env_config["enter_spread"],
                 episode_summary_dict=emd1,
+                output_dir="/home/data/",
             )
