@@ -1,3 +1,5 @@
+import os
+from contextlib import suppress
 from typing import Dict, List
 
 import gym
@@ -314,12 +316,14 @@ def plot_reward_distributions(
         ticker, min_date, max_date, agent_name, episode_length, min_quote_level, max_quote_level, enter_spread
     )
 
+    os.makedirs("outputs/pdfs", exist_ok=True)
+    os.makedirs("outputs/jsons", exist_ok=True)
     # Write plot to pdf
-    fig.savefig(f"{fname}.pdf")
+    fig.savefig(f"outputs/pdfs/{fname}.pdf")
     plt.close(fig)
 
     # Write data to json
-    with open(f"{fname}.json", "w") as outfile:
+    with open(f"outputs/jsons/{fname}.json", "w") as outfile:
         json.dump(episode_summary_dict, outfile, cls=NumpyEncoder)
 
     # return rewards
