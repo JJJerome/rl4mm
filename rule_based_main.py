@@ -3,10 +3,23 @@ import os
 import copy
 import numpy as np
 
+from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.gym.utils import env_creator
 from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions, get_episode_summary_dict
-from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent
+from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent, ContinuousTeradactyl
 from RL4MM.utils.utils import boolean_string
+
+from experiments.fixed_action_vs_teradactyl import agents
+from experiments.teradactyl_sweep import (
+    a_range,
+    b_range,
+    min_quote_range,
+    max_quote_range,
+    max_inv_range,
+    default_omega_range,
+    kappa_range,
+)
+from experiments.test_uniform_a_b import get_env_configs_and_agents
 
 
 def get_configs(args):
@@ -23,6 +36,9 @@ def get_configs(args):
         "terminal_reward_function": args["terminal_reward_function"],
         "market_order_clearing": args["market_order_clearing"],
         "market_order_fraction_of_inventory": args["market_order_fraction"],
+        "min_quote_level": args["min_quote_level"],
+        "max_quote_level": args["max_quote_level"],
+        "enter_spread": args["enter_spread"],
     }
 
     eval_env_config = copy.deepcopy(env_config)
@@ -87,44 +103,7 @@ def get_configs(args):
 def parse_args():
     # -------------------- Training Args ----------------------
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("-g", "--num_gpus", default=1, help="Number of GPUs to use during training.", type=int)
-    parser.add_argument("-nw", "--num_workers", default=5, help="Number of workers to use during training.", type=int)
-    parser.add_argument(
-        "-nwe", "--num_workers_eval", default=1, help="Number of workers used during evaluation.", type=int
-    )
-    parser.add_argument("-fw", "--framework", default="torch", help="Framework, torch or tf.", type=str)
-    parser.add_argument("-l", "--lstm", default=False, help="LSTM on/off.", type=boolean_string)
-    parser.add_argument("-i", "--iterations", default=1000, help="Training iterations.", type=int)
-    parser.add_argument("-la", "--lambda", default=1.0, help="Training iterations.", type=float)
-    parser.add_argument(
-        "-rfl",
-        "--rollout_fragment_length",
-        default=3600,
-        help="Rollout fragment length, collected per worker..",
-        type=int,
-    )
-    parser.add_argument("-mp", "--model_path", default=None, help="Path to existing model.", type=str)
-    parser.add_argument("-lr", "--learning_rate", default=0.0001, help="Learning rate.", type=float)
-    parser.add_argument("-df", "--discount_factor", default=0.99, help="Discount factor gamma of the MDP.", type=float)
-    parser.add_argument(
-        "-tb", "--train_batch_size", default=3600, help="The size of the training batch used for updates.", type=int
-    )
-    parser.add_argument(
-        "-tbd",
-        "--tensorboard_logdir",
-        default="/home/data/tensorboard",
-        help="Directory to save tensorboard logs to.",
-        type=str,
-    )
-    # -------------------- Generating a dataset of eval episodes
-    parser.add_argument("-o", "--output", default=None, help="Directory to save episode data to.", type=str)
-    parser.add_argument(
-        "-omfs",
-        "--output_max_file_size",
-        default=5000000,
-        help="Max size of json file that transitions are saved to.",
-        type=int,
-    )
+    parser.add_argument("-ni", "--n_iterations", default=1000, help="Training iterations.", type=int)
     # -------------------- Training env Args ---------------------------
     parser.add_argument("-mind", "--min_date", default="2018-02-20", help="Train data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2018-02-20", help="Train data end date.", type=str)
@@ -155,9 +134,19 @@ def parse_args():
     )
 
     parser.add_argument(
-        "-mof", "--market_order_fraction", default=1, help="Market order clearing fraction of inventory.", type=float
+        "-mof", "--market_order_fraction", default=0.2, help="Market order clearing fraction of inventory.", type=float
     )
-
+    parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
+    parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
+    parser.add_argument(
+        "-es",
+        "--enter_spread",
+        default=False,
+        help="Bool for whether best quote is the midprice. Otherwise it is the best bid/best ask price",
+        type=bool,
+    )
+    # parser.add_argument("-con", "--concentration", default=10, help="Concentration of the order distributor.", type=int)
+    parser.add_argument("-par", "--parallel", action="store_true", default=False, help="Run in parallel or not.")
     # ------------------ Eval env args -------------------------------
     parser.add_argument("-minde", "--min_date_eval", default="2019-01-03", help="Evaluation data start date.", type=str)
     parser.add_argument("-maxde", "--max_date_eval", default="2019-01-03", help="Evaluation data end date.", type=str)
@@ -185,16 +174,7 @@ def parse_args():
 if __name__ == "__main__":
 
     args = parse_args()
-
-    # env_config, eval_env_config = get_configs(args)
-
     env_config, _ = get_configs(args)
-
-    # env_config['ticker'] = 'SPY'
-    # env_config['min_date'] = '2018-02-20'
-    # env_config['max_date'] = '2018-02-20'
-    # env_config['episode_length'] = 10
-
     env = env_creator(env_config)
 
     ###########################################################################
@@ -268,22 +248,39 @@ if __name__ == "__main__":
     # Teradactyl - sweep
     ###########################################################################
 
-    n_iterations = 5
+    # for defaul_omega in default_omega_range:
+    #     for kappa in kappa_range:
+    #         for max_inv in max_inv_range:
+    #             for min_quote_level in min_quote_range:
+    #                 for max_quote_level in max_quote_range:
+    #                     # for kappa in [10, 100]:
+    #                     # agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
+    #                     # TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
+    #                     agent = ContinuousTeradactyl(
+    #                         default_omega=defaul_omega,
+    #                     )
 
-    for a in [1, 5]:
-        for b in [1, 5]:
-            for max_inv in [100, 1000]:
-                for kappa in [5, 10]:
+    databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
 
-                    agent = TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
+    env_configs, agents = get_env_configs_and_agents(env_config)
 
-                    emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True)
+    for agent in agents:
+        for env_config in env_configs:
+            emd1 = get_episode_summary_dict(
+                agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"], databases=databases
+            )
 
-                    plot_reward_distributions(
-                        ticker=env_config["ticker"],
-                        min_date=env_config["min_date"],
-                        max_date=env_config["max_date"],
-                        agent_name=agent.get_name(),
-                        episode_length=env_config["episode_length"],
-                        episode_summary_dict=emd1,
-                    )
+            plot_reward_distributions(
+                ticker=env_config["ticker"],
+                min_date=env_config["min_date"],
+                max_date=env_config["max_date"],
+                agent_name=agent.get_name(),
+                episode_length=env_config["episode_length"],
+                step_size=env_config["step_size"],
+                market_order_clearing=env_config["market_order_clearing"],
+                market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+                min_quote_level=env_config["min_quote_level"],
+                max_quote_level=env_config["max_quote_level"],
+                enter_spread=env_config["enter_spread"],
+                episode_summary_dict=emd1,
+            )

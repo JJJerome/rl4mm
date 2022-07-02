@@ -67,7 +67,7 @@ class MidpriceMove(Feature):
     max_value = 100 * 100  # 100 tick upward move
     min_value = -100 * 100  # 100 tick downward move
 
-    def __init__(self, lookback_period: int = 1):
+    def __init__(self, lookback_period: int = 10):
         self.lookback_period = lookback_period
 
     def _calculate(self, internal_state: InternalState):
