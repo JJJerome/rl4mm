@@ -278,8 +278,8 @@ if __name__ == "__main__":
                 step_size=env_config["step_size"],
                 market_order_clearing=env_config["market_order_clearing"],
                 market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
-                min_quote_level=min_quote_range[1],
-                max_quote_level=max_quote_range[1],
+                min_quote_level=env_config["min_quote_level"],
+                max_quote_level=env_config["max_quote_level"],
                 enter_spread=env_config["enter_spread"],
                 episode_summary_dict=emd1,
             )
