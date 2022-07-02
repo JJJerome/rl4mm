@@ -5,10 +5,6 @@ import numpy as np
 from RL4MM.agents.baseline_agents import FixedActionAgent, ContinuousTeradactyl
 
 max_inventory = 10000
-
-
-
-
 inner_quotes = [-2,-1,0,1,2,3]
 n_levels = 10
 
