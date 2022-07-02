@@ -18,5 +18,5 @@ def get_env_configs_and_agents(env_config:dict):
         env_conf["min_quote_level"] = inner
         env_conf["max_quote_level"] = inner + n_levels
         env_configs.append(env_conf)
-        agents.append(FixedActionAgent([1, 1, 1, 1, max_inventory]))
+        agents.append(FixedActionAgent(np.array([1, 1, 1, 1, max_inventory])))
     return env_configs, agents
