@@ -29,7 +29,7 @@ class SimpleInfoCalculator(InfoCalculator):
         self.market_order_total_volume = 0
         self.market_order_fraction_of_inventory = market_order_fraction_of_inventory
         self.enter_spread = enter_spread
-        self.order_distributor = order_distributor or BetaOrderDistributor(quote_levels, concentration=concentration)
+        self.order_distributor = order_distributor or BetaOrderDistributor(concentration=concentration)
 
     def calculate(self, filled_orders: List[FillableOrder], internal_state: InternalState, action: np.ndarray):
         spreads_and_offsets = self.calculate_agent_spreads_and_midprice_offset(internal_state, action)
