@@ -9,7 +9,8 @@ from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions, get_
 from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent, ContinuousTeradactyl
 from RL4MM.utils.utils import boolean_string
 
-from experiments.rule_based_main_sweep import (
+from experiments.fixed_action_vs_teradactyl import agents
+from experiments.teradactyl_sweep import (
     a_range,
     b_range,
     min_quote_range,
@@ -246,35 +247,36 @@ if __name__ == "__main__":
     # Teradactyl - sweep
     ###########################################################################
 
-    for defaul_omega in default_omega_range:
-        for kappa in kappa_range:
-            for max_inv in max_inv_range:
-                for min_quote_level in min_quote_range:
-                    for max_quote_level in max_quote_range:
-                        # for kappa in [10, 100]:
-                        # agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
-                        # TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
-                        agent = ContinuousTeradactyl(
-                            default_omega=defaul_omega,
-                        )
+    # for defaul_omega in default_omega_range:
+    #     for kappa in kappa_range:
+    #         for max_inv in max_inv_range:
+    #             for min_quote_level in min_quote_range:
+    #                 for max_quote_level in max_quote_range:
+    #                     # for kappa in [10, 100]:
+    #                     # agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
+    #                     # TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
+    #                     agent = ContinuousTeradactyl(
+    #                         default_omega=defaul_omega,
+    #                     )
 
-                        databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
+    for agent in agents:
+        databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
 
-                        emd1 = get_episode_summary_dict(
-                            agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"], databases=databases
-                        )
+        emd1 = get_episode_summary_dict(
+            agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"], databases=databases
+        )
 
-                        plot_reward_distributions(
-                            ticker=env_config["ticker"],
-                            min_date=env_config["min_date"],
-                            max_date=env_config["max_date"],
-                            agent_name=agent.get_name(),
-                            episode_length=env_config["episode_length"],
-                            step_size=env_config["step_size"],
-                            market_order_clearing=env_config["market_order_clearing"],
-                            market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
-                            min_quote_level=min_quote_level,
-                            max_quote_level=max_quote_level,
-                            enter_spread=env_config["enter_spread"],
-                            episode_summary_dict=emd1,
-                        )
+        plot_reward_distributions(
+            ticker=env_config["ticker"],
+            min_date=env_config["min_date"],
+            max_date=env_config["max_date"],
+            agent_name=agent.get_name(),
+            episode_length=env_config["episode_length"],
+            step_size=env_config["step_size"],
+            market_order_clearing=env_config["market_order_clearing"],
+            market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+            min_quote_level=min_quote_range[1],
+            max_quote_level=max_quote_range[1],
+            enter_spread=env_config["enter_spread"],
+            episode_summary_dict=emd1,
+        )
