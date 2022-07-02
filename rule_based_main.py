@@ -268,22 +268,25 @@ if __name__ == "__main__":
     # Teradactyl - sweep
     ###########################################################################
 
-    n_iterations = 5
+    n_iterations = 25
 
-    for a in [1, 5]:
-        for b in [1, 5]:
-            for max_inv in [100, 1000]:
-                for kappa in [5, 10]:
+    for a in [1, 2, 5, 10]:
+        for b in [1, 2, 5, 10]:
+            for max_inv in [100, 500, 1000]:
+                # for kappa in [5, 10]:
 
-                    agent = TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
+                agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
+                # agent = TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
 
-                    emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True)
+                emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=False)
 
-                    plot_reward_distributions(
-                        ticker=env_config["ticker"],
-                        min_date=env_config["min_date"],
-                        max_date=env_config["max_date"],
-                        agent_name=agent.get_name(),
-                        episode_length=env_config["episode_length"],
-                        episode_summary_dict=emd1,
-                    )
+                plot_reward_distributions(
+                    ticker=env_config["ticker"],
+                    min_date=env_config["min_date"],
+                    max_date=env_config["max_date"],
+                    agent_name=agent.get_name(),
+                    episode_length=env_config["episode_length"],
+                    episode_summary_dict=emd1,
+                    output_dir="/home/data/",
+                )
+
