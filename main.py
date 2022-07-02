@@ -60,7 +60,12 @@ def main(args):
         "per_step_reward_function": args["per_step_reward_function"],
         "terminal_reward_function": args["terminal_reward_function"],
         "market_order_clearing": args["market_order_clearing"],
+        "market_order_fraction_of_inventory":args["market_order_fraction_of_inventory"],
+        "min_quote_level": args["min_quote_level"],
+        "max_quote_level": args["max_quote_level"],
+        "enter_spread": args["enter_spread"],
         "inc_prev_action_in_obs": args["inc_prev_action_in_obs"],
+        "concentration":None,
     }
 
     eval_env_config = copy.deepcopy(env_config)
@@ -188,6 +193,18 @@ if __name__ == "__main__":
         choices=["AD", "SD", "PnL"],
         help="Per step reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
+    )
+    parser.add_argument(
+        "-mofi", "--market_order_fraction_of_inventory", default=1.0, help="Market order fraction of inventory.", type=float
+    )
+    parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
+    parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
+    parser.add_argument(
+        "-es",
+        "--enter_spread",
+        default=False,
+        help="Bool for whether best quote is the midprice. Otherwise it is the best bid/best ask price",
+        type=bool,
     )
     parser.add_argument(
         "-tr",
