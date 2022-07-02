@@ -19,6 +19,7 @@ from experiments.teradactyl_sweep import (
     default_omega_range,
     kappa_range,
 )
+from experiments.test_uniform_a_b import get_env_configs_and_agents
 
 
 def get_configs(args):
@@ -259,24 +260,26 @@ if __name__ == "__main__":
     #                         default_omega=defaul_omega,
     #                     )
 
+    env_configs, agents = get_env_configs_and_agents(env_config)
     for agent in agents:
-        databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
+        for env_config in env_configs:
+            databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
 
-        emd1 = get_episode_summary_dict(
-            agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"], databases=databases
-        )
+            emd1 = get_episode_summary_dict(
+                agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"], databases=databases
+            )
 
-        plot_reward_distributions(
-            ticker=env_config["ticker"],
-            min_date=env_config["min_date"],
-            max_date=env_config["max_date"],
-            agent_name=agent.get_name(),
-            episode_length=env_config["episode_length"],
-            step_size=env_config["step_size"],
-            market_order_clearing=env_config["market_order_clearing"],
-            market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
-            min_quote_level=min_quote_range[1],
-            max_quote_level=max_quote_range[1],
-            enter_spread=env_config["enter_spread"],
-            episode_summary_dict=emd1,
-        )
+            plot_reward_distributions(
+                ticker=env_config["ticker"],
+                min_date=env_config["min_date"],
+                max_date=env_config["max_date"],
+                agent_name=agent.get_name(),
+                episode_length=env_config["episode_length"],
+                step_size=env_config["step_size"],
+                market_order_clearing=env_config["market_order_clearing"],
+                market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+                min_quote_level=min_quote_range[1],
+                max_quote_level=max_quote_range[1],
+                enter_spread=env_config["enter_spread"],
+                episode_summary_dict=emd1,
+            )
