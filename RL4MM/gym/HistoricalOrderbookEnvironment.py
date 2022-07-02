@@ -146,7 +146,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.feature_window_size = feature_window_size
         self.enter_spread = enter_spread
         self.info_calculator = info_calculator or SimpleInfoCalculator(
-            market_order_fraction_of_inventory, enter_spread, concentration=concentration, quote_levels=quote_levels
+            market_order_fraction_of_inventory, enter_spread, concentration=concentration
             )
         self.price = MidPrice()
         self._check_params()
