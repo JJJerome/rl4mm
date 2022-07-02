@@ -260,11 +260,12 @@ if __name__ == "__main__":
     #                         default_omega=defaul_omega,
     #                     )
 
+    databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
+
     env_configs, agents = get_env_configs_and_agents(env_config)
+
     for agent in agents:
         for env_config in env_configs:
-            databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
-
             emd1 = get_episode_summary_dict(
                 agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"], databases=databases
             )
