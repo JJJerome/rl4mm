@@ -1,5 +1,7 @@
 from copy import deepcopy
 
+import numpy as np
+
 from RL4MM.agents.baseline_agents import FixedActionAgent, ContinuousTeradactyl
 
 max_inventory = 10000
