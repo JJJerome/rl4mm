@@ -10,11 +10,10 @@ n_levels = 10
 
 def get_env_configs_and_agents(env_config:dict):
     env_configs = list()
-    agents = list()
+    agents = [FixedActionAgent(np.array([1, 1, 1, 1, max_inventory]))]
     env_conf = deepcopy(env_config)
     for inner in inner_quotes:
         env_conf["min_quote_level"] = inner
         env_conf["max_quote_level"] = inner + n_levels
         env_configs.append(env_conf)
-        agents.append(FixedActionAgent(np.array([1, 1, 1, 1, max_inventory])))
     return env_configs, agents

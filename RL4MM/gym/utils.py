@@ -319,11 +319,15 @@ def plot_reward_distributions(
     os.makedirs("outputs/pdfs", exist_ok=True)
     os.makedirs("outputs/jsons", exist_ok=True)
     # Write plot to pdf
-    fig.savefig(f"outputs/pdfs/{fname}.pdf")
+    pdf_filename = f"outputs/pdfs/{fname}.pdf"
+    print(f"Saving pdf to {pdf_filename}")
+    fig.savefig(pdf_filename)
     plt.close(fig)
 
     # Write data to json
-    with open(f"outputs/jsons/{fname}.json", "w") as outfile:
+    json_filename = f"outputs/jsons/{fname}.json"
+    print(f"Saving json of summary dict to {json_filename}")
+    with open(json_filename, "w") as outfile:
         json.dump(episode_summary_dict, outfile, cls=NumpyEncoder)
 
     # return rewards
