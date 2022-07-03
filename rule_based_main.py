@@ -19,7 +19,7 @@ from experiments.teradactyl_sweep import (
     default_omega_range,
     kappa_range,
 )
-from experiments.test_uniform_a_b import get_env_configs_and_agents
+from experiments.ladder_sweep import get_env_configs_and_agents
 
 
 def get_configs(args):
