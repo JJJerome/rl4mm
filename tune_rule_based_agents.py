@@ -71,8 +71,8 @@ def main(args):
     elif args['rule_based_agent'] == 'continuous_teradactyl':
         custom_model_config = {
             "default_kappa":tune.uniform(10., 11.), 
-            "default_omega":tune.uniform(10., 11.), 
-            "max_kappa":tune.uniform(10., 11.),
+            "default_omega":tune.uniform(0.4, 0.6), 
+            "max_kappa":tune.uniform(45., 55.),
             "max_inventory":args["max_inventory"]
             }
         rule_based_agent = ContinuousTeradactylWrapper
