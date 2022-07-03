@@ -54,6 +54,7 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
         terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
         market_order_clearing=env_config["market_order_clearing"],
         market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+        concentration=env_config["concentration"],
         min_quote_level=env_config["min_quote_level"],
         max_quote_level=env_config["max_quote_level"],
         enter_spread=env_config["enter_spread"],
