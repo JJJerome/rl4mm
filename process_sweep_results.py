@@ -2,6 +2,7 @@ import os
 import glob
 import json
 import pandas as pd
+import numpy as np
 
 def read_json(fpath):
     with open(fpath) as json_file:
@@ -40,7 +41,7 @@ if __name__ == '__main__':
         rewards_df = pd.DataFrame(data['rewards'])
 
         tmp = fname_to_dict(fname)
-        tmp['mean'] = float(rewards_df.describe().loc['mean'])
+        tmp['mean'] = int(np.round(rewards_df.describe().loc['mean']))
 
         lst.append(tmp)
 
