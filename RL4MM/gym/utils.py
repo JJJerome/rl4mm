@@ -221,11 +221,11 @@ def plot_reward_distributions(
     episode_length,
     step_size,
     market_order_clearing,
-    market_order_fraction_of_inventory,
     min_quote_level,
     max_quote_level,
     enter_spread,
     episode_summary_dict,
+    output_dir,
 ):
     sns.set()
 
@@ -243,8 +243,8 @@ def plot_reward_distributions(
 
     plt.suptitle(
         f"{ticker} {agent_name} EL: {episode_length} SS: {step_size} mind: {min_date} maxd: {max_date} "
-        + f"moc: {market_order_clearing} mofi: {market_order_fraction_of_inventory} \n minq: {min_quote_level} "
-        + f"maxq: {max_quote_level} ES: {enter_spread}"
+        + f"moc: {market_order_clearing} minq: {min_quote_level} "
+        + f"maxq: {max_quote_level} \n ES: {enter_spread}"
     )
 
     ###########################################################################
@@ -317,14 +317,21 @@ def plot_reward_distributions(
         ticker, min_date, max_date, agent_name, episode_length, min_quote_level, max_quote_level, enter_spread
     )
 
-    os.makedirs("outputs/pdfs", exist_ok=True)
-    os.makedirs("outputs/jsons", exist_ok=True)
+    pdf_path = os.path.join(output_dir, "outputs/pdfs")
+    json_path = os.path.join(output_dir, "outputs/jsons")
+    os.makedirs(pdf_path, exist_ok=True)
+    os.makedirs(json_path, exist_ok=True)
+    pdf_filename = os.path.join(pdf_path, f"{fname}.pdf")
+    json_filename = os.path.join(json_path, f"{fname}.json")
+
     # Write plot to pdf
-    fig.savefig(f"outputs/pdfs/{fname}.pdf")
+    print(f"Saving pdf to {pdf_filename}")
+    fig.savefig(pdf_filename)
     plt.close(fig)
 
     # Write data to json
-    with open(f"outputs/jsons/{fname}.json", "w") as outfile:
+    print(f"Saving json of summary dict to {json_filename}")
+    with open(json_filename, "w") as outfile:
         json.dump(episode_summary_dict, outfile, cls=NumpyEncoder)
 
     # return rewards

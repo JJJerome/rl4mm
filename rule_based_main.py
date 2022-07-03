@@ -2,6 +2,7 @@ import argparse
 import os
 import copy
 import numpy as np
+import importlib
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.gym.utils import env_creator
@@ -19,7 +20,8 @@ from experiments.teradactyl_sweep import (
     default_omega_range,
     kappa_range,
 )
-from experiments.test_uniform_a_b import get_env_configs_and_agents
+
+experiment_list = ["ladder_sweep", "fixed_action_sweep", "fixed_action_vs_teradactyl", "teradactly_sweep"]
 
 
 def get_configs(args):
@@ -35,7 +37,7 @@ def get_configs(args):
         "per_step_reward_function": args["per_step_reward_function"],
         "terminal_reward_function": args["terminal_reward_function"],
         "market_order_clearing": args["market_order_clearing"],
-        "market_order_fraction_of_inventory": args["market_order_fraction"],
+        "market_order_fraction_of_inventory": None,
         "min_quote_level": args["min_quote_level"],
         "max_quote_level": args["max_quote_level"],
         "enter_spread": args["enter_spread"],
@@ -103,7 +105,7 @@ def get_configs(args):
 def parse_args():
     # -------------------- Training Args ----------------------
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("-ni", "--n_iterations", default=1000, help="Training iterations.", type=int)
+    parser.add_argument("-ni", "--n_iterations", default=10, help="Training iterations.", type=int)
     # -------------------- Training env Args ---------------------------
     parser.add_argument("-mind", "--min_date", default="2018-02-20", help="Train data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2018-02-20", help="Train data end date.", type=str)
@@ -128,13 +130,8 @@ def parse_args():
         help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
-
     parser.add_argument(
-        "-moc", "--market_order_clearing", default=True, help="Market order clearing on/off.", type=boolean_string
-    )
-
-    parser.add_argument(
-        "-mof", "--market_order_fraction", default=0.2, help="Market order clearing fraction of inventory.", type=float
+        "-moc", "--market_order_clearing", action="store_true", default=False, help="Market order clearing."
     )
     parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
     parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
@@ -166,103 +163,36 @@ def parse_args():
         help="Eval terminal reward function: symmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
+    parser.add_argument("-o", "--output", default="/home/data/", help="Directory to save episode data to.", type=str)
+    parser.add_argument("-ex", "--experiment", default="fixed_action_sweep", help="The experiment to run", type=str)
     # -------------------------------------------------
     args = vars(parser.parse_args())
     return args
+
+
+def import_get_env_configs_and_agents(experiment_name: str):
+    if experiment_name == "ladder_sweep":
+        from experiments.ladder_sweep import get_env_configs_and_agents
+    elif experiment_name == "fixed_action_sweep":
+        from experiments.fixed_action_sweep import get_env_configs_and_agents
+    elif experiment_name == "fixed_action_vs_teradactyl":
+        from experiments.fixed_action_vs_teradactyl import get_env_configs_and_agents
+    elif experiment_name == "teradactly_sweep":
+        from experiments.teradactyl_sweep import get_env_configs_and_agents
+    else:
+        raise NotImplementedError()
 
 
 if __name__ == "__main__":
 
     args = parse_args()
     env_config, _ = get_configs(args)
-    env = env_creator(env_config)
-
-    ###########################################################################
-    # Random agent
-    ###########################################################################
-    # agent = RandomAgent(env)
-
-    ###########################################################################
-    # two (1,1) beta distributions and a 1000 max inventory limit
-    ###########################################################################
-    # agent = FixedActionAgent(np.array([1,1,1,1,1000]))
-
-    ###########################################################################
-    # Away from best prices
-    ###########################################################################
-    # agent = FixedActionAgent(np.array([10,1,10,1,1000]))
-
-    ###########################################################################
-    # Close to best prices
-    ###########################################################################
-    # agent = FixedActionAgent(np.array([1,10,1,10,1000]))
-
-    ###########################################################################
-    # FixedAction - sweep
-    ###########################################################################
-    # for a in [1, 5, 10]:
-    # for b in [5,10,20]:
-    # for max_inv in [10, 100, 1000]:
-    # agent = FixedActionAgent(np.array([a,b,a,b,max_inv]))
-    # plot_reward_distributions(agent, env, n_iterations=30)
-
-    ###########################################################################
-    # Teradactyl - sweep
-    ###########################################################################
-    # for max_inv in [10,100,500]:
-    # for kappa in [5,10,20]:
-    # agent = TeradactylAgent(max_inventory=max_inv, kappa=kappa)
-    # # obs, acts, rews, infs = generate_trajectory(agent, env)
-    # plot_reward_distributions(agent, env, n_iterations=50)
-
-    ###########################################################################
-    # Teradactyl - single run
-    ###########################################################################
-
-    # agent = TeradactylAgent(max_inventory=10, kappa=10)
-
-    # No max_inventory so there will only be 4 actions
-    # agent = TeradactylAgent(kappa=10)
-
-    # n_iterations = 5
-
-    # emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True)
-    # emd2 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=False)
-
-    # fname = 'Teradactyl_def_a_3_def_b_1_kappa_10_max_inv_None_SPY_2018-02-20_2018-02-20_10'
-
-    # import json
-
-    # with open(f'{fname}.json') as json_file:
-    # data = json.load(json_file)
-    # print(data)
-
-    # plot_reward_distributions(ticker=env_config['ticker'],
-    # min_date=env_config['min_date'],
-    # max_date=env_config['min_date'],
-    # agent_name=agent.get_name(),
-    # episode_length=env_config['episode_length'],
-    # episode_summary_dict=data)
-
-    ###########################################################################
-    # Teradactyl - sweep
-    ###########################################################################
-
-    # for defaul_omega in default_omega_range:
-    #     for kappa in kappa_range:
-    #         for max_inv in max_inv_range:
-    #             for min_quote_level in min_quote_range:
-    #                 for max_quote_level in max_quote_range:
-    #                     # for kappa in [10, 100]:
-    #                     # agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
-    #                     # TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
-    #                     agent = ContinuousTeradactyl(
-    #                         default_omega=defaul_omega,
-    #                     )
-
-    databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
-
+    experiment = args["experiment"]
+    assert experiment in experiment_list, f"Experiment name {experiment} not in list of experiments {experiment_list}."
+    module = importlib.import_module(f"experiments." + args["experiment"])
+    get_env_configs_and_agents = getattr(module, "get_env_configs_and_agents")
     env_configs, agents = get_env_configs_and_agents(env_config)
+    databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
 
     for agent in agents:
         for env_config in env_configs:
@@ -278,9 +208,9 @@ if __name__ == "__main__":
                 episode_length=env_config["episode_length"],
                 step_size=env_config["step_size"],
                 market_order_clearing=env_config["market_order_clearing"],
-                market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
                 min_quote_level=env_config["min_quote_level"],
                 max_quote_level=env_config["max_quote_level"],
                 enter_spread=env_config["enter_spread"],
                 episode_summary_dict=emd1,
+                output_dir=args["output"],
             )

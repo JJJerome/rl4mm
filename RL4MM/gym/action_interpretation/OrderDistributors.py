@@ -8,7 +8,7 @@ else:
     from typing_extensions import Literal
 
 import numpy as np
-from scipy.stats import betabinom
+from scipy.stats import beta
 
 
 class OrderDistributor(metaclass=abc.ABCMeta):
@@ -24,10 +24,11 @@ class OrderDistributor(metaclass=abc.ABCMeta):
 class BetaOrderDistributor(OrderDistributor):
     def __init__(self, quote_levels: int = 10, active_volume: int = 100, concentration: float = None):
         self.n_levels = quote_levels
-        self.distribution = betabinom
+        self.distribution = beta
         self.tick_range = range(0, self.n_levels)
         self.active_volume = active_volume
         self.c = concentration
+        self.midpoints = 1 / self.n_levels * np.array([i + 0.5 for i in range(self.n_levels)])
 
     def _convert_action(self, action: np.ndarray, eps=1e-5) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         assert all(action) > 0, "Action must be positive"
@@ -36,8 +37,12 @@ class BetaOrderDistributor(OrderDistributor):
         ), f"Concentration is set to {self.c} and the action taken is of length {len(action)}"
         (a_buy, b_buy) = (action[0], self.c - action[0]) if self.c is not None else (action[0], action[1])
         (a_sell, b_sell) = (action[1], self.c - action[1]) if self.c is not None else (action[2], action[3])
-        beta_binom_buy = betabinom(n=self.n_levels - 1, a=a_buy, b=max(b_buy, eps))
-        beta_binom_sell = betabinom(n=self.n_levels - 1, a=a_sell, b=max(b_sell, eps))
-        buy_volumes = np.round(beta_binom_buy.pmf(self.tick_range) * self.active_volume).astype(int)
-        sell_volumes = np.round(beta_binom_sell.pmf(self.tick_range) * self.active_volume).astype(int)
+        beta_buy = self.distribution(a=a_buy, b=b_buy)
+        beta_sell = self.distribution(a=a_sell, b=b_sell)
+        buy_dist = np.array([beta_buy.pdf(midpoint) for midpoint in self.midpoints])
+        sell_dist = np.array([beta_sell.pdf(midpoint) for midpoint in self.midpoints])
+        buy_dist /= buy_dist.sum()  # normalise to one
+        sell_dist /= sell_dist.sum()  # normalise to one
+        buy_volumes = np.round(buy_dist * self.active_volume).astype(int)
+        sell_volumes = np.round(sell_dist * self.active_volume).astype(int)
         return {"buy": buy_volumes, "sell": sell_volumes}
