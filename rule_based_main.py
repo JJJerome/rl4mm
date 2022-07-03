@@ -186,7 +186,7 @@ if __name__ == "__main__":
 
     args = parse_args()
     env_config, _ = get_configs(args)
-    import_get_env_configs_and_agents(args.experiment)
+    import_get_env_configs_and_agents(args["experiment"])
     env_configs, agents = get_env_configs_and_agents(env_config)
     databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
 
