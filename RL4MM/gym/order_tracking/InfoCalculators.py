@@ -23,7 +23,6 @@ class SimpleInfoCalculator(InfoCalculator):
         enter_spread: bool = False,
         order_distributor: OrderDistributor = None,
         concentration: float = None,
-        quote_levels: int = None,
     ):
         self.market_order_count = 0
         self.market_order_total_volume = 0
