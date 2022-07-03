@@ -23,6 +23,7 @@ from experiments.teradactyl_sweep import (
 # from experiments.ladder_sweep import get_env_configs_and_agents
 from experiments.fixed_action_sweep import get_env_configs_and_agents
 
+
 def get_configs(args):
     # ray.init()
     env_config = {
@@ -36,7 +37,7 @@ def get_configs(args):
         "per_step_reward_function": args["per_step_reward_function"],
         "terminal_reward_function": args["terminal_reward_function"],
         "market_order_clearing": args["market_order_clearing"],
-        "market_order_fraction_of_inventory": args["market_order_fraction"],
+        "market_order_fraction_of_inventory": None,
         "min_quote_level": args["min_quote_level"],
         "max_quote_level": args["max_quote_level"],
         "enter_spread": args["enter_spread"],
@@ -130,10 +131,7 @@ def parse_args():
         type=str,
     )
     parser.add_argument(
-        "-moc", "--market_order_clearing", default=True, help="Market order clearing on/off.", type=boolean_string
-    )
-    parser.add_argument(
-        "-mof", "--market_order_fraction", default=0.2, help="Market order clearing fraction of inventory.", type=float
+        "-moc", "--market_order_clearing", action="store_true", default=False, help="Market order clearing."
     )
     parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
     parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
@@ -278,10 +276,9 @@ if __name__ == "__main__":
                 episode_length=env_config["episode_length"],
                 step_size=env_config["step_size"],
                 market_order_clearing=env_config["market_order_clearing"],
-                market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
                 min_quote_level=env_config["min_quote_level"],
                 max_quote_level=env_config["max_quote_level"],
                 enter_spread=env_config["enter_spread"],
                 episode_summary_dict=emd1,
-                output_dir=args["output_dir"]
+                output_dir=args["output"],
             )
