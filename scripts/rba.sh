@@ -1,5 +1,9 @@
 #TICKERS_FILE='tickers_all.txt'
-TICKERS_FILE='tickers_some.txt'
+#TICKERS_FILE='tickers_some.txt'
+
+TICKERS_FILE=$1
+
+echo "Using tickers file: $TICKERS_FILE"
 
 mind="2022-03-01"
 maxd="2022-03-14"
