@@ -2,7 +2,7 @@
 TICKERS_FILE='tickers_some.txt'
 
 mind="2022-03-01"
-maxd="2022-03-13" # ?
+maxd="2022-03-14"
 
 while read -r ticker; do 
 	echo "Processing $ticker";
