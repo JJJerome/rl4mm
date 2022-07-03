@@ -9,7 +9,6 @@
 /notebooks/
 /.idea/
 /data/
-/experiments/
 *.ipynb\_checkpoints*
 ray_results
 process_output
