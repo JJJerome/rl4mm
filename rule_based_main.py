@@ -2,6 +2,7 @@ import argparse
 import os
 import copy
 import numpy as np
+import importlib
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.gym.utils import env_creator
@@ -179,14 +180,17 @@ def import_get_env_configs_and_agents(experiment_name: str):
     elif experiment_name == "teradactly_sweep":
         from experiments.teradactyl_sweep import get_env_configs_and_agents
     else:
-        raise NotImplementedError(f"Experiment name {experiment_name} not in list of experiments {experiment_list}.")
+        raise NotImplementedError()
 
 
 if __name__ == "__main__":
 
     args = parse_args()
     env_config, _ = get_configs(args)
-    import_get_env_configs_and_agents(args["experiment"])
+    experiment = args["experiment"]
+    assert experiment in experiment_list, f"Experiment name {experiment} not in list of experiments {experiment_list}."
+    module = importlib.import_module(f"experiments." + args["experiment"])
+    get_env_configs_and_agents = getattr(module, "get_env_configs_and_agents")
     env_configs, agents = get_env_configs_and_agents(env_config)
     databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
 
