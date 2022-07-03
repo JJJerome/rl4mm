@@ -161,7 +161,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=bool)
     parser.add_argument("-mind", "--min_date", default="2018-02-20", help="Train data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2018-03-05", help="Train data end date.", type=str)
-    parser.add_argument("-el", "--episode_length", default=1, help="Episode length (minutes).", type=int)
+    parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
     parser.add_argument("-nl", "--n_levels", default=200, help="Number of orderbook levels.", type=int)
     parser.add_argument("-sz", "--step_size", default=1, help="Step size in seconds.", type=int)
