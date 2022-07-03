@@ -6,7 +6,7 @@ TICKERS_FILE=$1
 echo "Using tickers file: $TICKERS_FILE"
 
 mind="2022-03-01"
-maxd="2022-03-13" # ?
+maxd="2022-03-14"
 
 while read -r ticker; do 
 	echo "Processing $ticker";
