@@ -17,6 +17,7 @@ from RL4MM.orderbook.Exchange import Exchange
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderGenerator import OrderGenerator
 
+
 class OrderbookSimulator:
     def __init__(
         self,
@@ -44,7 +45,7 @@ class OrderbookSimulator:
         self.min_buy_price: int = np.infty  # type:ignore
         self.initial_buy_price_range: int = np.infty  # type:ignore
         self.initial_sell_price_range: int = np.infty  # type:ignore
-        self.outer_levels = 20/self.n_levels
+        self.outer_levels = 20 / self.n_levels
 
     def reset_episode(self, start_date: datetime, start_book: Optional[Orderbook] = None):
         if not start_book:

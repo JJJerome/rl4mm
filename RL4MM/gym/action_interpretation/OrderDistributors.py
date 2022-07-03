@@ -28,7 +28,7 @@ class BetaOrderDistributor(OrderDistributor):
         self.tick_range = range(0, self.n_levels)
         self.active_volume = active_volume
         self.c = concentration
-        self.midpoints = 1/self.n_levels * np.array([i+0.5 for i in range(self.n_levels)])
+        self.midpoints = 1 / self.n_levels * np.array([i + 0.5 for i in range(self.n_levels)])
 
     def _convert_action(self, action: np.ndarray, eps=1e-5) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         assert all(action) > 0, "Action must be positive"
