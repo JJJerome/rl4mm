@@ -1,4 +1,4 @@
-from RL4MM.agents.custom_policy import CostumPolicy
+from RL4MM.agents.custom_policy import CustomPolicy
 from ray.rllib.agents.trainer import Trainer
 from RL4MM.agents.baseline_agents import (
     RandomAgent, 
@@ -8,7 +8,7 @@ from RL4MM.agents.baseline_agents import (
     )
 import numpy as np
 
-class FixedActionAgentPolicy(CostumPolicy):
+class FixedActionAgentPolicy(CustomPolicy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.agent = FixedActionAgent(
@@ -27,7 +27,7 @@ class FixedActionAgentWrapper(Trainer):
 
 #--------------------------------------------------------------------------------------------------
 
-class RandomAgentPolicy(CostumPolicy):
+class RandomAgentPolicy(CustomPolicy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.agent = RandomAgent()
@@ -38,7 +38,7 @@ class RandomAgentWrapper(Trainer):
 
 #--------------------------------------------------------------------------------------------------
 
-class TeradactylAgentPolicy(CostumPolicy):
+class TeradactylAgentPolicy(CustomPolicy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.agent =  TeradactylAgent(
@@ -54,7 +54,7 @@ class TeradactylAgentWrapper(Trainer):
 
 #--------------------------------------------------------------------------------------------------
 
-class ContinuousTeradactylPolicy(CostumPolicy):
+class ContinuousTeradactylPolicy(CustomPolicy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.agent = ContinuousTeradactyl(

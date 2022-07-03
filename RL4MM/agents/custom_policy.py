@@ -9,7 +9,7 @@ from ray.rllib.utils.annotations import override
 from ray.rllib.utils.typing import ModelWeights
 
 
-class CostumPolicy(Policy):
+class CustomPolicy(Policy):
     """Hand-coded policy that returns random actions."""
 
     def __init__(self, *args, **kwargs):
