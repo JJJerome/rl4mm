@@ -103,7 +103,7 @@ def get_configs(args):
 def parse_args():
     # -------------------- Training Args ----------------------
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("-ni", "--n_iterations", default=1000, help="Training iterations.", type=int)
+    parser.add_argument("-ni", "--n_iterations", default=10, help="Training iterations.", type=int)
     # -------------------- Training env Args ---------------------------
     parser.add_argument("-mind", "--min_date", default="2018-02-20", help="Train data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2018-02-20", help="Train data end date.", type=str)
