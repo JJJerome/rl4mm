@@ -2,7 +2,7 @@
 #TICKERS_FILE='tickers_some.txt'
 
 TICKERS_FILE=$1
-experiment_name = $2
+experiment_name=$2
 
 echo "Using tickers file: $TICKERS_FILE"
 echo "Running experiment: $experiment_name"
