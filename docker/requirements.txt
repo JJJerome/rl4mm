@@ -24,4 +24,5 @@ tensorboard
 #gym~=0.21.0
 #pfrl
 #jupyter
+bayesian-optimization
 
