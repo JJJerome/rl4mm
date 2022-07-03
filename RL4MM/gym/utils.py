@@ -225,6 +225,7 @@ def plot_reward_distributions(
     max_quote_level,
     enter_spread,
     episode_summary_dict,
+    output_dir,
 ):
     sns.set()
 
@@ -316,16 +317,19 @@ def plot_reward_distributions(
         ticker, min_date, max_date, agent_name, episode_length, min_quote_level, max_quote_level, enter_spread
     )
 
-    os.makedirs("outputs/pdfs", exist_ok=True)
-    os.makedirs("outputs/jsons", exist_ok=True)
+    pdf_path = os.path.join(output_dir, "outputs/pdfs")
+    json_path = os.path.join(output_dir, "outputs/jsons")
+    os.makedirs(pdf_path, exist_ok=True)
+    os.makedirs(json_path, exist_ok=True)
+    pdf_filename = os.path.join(pdf_path, f"{fname}.pdf")
+    json_filename = os.path.join(json_path, f"{fname}.json")
+
     # Write plot to pdf
-    pdf_filename = f"outputs/pdfs/{fname}.pdf"
     print(f"Saving pdf to {pdf_filename}")
     fig.savefig(pdf_filename)
     plt.close(fig)
 
     # Write data to json
-    json_filename = f"outputs/jsons/{fname}.json"
     print(f"Saving json of summary dict to {json_filename}")
     with open(json_filename, "w") as outfile:
         json.dump(episode_summary_dict, outfile, cls=NumpyEncoder)

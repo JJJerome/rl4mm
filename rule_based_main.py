@@ -129,11 +129,9 @@ def parse_args():
         help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
-
     parser.add_argument(
         "-moc", "--market_order_clearing", default=True, help="Market order clearing on/off.", type=boolean_string
     )
-
     parser.add_argument(
         "-mof", "--market_order_fraction", default=0.2, help="Market order clearing fraction of inventory.", type=float
     )
@@ -167,6 +165,7 @@ def parse_args():
         help="Eval terminal reward function: symmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
+    parser.add_argument("-o", "--output", default="/home/data/", help="Directory to save episode data to.", type=str)
     # -------------------------------------------------
     args = vars(parser.parse_args())
     return args
@@ -284,4 +283,5 @@ if __name__ == "__main__":
                 max_quote_level=env_config["max_quote_level"],
                 enter_spread=env_config["enter_spread"],
                 episode_summary_dict=emd1,
+                output_dir=args["output_dir"]
             )
