@@ -19,8 +19,9 @@ from experiments.teradactyl_sweep import (
     default_omega_range,
     kappa_range,
 )
-from experiments.ladder_sweep import get_env_configs_and_agents
 
+# from experiments.ladder_sweep import get_env_configs_and_agents
+from experiments.fixed_action_sweep import get_env_configs_and_agents
 
 def get_configs(args):
     # ray.init()
