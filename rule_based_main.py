@@ -20,8 +20,7 @@ from experiments.teradactyl_sweep import (
     kappa_range,
 )
 
-# from experiments.ladder_sweep import get_env_configs_and_agents
-from experiments.fixed_action_sweep import get_env_configs_and_agents
+experiment_list = ["ladder_sweep", "fixed_action_sweep", "fixed_action_vs_teradactyl", "teradactly_sweep"]
 
 
 def get_configs(args):
@@ -164,103 +163,32 @@ def parse_args():
         type=str,
     )
     parser.add_argument("-o", "--output", default="/home/data/", help="Directory to save episode data to.", type=str)
+    parser.add_argument("-ex", "--experiment", default="fixed_action_sweep", help="The experiment to run", type=str)
     # -------------------------------------------------
     args = vars(parser.parse_args())
     return args
+
+
+def import_get_env_configs_and_agents(experiment_name: str):
+    if experiment_name == "ladder_sweep":
+        from experiments.ladder_sweep import get_env_configs_and_agents
+    elif experiment_name == "fixed_action_sweep":
+        from experiments.fixed_action_sweep import get_env_configs_and_agents
+    elif experiment_name == "fixed_action_vs_teradactyl":
+        from experiments.fixed_action_vs_teradactyl import get_env_configs_and_agents
+    elif experiment_name == "teradactly_sweep":
+        from experiments.teradactyl_sweep import get_env_configs_and_agents
+    else:
+        raise NotImplementedError(f"Experiment name {experiment_name} not in list of experiments {experiment_list}.")
 
 
 if __name__ == "__main__":
 
     args = parse_args()
     env_config, _ = get_configs(args)
-    env = env_creator(env_config)
-
-    ###########################################################################
-    # Random agent
-    ###########################################################################
-    # agent = RandomAgent(env)
-
-    ###########################################################################
-    # two (1,1) beta distributions and a 1000 max inventory limit
-    ###########################################################################
-    # agent = FixedActionAgent(np.array([1,1,1,1,1000]))
-
-    ###########################################################################
-    # Away from best prices
-    ###########################################################################
-    # agent = FixedActionAgent(np.array([10,1,10,1,1000]))
-
-    ###########################################################################
-    # Close to best prices
-    ###########################################################################
-    # agent = FixedActionAgent(np.array([1,10,1,10,1000]))
-
-    ###########################################################################
-    # FixedAction - sweep
-    ###########################################################################
-    # for a in [1, 5, 10]:
-    # for b in [5,10,20]:
-    # for max_inv in [10, 100, 1000]:
-    # agent = FixedActionAgent(np.array([a,b,a,b,max_inv]))
-    # plot_reward_distributions(agent, env, n_iterations=30)
-
-    ###########################################################################
-    # Teradactyl - sweep
-    ###########################################################################
-    # for max_inv in [10,100,500]:
-    # for kappa in [5,10,20]:
-    # agent = TeradactylAgent(max_inventory=max_inv, kappa=kappa)
-    # # obs, acts, rews, infs = generate_trajectory(agent, env)
-    # plot_reward_distributions(agent, env, n_iterations=50)
-
-    ###########################################################################
-    # Teradactyl - single run
-    ###########################################################################
-
-    # agent = TeradactylAgent(max_inventory=10, kappa=10)
-
-    # No max_inventory so there will only be 4 actions
-    # agent = TeradactylAgent(kappa=10)
-
-    # n_iterations = 5
-
-    # emd1 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=True)
-    # emd2 = get_episode_summary_dict(agent, env_config, n_iterations, PARALLEL_FLAG=False)
-
-    # fname = 'Teradactyl_def_a_3_def_b_1_kappa_10_max_inv_None_SPY_2018-02-20_2018-02-20_10'
-
-    # import json
-
-    # with open(f'{fname}.json') as json_file:
-    # data = json.load(json_file)
-    # print(data)
-
-    # plot_reward_distributions(ticker=env_config['ticker'],
-    # min_date=env_config['min_date'],
-    # max_date=env_config['min_date'],
-    # agent_name=agent.get_name(),
-    # episode_length=env_config['episode_length'],
-    # episode_summary_dict=data)
-
-    ###########################################################################
-    # Teradactyl - sweep
-    ###########################################################################
-
-    # for defaul_omega in default_omega_range:
-    #     for kappa in kappa_range:
-    #         for max_inv in max_inv_range:
-    #             for min_quote_level in min_quote_range:
-    #                 for max_quote_level in max_quote_range:
-    #                     # for kappa in [10, 100]:
-    #                     # agent = FixedActionAgent(np.array([a, b, a, b, max_inv]))
-    #                     # TeradactylAgent(default_a=a, default_b=b, max_inventory=max_inv, kappa=kappa)
-    #                     agent = ContinuousTeradactyl(
-    #                         default_omega=defaul_omega,
-    #                     )
-
-    databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
-
+    import_get_env_configs_and_agents(args.experiment)
     env_configs, agents = get_env_configs_and_agents(env_config)
+    databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
 
     for agent in agents:
         for env_config in env_configs:
