@@ -142,7 +142,7 @@ def parse_args():
         help="Bool for whether best quote is the midprice. Otherwise it is the best bid/best ask price",
         type=bool,
     )
-    # parser.add_argument("-con", "--concentration", default=10, help="Concentration of the order distributor.", type=int)
+    parser.add_argument("-con", "--concentration", default=0, help="Concentration of the order distributor.", type=int)
     parser.add_argument("-par", "--parallel", action="store_true", default=False, help="Run in parallel or not.")
     # ------------------ Eval env args -------------------------------
     parser.add_argument("-minde", "--min_date_eval", default="2019-01-03", help="Evaluation data start date.", type=str)
@@ -167,6 +167,8 @@ def parse_args():
     parser.add_argument("-ex", "--experiment", default="fixed_action_sweep", help="The experiment to run", type=str)
     # -------------------------------------------------
     args = vars(parser.parse_args())
+    if args["concentration"] == 0:
+        args["concentration"] = None
     return args
 
 
