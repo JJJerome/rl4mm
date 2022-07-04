@@ -10,6 +10,7 @@ def parse_args():
     # -------------------- Training Args ----------------------
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("-ptj", "--path_to_jsons", default='/home/data/outputs/jsons/', help="Path to jsons", type=str)
+    args = vars(parser.parse_args())
     return args
 
 def read_json(fpath):
