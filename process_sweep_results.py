@@ -4,6 +4,13 @@ import json
 import pandas as pd
 import numpy as np
 
+import argparse
+
+def parse_args():
+    # -------------------- Training Args ----------------------
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument("-ptj", "--path_to_jsons", default='/home/data/outputs/jsons/', help="Path to jsons", type=str)
+
 def read_json(fpath):
     with open(fpath) as json_file:
         data = json.load(json_file)
@@ -25,7 +32,8 @@ def fname_to_dict(fname):
 
 if __name__ == '__main__':
 
-    fpath= '/Users/rahul/Dropbox/titan_sweep_results/outputs/jsons'
+    args = parse_args()
+    fpath = args.path_to_json
 
     lst = []
 
