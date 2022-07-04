@@ -5,22 +5,9 @@ import numpy as np
 import importlib
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.database.PostgresEngine import MAX_POOL_SIZE
-from RL4MM.gym.utils import env_creator
-from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions, get_episode_summary_dict
-from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent, ContinuousTeradactyl
-from RL4MM.utils.utils import boolean_string
 
-from experiments.fixed_action_vs_teradactyl import agents
-from experiments.teradactyl_sweep import (
-    a_range,
-    b_range,
-    min_quote_range,
-    max_quote_range,
-    max_inv_range,
-    default_omega_range,
-    kappa_range,
-)
+from RL4MM.gym.utils import plot_reward_distributions, get_episode_summary_dict
+
 
 experiment_list = [
     "ladder_sweep",
@@ -217,5 +204,5 @@ if __name__ == "__main__":
                 enter_spread=env_config["enter_spread"],
                 episode_summary_dict=emd1,
                 output_dir=args["output"],
-                experiment_name=experiment
+                experiment_name=experiment,
             )
