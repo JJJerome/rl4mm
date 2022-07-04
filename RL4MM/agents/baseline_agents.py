@@ -95,13 +95,18 @@ class TeradactylAgent(Agent):
 
 class ContinuousTeradactyl(Agent):
     def __init__(
-        self, max_inventory=None, default_kappa: float = 10.0, default_omega: float = 0.5, max_kappa: float = 50.0
+        self,
+        max_inventory=None,
+        default_kappa: float = 10.0,
+        default_omega: float = 0.5,
+        max_kappa: float = 50.0,
+        exponent: float = 1.0,
     ):
         self.max_inventory = max_inventory
         self.default_kappa = default_kappa
         self.default_omega = default_omega
-        self.max_midprice_move = TICK_SIZE
         self.max_kappa = max_kappa
+        self.exponent = exponent
 
         if max_inventory is None:
             self.denom = 100
@@ -110,11 +115,15 @@ class ContinuousTeradactyl(Agent):
 
     def get_omega_bid_and_ask(self, inv: int):
         if inv >= 0:
-            omega_bid = self.default_omega * (1 + (1 / self.default_omega - 1) * (self.clamp_to_unit(inv / self.denom)))
-            omega_ask = self.default_omega * (1 - (self.clamp_to_unit(inv / self.denom)))
+            omega_bid = self.default_omega * (
+                1 + (1 / self.default_omega - 1) * self.clamp_to_unit(inv / self.denom) ** self.exponent
+            )
+            omega_ask = self.default_omega * (1 - self.clamp_to_unit(inv / self.denom) ** self.exponent)
         else:
-            omega_bid = self.default_omega * (1 + (self.clamp_to_unit(inv / self.denom)))
-            omega_ask = self.default_omega * (1 - (1 / self.default_omega - 1) * (self.clamp_to_unit(inv / self.denom)))
+            omega_bid = self.default_omega * (1 - abs(self.clamp_to_unit(inv / self.denom)) ** self.exponent)
+            omega_ask = self.default_omega * (
+                1 + (1 / self.default_omega - 1) * abs(self.clamp_to_unit(inv / self.denom)) ** self.exponent
+            )
         return omega_bid, omega_ask
 
     def get_kappa(self, inventory: int):
