@@ -41,6 +41,7 @@ def get_configs(args):
         "min_quote_level": args["min_quote_level"],
         "max_quote_level": args["max_quote_level"],
         "enter_spread": args["enter_spread"],
+        "concentration":args["concentration"]
     }
 
     eval_env_config = copy.deepcopy(env_config)
