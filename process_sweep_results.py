@@ -54,4 +54,4 @@ if __name__ == '__main__':
         lst.append(tmp)
 
     df = pd.DataFrame.from_records(lst)
-    print(df.sort_values('minq'))
+    print(df.sort_values('minq').sort_values('ticker'))
