@@ -71,7 +71,6 @@ def generate_trajectory(agent: Agent, env: gym.Env):
     observations.append(obs)
     while True:
         action = agent.get_action(obs)  # type:ignore
-        print(action)
         obs, reward, done, info = env.step(action)
         observations.append(obs)
         actions.append(action)
