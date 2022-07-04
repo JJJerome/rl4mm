@@ -22,11 +22,14 @@ from experiments.teradactyl_sweep import (
     kappa_range,
 )
 
-experiment_list = ["ladder_sweep", 
-                   "fixed_action_sweep", 
-                   "fixed_action_vs_teradactyl", 
-                   "teradactyl_sweep",
-                   "teradactyl_sweep_small"]
+experiment_list = [
+    "ladder_sweep",
+    "fixed_action_sweep",
+    "fixed_action_vs_teradactyl",
+    "teradactyl_sweep",
+    "teradactyl_sweep_small",
+]
+
 
 def get_configs(args):
     # ray.init()
@@ -178,6 +181,7 @@ def parse_args():
     if args["concentration"] == 0:
         args["concentration"] = None
     return args
+
 
 if __name__ == "__main__":
 
