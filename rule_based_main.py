@@ -5,6 +5,7 @@ import numpy as np
 import importlib
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
+from RL4MM.database.PostgresEngine import MAX_POOL_SIZE
 from RL4MM.gym.utils import env_creator
 from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions, get_episode_summary_dict
 from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent, ContinuousTeradactyl
@@ -203,7 +204,7 @@ if __name__ == "__main__":
     else:
         database = HistoricalDatabase()
         databases = [database for _ in range(args["n_iterations"])]
-        assert args["n_iterations"] <= database.engine.pool_size
+        assert args["n_iterations"] <= MAX_POOL_SIZE
 
     for agent in agents:
         for env_config in env_configs:
