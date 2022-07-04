@@ -16,6 +16,7 @@ RUN apt-get -y update \
     python-dev \
     libpq-dev \ 
     libxext6 \
+    parallel \
     libsm6 \ 
     ffmpeg \ 
     tmux \
