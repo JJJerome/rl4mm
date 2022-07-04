@@ -168,7 +168,7 @@ def parse_args():
     if args["concentration"] == 0:
         args["concentration"] = None
 
-    args["output"] = os.path.join(args["output"], args["experiment"])
+    # args["output"] = os.path.join(args["output"], args["experiment"])
 
     return args
 
