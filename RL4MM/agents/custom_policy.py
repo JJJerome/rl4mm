@@ -18,9 +18,7 @@ class CustomPolicy(Policy):
         # Whether for compute_actions, the bounds given in action_space
         # should be ignored (default: False). This is to test action-clipping
         # and any Env's reaction to bounds breaches.
-        if self.config.get("ignore_action_bounds", False) and isinstance(
-            self.action_space, Box
-        ):
+        if self.config.get("ignore_action_bounds", False) and isinstance(self.action_space, Box):
             self.action_space_for_sampling = Box(
                 -float("inf"),
                 float("inf"),
@@ -31,14 +29,7 @@ class CustomPolicy(Policy):
             self.action_space_for_sampling = self.action_space
 
     @override(Policy)
-    def compute_actions(
-        self,
-        obs_batch,
-        state_batches=None,
-        prev_action_batch=None,
-        prev_reward_batch=None,
-        **kwargs
-    ):
+    def compute_actions(self, obs_batch, state_batches=None, prev_action_batch=None, prev_reward_batch=None, **kwargs):
         return [self.agent.get_action(obs) for obs in obs_batch], [], {}
 
     @override(Policy)
@@ -71,12 +62,9 @@ class CustomPolicy(Policy):
     def _get_dummy_batch_from_view_requirements(self, batch_size: int = 1):
         return SampleBatch(
             {
-                SampleBatch.OBS: tree.map_structure(
-                    lambda s: s[None], self.observation_space.sample()
-                ),
+                SampleBatch.OBS: tree.map_structure(lambda s: s[None], self.observation_space.sample()),
             }
         )
 
     def get_name(self):
         return self.agent.get_name()
-

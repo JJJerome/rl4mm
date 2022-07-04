@@ -5,6 +5,7 @@ import numpy as np
 import importlib
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
+from RL4MM.database.PostgresEngine import MAX_POOL_SIZE
 from RL4MM.gym.utils import env_creator
 from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions, get_episode_summary_dict
 from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent, ContinuousTeradactyl
@@ -21,7 +22,13 @@ from experiments.teradactyl_sweep import (
     kappa_range,
 )
 
-experiment_list = ["ladder_sweep", "fixed_action_sweep", "fixed_action_vs_teradactyl", "teradactly_sweep"]
+experiment_list = [
+    "ladder_sweep",
+    "fixed_action_sweep",
+    "fixed_action_vs_teradactyl",
+    "teradactyl_sweep",
+    "teradactyl_sweep_small",
+]
 
 
 def get_configs(args):
@@ -41,6 +48,7 @@ def get_configs(args):
         "min_quote_level": args["min_quote_level"],
         "max_quote_level": args["max_quote_level"],
         "enter_spread": args["enter_spread"],
+        "concentration": args["concentration"],
     }
 
     eval_env_config = copy.deepcopy(env_config)
@@ -142,7 +150,7 @@ def parse_args():
         help="Bool for whether best quote is the midprice. Otherwise it is the best bid/best ask price",
         type=bool,
     )
-    # parser.add_argument("-con", "--concentration", default=10, help="Concentration of the order distributor.", type=int)
+    parser.add_argument("-con", "--concentration", default=0, help="Concentration of the order distributor.", type=int)
     parser.add_argument("-par", "--parallel", action="store_true", default=False, help="Run in parallel or not.")
     # ------------------ Eval env args -------------------------------
     parser.add_argument("-minde", "--min_date_eval", default="2019-01-03", help="Evaluation data start date.", type=str)
@@ -164,23 +172,15 @@ def parse_args():
         type=str,
     )
     parser.add_argument("-o", "--output", default="/home/data/", help="Directory to save episode data to.", type=str)
-    parser.add_argument("-ex", "--experiment", default="fixed_action_sweep", help="The experiment to run", type=str)
+    parser.add_argument("-ex", "--experiment", default="fixed_action_sweep", help="The experiment to run.", type=str)
+    parser.add_argument(
+        "-md", "--multiple_databases", action="store_true", default=False, help="Run using multiple databases."
+    )
     # -------------------------------------------------
     args = vars(parser.parse_args())
+    if args["concentration"] == 0:
+        args["concentration"] = None
     return args
-
-
-def import_get_env_configs_and_agents(experiment_name: str):
-    if experiment_name == "ladder_sweep":
-        from experiments.ladder_sweep import get_env_configs_and_agents
-    elif experiment_name == "fixed_action_sweep":
-        from experiments.fixed_action_sweep import get_env_configs_and_agents
-    elif experiment_name == "fixed_action_vs_teradactyl":
-        from experiments.fixed_action_vs_teradactyl import get_env_configs_and_agents
-    elif experiment_name == "teradactly_sweep":
-        from experiments.teradactyl_sweep import get_env_configs_and_agents
-    else:
-        raise NotImplementedError()
 
 
 if __name__ == "__main__":
@@ -192,7 +192,11 @@ if __name__ == "__main__":
     module = importlib.import_module(f"experiments." + args["experiment"])
     get_env_configs_and_agents = getattr(module, "get_env_configs_and_agents")
     env_configs, agents = get_env_configs_and_agents(env_config)
-    databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
+    if args["multiple_databases"]:
+        databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
+    else:
+        database = HistoricalDatabase()
+        databases = [database for _ in range(args["n_iterations"])]
 
     for agent in agents:
         for env_config in env_configs:
@@ -213,4 +217,5 @@ if __name__ == "__main__":
                 enter_spread=env_config["enter_spread"],
                 episode_summary_dict=emd1,
                 output_dir=args["output"],
+                experiment_name=experiment
             )

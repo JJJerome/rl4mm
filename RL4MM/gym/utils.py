@@ -17,6 +17,7 @@ from numpyencoder import NumpyEncoder
 
 from RL4MM.agents.Agent import Agent
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
+from RL4MM.database.PostgresEngine import MAX_POOL_SIZE
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.utils.utils import get_date_time
@@ -159,7 +160,7 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
     l = len(agent_lst)
     print(f"In get_episode_summary_dict_PARALLEL, running for {l} iterations")
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_POOL_SIZE) as executor:
 
         # futures = {executor.submit(f, arg): arg for arg in args_list}
 
@@ -226,6 +227,7 @@ def plot_reward_distributions(
     enter_spread,
     episode_summary_dict,
     output_dir,
+    experiment_name,
 ):
     sns.set()
 
@@ -317,8 +319,8 @@ def plot_reward_distributions(
         ticker, min_date, max_date, agent_name, episode_length, min_quote_level, max_quote_level, enter_spread
     )
 
-    pdf_path = os.path.join(output_dir, "outputs/pdfs")
-    json_path = os.path.join(output_dir, "outputs/jsons")
+    pdf_path = os.path.join(output_dir, "outputs", experiment_name, "pdfs")
+    json_path = os.path.join(output_dir, "outputs", experiment_name, "jsons")
     os.makedirs(pdf_path, exist_ok=True)
     os.makedirs(json_path, exist_ok=True)
     pdf_filename = os.path.join(pdf_path, f"{fname}.pdf")

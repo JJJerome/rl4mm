@@ -4,7 +4,7 @@ import numpy as np
 
 from RL4MM.agents.baseline_agents import FixedActionAgent
 
-INNER_QUOTES = [-2, -1, 0, 1, 2, 3]
+INNER_QUOTES = [6,7] #  [-2, -1, 0, 1, 2, 3]
 N_LEVELS = 10
 
 def get_env_configs_and_agents(env_config:dict):

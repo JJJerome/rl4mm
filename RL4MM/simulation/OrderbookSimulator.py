@@ -77,7 +77,6 @@ class OrderbookSimulator:
                 filled_internal_orders += filled
         self.now_is = until
         if self._near_exiting_initial_price_range:
-            print("updating outer levels")
             self.update_outer_levels()
         return filled_internal_orders
 
