@@ -101,7 +101,7 @@ class ContinuousTeradactyl(Agent):
         default_omega: float = 0.5,
         max_kappa: float = 10.0,
         exponent: float = 1.0,
-        market_clearing: bool = False
+        market_clearing: bool = False,
     ):
         self.max_inventory = max_inventory
         self.default_kappa = default_kappa

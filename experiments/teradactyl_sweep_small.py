@@ -1,7 +1,34 @@
-a_range = [2]
-b_range = [5]
-min_quote_range = [0]
-max_quote_range = [10]
-max_inv_range = [1000]
-default_omega_range = [0.1,0.5]
-kappa_range = [20]
+import numpy as np
+from copy import deepcopy
+
+from RL4MM.agents.baseline_agents import FixedActionAgent, ContinuousTeradactyl
+
+a_range = [1.01,2,5]
+b_range = [1.01,2,5]
+
+max_inv = 1000
+max_kappa = 20
+
+def get_env_configs_and_agents(env_config:dict):
+
+    env_configs = list()
+    agents = list()
+
+    for a in a_range:
+        for b in b_range:
+
+            if a == 1 and b == 1:
+                continue
+                
+            omega = ContinuousTeradactyl.calculate_omega(a, b)
+            kappa = ContinuousTeradactyl.calculate_kappa(a, b)
+
+            agents.append(ContinuousTeradactyl(max_inventory=max_inv, 
+                                               default_kappa=kappa, 
+                                               default_omega=omega, 
+                                               max_kappa=max_kappa))
+
+            env_conf = deepcopy(env_config)
+            env_configs.append(env_conf)
+
+    return env_configs, agents
