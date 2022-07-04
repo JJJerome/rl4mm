@@ -99,14 +99,16 @@ class ContinuousTeradactyl(Agent):
         max_inventory=None,
         default_kappa: float = 10.0,
         default_omega: float = 0.5,
-        max_kappa: float = 50.0,
+        max_kappa: float = 10.0,
         exponent: float = 1.0,
+        market_clearing: bool = False
     ):
         self.max_inventory = max_inventory
         self.default_kappa = default_kappa
         self.default_omega = default_omega
         self.max_kappa = max_kappa
         self.exponent = exponent
+        self.market_clearing = market_clearing
 
         if max_inventory is None:
             self.denom = 100
@@ -145,16 +147,17 @@ class ContinuousTeradactyl(Agent):
         inventory = state[3]
 
         omega_bid, omega_ask = self.get_omega_bid_and_ask(inventory)
+        kappa = self.get_kappa(inventory)
 
-        alpha_bid = self.calculate_alpha(omega_bid, self.default_kappa)
-        alpha_ask = self.calculate_alpha(omega_ask, self.default_kappa)
+        alpha_bid = self.calculate_alpha(omega_bid, kappa)
+        alpha_ask = self.calculate_alpha(omega_ask, kappa)
 
-        beta_bid = self.calculate_beta(omega_bid, self.default_kappa)
-        beta_ask = self.calculate_beta(omega_ask, self.default_kappa)
+        beta_bid = self.calculate_beta(omega_bid, kappa)
+        beta_ask = self.calculate_beta(omega_ask, kappa)
 
         tmp = np.array([alpha_bid, beta_bid, alpha_ask, beta_ask])
 
-        if self.max_inventory is not None:
+        if self.market_clearing is True:
             tmp = np.append(tmp, self.max_inventory * 2)
 
         return tmp
