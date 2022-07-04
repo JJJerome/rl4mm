@@ -22,8 +22,11 @@ from experiments.teradactyl_sweep import (
     kappa_range,
 )
 
-experiment_list = ["ladder_sweep", "fixed_action_sweep", "fixed_action_vs_teradactyl", "teradactly_sweep"]
-
+experiment_list = ["ladder_sweep", 
+                   "fixed_action_sweep", 
+                   "fixed_action_vs_teradactyl", 
+                   "teradactyl_sweep",
+                   "teradactyl_sweep_small"]
 
 def get_configs(args):
     # ray.init()
@@ -175,20 +178,6 @@ def parse_args():
     if args["concentration"] == 0:
         args["concentration"] = None
     return args
-
-
-def import_get_env_configs_and_agents(experiment_name: str):
-    if experiment_name == "ladder_sweep":
-        from experiments.ladder_sweep import get_env_configs_and_agents
-    elif experiment_name == "fixed_action_sweep":
-        from experiments.fixed_action_sweep import get_env_configs_and_agents
-    elif experiment_name == "fixed_action_vs_teradactyl":
-        from experiments.fixed_action_vs_teradactyl import get_env_configs_and_agents
-    elif experiment_name == "teradactly_sweep":
-        from experiments.teradactyl_sweep import get_env_configs_and_agents
-    else:
-        raise NotImplementedError()
-
 
 if __name__ == "__main__":
 
