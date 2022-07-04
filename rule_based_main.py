@@ -41,6 +41,7 @@ def get_configs(args):
         "min_quote_level": args["min_quote_level"],
         "max_quote_level": args["max_quote_level"],
         "enter_spread": args["enter_spread"],
+        "concentration": args["concentration"],
     }
 
     eval_env_config = copy.deepcopy(env_config)
@@ -164,7 +165,10 @@ def parse_args():
         type=str,
     )
     parser.add_argument("-o", "--output", default="/home/data/", help="Directory to save episode data to.", type=str)
-    parser.add_argument("-ex", "--experiment", default="fixed_action_sweep", help="The experiment to run", type=str)
+    parser.add_argument("-ex", "--experiment", default="fixed_action_sweep", help="The experiment to run.", type=str)
+    parser.add_argument(
+        "-sd", "--single_database", action="store_true", default=False, help="Run using a single postgres database."
+    )
     # -------------------------------------------------
     args = vars(parser.parse_args())
     if args["concentration"] == 0:
@@ -194,7 +198,11 @@ if __name__ == "__main__":
     module = importlib.import_module(f"experiments." + args["experiment"])
     get_env_configs_and_agents = getattr(module, "get_env_configs_and_agents")
     env_configs, agents = get_env_configs_and_agents(env_config)
-    databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
+    if args["single_database"]:
+        database = HistoricalDatabase()
+        databases = [database for _ in range(args["n_iterations"])]
+    else:
+        databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
 
     for agent in agents:
         for env_config in env_configs:
