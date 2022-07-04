@@ -217,4 +217,5 @@ if __name__ == "__main__":
                 enter_spread=env_config["enter_spread"],
                 episode_summary_dict=emd1,
                 output_dir=args["output"],
+                experiment_name=experiment
             )

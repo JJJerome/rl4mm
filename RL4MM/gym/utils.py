@@ -71,6 +71,7 @@ def generate_trajectory(agent: Agent, env: gym.Env):
     observations.append(obs)
     while True:
         action = agent.get_action(obs)  # type:ignore
+        print(action)
         obs, reward, done, info = env.step(action)
         observations.append(obs)
         actions.append(action)
@@ -227,6 +228,7 @@ def plot_reward_distributions(
     enter_spread,
     episode_summary_dict,
     output_dir,
+    experiment_name,
 ):
     sns.set()
 
@@ -318,8 +320,8 @@ def plot_reward_distributions(
         ticker, min_date, max_date, agent_name, episode_length, min_quote_level, max_quote_level, enter_spread
     )
 
-    pdf_path = os.path.join(output_dir, "outputs/pdfs")
-    json_path = os.path.join(output_dir, "outputs/jsons")
+    pdf_path = os.path.join(output_dir, "outputs", experiment_name, "pdfs")
+    json_path = os.path.join(output_dir, "outputs", experiment_name, "jsons")
     os.makedirs(pdf_path, exist_ok=True)
     os.makedirs(json_path, exist_ok=True)
     pdf_filename = os.path.join(pdf_path, f"{fname}.pdf")
