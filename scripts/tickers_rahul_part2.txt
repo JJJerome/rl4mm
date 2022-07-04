@@ -1,3 +1,2 @@
 CAT
-GE 
-HPQ
+GE
