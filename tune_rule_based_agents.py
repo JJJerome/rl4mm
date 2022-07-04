@@ -3,8 +3,8 @@ from ray.tune.schedulers import PopulationBasedTraining
 from RL4MM.agents.baseline_agent_wrappers import (
     FixedActionAgentWrapper,
     TeradactylAgentWrapper,
-    ContinuousTeradactylWrapper
-    )
+    ContinuousTeradactylWrapper,
+)
 from RL4MM.utils.utils import boolean_string
 from ray.tune.registry import register_env
 from RL4MM.gym.utils import env_creator
@@ -18,8 +18,9 @@ import os
 
 from ray.tune.suggest.bayesopt import BayesOptSearch
 
+
 def main(args):
-    ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"] + args["num_workers_eval"] )
+    ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"] + args["num_workers_eval"])
     register_env("HistoricalOrderbookEnvironment", env_creator)
     env_config = {
         "ticker": args["ticker"],
@@ -35,9 +36,9 @@ def main(args):
         "per_step_reward_function": args["per_step_reward_function"],
         "terminal_reward_function": args["terminal_reward_function"],
         "market_order_clearing": args["market_order_clearing"],
-        "market_order_fraction_of_inventory":args["market_order_fraction_of_inventory"],
+        "market_order_fraction_of_inventory": args["market_order_fraction_of_inventory"],
         "inc_prev_action_in_obs": args["inc_prev_action_in_obs"],
-        "concentration":None,
+        "concentration": None,
         "min_quote_level": args["min_quote_level"],
         "max_quote_level": args["max_quote_level"],
         "enter_spread": args["enter_spread"],
@@ -48,47 +49,47 @@ def main(args):
     eval_env_config["max_date"] = args["max_date_eval"]
     eval_env_config["per_step_reward_function"] = args["eval_per_step_reward_function"]
     eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
-    eval_env_config["per_step_reward_function"] = 'PnL'
-    eval_env_config["terminal_reward_function"] = 'PnL'
+    eval_env_config["per_step_reward_function"] = "PnL"
+    eval_env_config["terminal_reward_function"] = "PnL"
 
-    if args['rule_based_agent'] == 'fixed':
+    if args["rule_based_agent"] == "fixed":
         custom_model_config = {
-            "a_1":tune.uniform(1, 10),
-            "a_2":tune.uniform(1, 10),
-            "b_1":tune.uniform(1, 10),
-            "b_2":tune.uniform(1, 10),
-            "threshold":tune.uniform(500, 1000),
-            }
+            "a_1": tune.uniform(1, 10),
+            "a_2": tune.uniform(1, 10),
+            "b_1": tune.uniform(1, 10),
+            "b_2": tune.uniform(1, 10),
+            "threshold": tune.uniform(500, 1000),
+        }
         rule_based_agent = FixedActionAgentWrapper
-    elif args['rule_based_agent'] == 'teradactyl':
+    elif args["rule_based_agent"] == "teradactyl":
         custom_model_config = {
-            "kappa":tune.uniform(10., 10.), 
-            "default_a":tune.uniform(3., 4.), 
-            "default_b":tune.uniform(1., 2.),
-            "max_inventory":args["max_inventory"]
-            }
+            "kappa": tune.uniform(10.0, 10.0),
+            "default_a": tune.uniform(3.0, 4.0),
+            "default_b": tune.uniform(1.0, 2.0),
+            "max_inventory": args["max_inventory"],
+        }
         rule_based_agent = TeradactylAgentWrapper
-    elif args['rule_based_agent'] == 'continuous_teradactyl':
+    elif args["rule_based_agent"] == "continuous_teradactyl":
         custom_model_config = {
-            "default_kappa":tune.uniform(10., 11.), 
-            "default_omega":tune.uniform(0.4, 0.6), 
-            "max_kappa":tune.uniform(45., 55.),
-            "max_inventory":args["max_inventory"]
-            }
+            "default_kappa": tune.uniform(10.0, 11.0),
+            "default_omega": tune.uniform(0.4, 0.6),
+            "max_kappa": tune.uniform(45.0, 55.0),
+            "max_inventory": args["max_inventory"],
+        }
         rule_based_agent = ContinuousTeradactylWrapper
     else:
         raise Exception(f"{args['rule_based_agent']} wrapper not implemented.")
 
     config = {
         "env": "HistoricalOrderbookEnvironment",
-        #-----------------
+        # -----------------
         "simple_optimizer": True,
-        "_fake_gpus": 0, 
+        "_fake_gpus": 0,
         "num_workers": 0,
         "train_batch_size": 0,
-        #"rollout_fragment_length": 0,
+        # "rollout_fragment_length": 0,
         "timesteps_per_iteration": 0,
-        #-----------------
+        # -----------------
         "framework": args["framework"],
         "num_cpus_per_worker": 1,
         "model": {"custom_model_config": custom_model_config},
@@ -101,10 +102,10 @@ def main(args):
     }
 
     # ---------------- For testing.... ----------------------
-    #Uncomment for basic testing
-    #print(rule_based_agent(config=config).train())
-    #print(FixedActionAgentWrapper(config=config).evaluate())
-    # -------------------------------------------------------   
+    # Uncomment for basic testing
+    # print(rule_based_agent(config=config).train())
+    # print(FixedActionAgentWrapper(config=config).evaluate())
+    # -------------------------------------------------------
     tensorboard_logdir = args["tensorboard_logdir"]
     analysis = tune.run(
         rule_based_agent,
@@ -116,17 +117,18 @@ def main(args):
         checkpoint_at_end=True,
     )
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="")
     # -------------------- Agent ----------------------
     parser.add_argument(
-        "-rba", 
-        "--rule_based_agent", 
-        default="continuous_teradactyl", 
+        "-rba",
+        "--rule_based_agent",
+        default="continuous_teradactyl",
         choices=["fixed", "teradactyl", "continuous_teradactyl"],
-        help="Specify rule based agent.", 
-        type=str
-        )
+        help="Specify rule based agent.",
+        type=str,
+    )
     # -------------------- Training Args ----------------------
     parser.add_argument("-nw", "--num_workers", default=5, help="Number of workers to use during training.", type=int)
     parser.add_argument(
@@ -135,13 +137,13 @@ if __name__ == "__main__":
     parser.add_argument("-fw", "--framework", default="torch", help="Framework, torch or tf.", type=str)
     parser.add_argument("-i", "--iterations", default=1000, help="Training iterations.", type=int)
     parser.add_argument(
-        "-f", 
-        "--features", 
-        default="full_state", 
+        "-f",
+        "--features",
+        default="full_state",
         choices=["agent_state", "full_state"],
-        help="Agent state only or full state.", 
-        type=str
-        )
+        help="Agent state only or full state.",
+        type=str,
+    )
     parser.add_argument(
         "-rfl",
         "--rollout_fragment_length",
@@ -187,7 +189,11 @@ if __name__ == "__main__":
         "-moc", "--market_order_clearing", default=True, help="Market order clearing on/off.", type=boolean_string
     )
     parser.add_argument(
-        "-mofi", "--market_order_fraction_of_inventory", default=1.0, help="Market order fraction of inventory.", type=float
+        "-mofi",
+        "--market_order_fraction_of_inventory",
+        default=1.0,
+        help="Market order fraction of inventory.",
+        type=float,
     )
     parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
     parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
@@ -222,4 +228,3 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     # -------------------  Run ------------------------
     main(args)
-
