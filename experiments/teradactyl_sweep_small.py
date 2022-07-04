@@ -24,8 +24,8 @@ def get_env_configs_and_agents(env_config:dict):
             kappa = ContinuousTeradactyl.calculate_kappa(a, b)
 
             agents.append(ContinuousTeradactyl(max_inventory=max_inv, 
-                                               default_kappa=omega,
-                                               default_omega=kappa,
+                                               default_kappa=kappa,
+                                               default_omega=omega,
                                                max_kappa=max_kappa))
 
     return env_configs, agents
