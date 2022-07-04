@@ -11,7 +11,7 @@ max_kappa = 20
 
 def get_env_configs_and_agents(env_config:dict):
 
-    env_configs = list()
+    env_configs = [env_config]
     agents = list()
 
     for a in a_range:
@@ -19,16 +19,13 @@ def get_env_configs_and_agents(env_config:dict):
 
             if a == 1 and b == 1:
                 continue
-                
+
             omega = ContinuousTeradactyl.calculate_omega(a, b)
             kappa = ContinuousTeradactyl.calculate_kappa(a, b)
 
             agents.append(ContinuousTeradactyl(max_inventory=max_inv, 
-                                               default_kappa=kappa, 
-                                               default_omega=omega, 
+                                               default_kappa=omega,
+                                               default_omega=kappa,
                                                max_kappa=max_kappa))
-
-            env_conf = deepcopy(env_config)
-            env_configs.append(env_conf)
 
     return env_configs, agents
