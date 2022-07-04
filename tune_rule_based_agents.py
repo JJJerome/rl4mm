@@ -17,6 +17,7 @@ import ray
 import os
 
 from ray.tune.suggest.bayesopt import BayesOptSearch
+from ray.tune.suggest import ConcurrencyLimiter
 
 def main(args):
     ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"] + args["num_workers_eval"] )
@@ -46,8 +47,6 @@ def main(args):
     eval_env_config = copy.deepcopy(env_config)
     eval_env_config["min_date"] = args["min_date_eval"]
     eval_env_config["max_date"] = args["max_date_eval"]
-    eval_env_config["per_step_reward_function"] = args["eval_per_step_reward_function"]
-    eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
     eval_env_config["per_step_reward_function"] = 'PnL'
     eval_env_config["terminal_reward_function"] = 'PnL'
 
@@ -105,11 +104,19 @@ def main(args):
     #print(rule_based_agent(config=config).train())
     #print(FixedActionAgentWrapper(config=config).evaluate())
     # -------------------------------------------------------   
-    tensorboard_logdir = args["tensorboard_logdir"]
+    tensorboard_logdir = f"{args['tensorboard_logdir']}{args['experiment']}/{args['per_step_reward_function']}"
+    search_alg = BayesOptSearch(metric="episode_reward_mean", mode="max")
+    # Use ray.tune.suggest.ConcurrencyLimiter to limit the amount of 
+    # concurrency when using a search algorithm. This is useful when 
+    # a given optimization algorithm does not parallelize very well 
+    # (like a naive Bayesian Optimization).
+    # https://docs.ray.io/en/latest/tune/api_docs/suggestion.html#limiter
+    search_alg = ConcurrencyLimiter(search_alg, max_concurrent=2)
     analysis = tune.run(
         rule_based_agent,
-        search_alg=BayesOptSearch(metric="episode_reward_mean", mode="max"),
-        num_samples=5,
+        name=args["ticker"],
+        search_alg=search_alg,
+        num_samples=10,
         stop={"training_iteration": args["iterations"]},
         config=config,
         local_dir=tensorboard_logdir,
@@ -128,9 +135,9 @@ if __name__ == "__main__":
         type=str
         )
     # -------------------- Training Args ----------------------
-    parser.add_argument("-nw", "--num_workers", default=5, help="Number of workers to use during training.", type=int)
+    parser.add_argument("-nw", "--num_workers", default=10, help="Number of workers to use during training.", type=int)
     parser.add_argument(
-        "-nwe", "--num_workers_eval", default=1, help="Number of workers used during evaluation.", type=int
+        "-nwe", "--num_workers_eval", default=10, help="Number of workers used during evaluation.", type=int
     )
     parser.add_argument("-fw", "--framework", default="torch", help="Framework, torch or tf.", type=str)
     parser.add_argument("-i", "--iterations", default=1000, help="Training iterations.", type=int)
@@ -156,6 +163,7 @@ if __name__ == "__main__":
         help="Directory to save tensorboard logs to.",
         type=str,
     )
+    parser.add_argument("-ex", "--experiment", default="bayesopt", help="The experiment to run", type=str)
     # -------------------- Training env Args ---------------------------
     parser.add_argument("-ia", "--inc_prev_action_in_obs", default=True, help="Include prev action in obs.", type=bool)
     parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=bool)
@@ -163,14 +171,14 @@ if __name__ == "__main__":
     parser.add_argument("-maxd", "--max_date", default="2018-03-05", help="Train data end date.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
-    parser.add_argument("-nl", "--n_levels", default=200, help="Number of orderbook levels.", type=int)
-    parser.add_argument("-sz", "--step_size", default=1, help="Step size in seconds.", type=int)
+    parser.add_argument("-nl", "--n_levels", default=50, help="Number of orderbook levels.", type=int)
+    parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=int)
     parser.add_argument("-t", "--ticker", default="SPY", help="Specify stock ticker.", type=str)
     parser.add_argument("-mi", "--max_inventory", default=10000, help="Maximum (absolute) inventory.", type=int)
     parser.add_argument(
         "-psr",
         "--per_step_reward_function",
-        default="AD",
+        default="PnL",
         choices=["AD", "SD", "PnL"],
         help="Per step reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
