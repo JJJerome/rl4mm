@@ -167,7 +167,7 @@ def parse_args():
     parser.add_argument("-o", "--output", default="/home/data/", help="Directory to save episode data to.", type=str)
     parser.add_argument("-ex", "--experiment", default="fixed_action_sweep", help="The experiment to run.", type=str)
     parser.add_argument(
-        "-sd", "--single_database", action="store_true", default=False, help="Run using a single postgres database."
+        "-md", "--multiple_databases", action="store_true", default=False, help="Run using multiple databases."
     )
     # -------------------------------------------------
     args = vars(parser.parse_args())
@@ -198,11 +198,12 @@ if __name__ == "__main__":
     module = importlib.import_module(f"experiments." + args["experiment"])
     get_env_configs_and_agents = getattr(module, "get_env_configs_and_agents")
     env_configs, agents = get_env_configs_and_agents(env_config)
-    if args["single_database"]:
+    if args["multiple_databases"]:
+        databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
+    else:
         database = HistoricalDatabase()
         databases = [database for _ in range(args["n_iterations"])]
-    else:
-        databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
+        assert args["n_iterations"] <= database.engine.pool_size
 
     for agent in agents:
         for env_config in env_configs:

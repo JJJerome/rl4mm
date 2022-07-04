@@ -5,6 +5,8 @@ from sqlalchemy import create_engine
 
 from RL4MM.helpers.env import setup_environment_variables
 
+MAX_POOL_SIZE = 30
+
 
 class PostgresConfig(TypedDict):
     host: str
@@ -24,7 +26,7 @@ class PostgresEngine:
         password: str = None,
     ):
         self.config = self.__get_config(host, port, database, user, password)
-        self.engine = create_engine(self._construct_url(self.config), pool_size=80, max_overflow=20)
+        self.engine = create_engine(self._construct_url(self.config), pool_size=MAX_POOL_SIZE, max_overflow=20)
 
     @staticmethod
     def __get_config(
