@@ -101,7 +101,7 @@ class ContinuousTeradactyl(Agent):
         default_omega: float = 0.5,
         max_kappa: float = 10.0,
         exponent: float = 1.0,
-        market_clearing: bool = False
+        market_clearing: bool = False,
     ):
         self.max_inventory = max_inventory
         self.default_kappa = default_kappa
@@ -109,6 +109,7 @@ class ContinuousTeradactyl(Agent):
         self.max_kappa = max_kappa
         self.exponent = exponent
         self.market_clearing = market_clearing
+        self.eps = 0.00001 # np.finfo(float).eps
 
         if max_inventory is None:
             self.denom = 100
@@ -129,7 +130,10 @@ class ContinuousTeradactyl(Agent):
         return omega_bid, omega_ask
 
     def get_kappa(self, inventory: int):
-        return (self.max_kappa - self.default_kappa) * abs(inventory) / self.max_inventory + self.default_kappa
+        return (
+            abs((self.max_kappa - self.default_kappa) * inventory / self.max_inventory) ** self.exponent
+            + self.default_kappa
+        )
 
     def get_action(self, state: np.ndarray) -> np.ndarray:
 
@@ -173,9 +177,11 @@ class ContinuousTeradactyl(Agent):
     def calculate_beta(omega, kappa):
         return (1 - omega) * (kappa - 2) + 1
 
-    @staticmethod
-    def clamp_to_unit(x: float):
-        return max(min(x, 1), -1)
+    def clamp_to_unit(self, x: float, strict_containment: bool = True):
+        if strict_containment:
+            return max(min(x, 1 - self.eps), -1 + self.eps)
+        else:
+            return max(min(x, 1), -1)
 
     @staticmethod
     def calculate_omega(alpha: float, beta: float):
