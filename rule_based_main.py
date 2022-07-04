@@ -204,7 +204,6 @@ if __name__ == "__main__":
     else:
         database = HistoricalDatabase()
         databases = [database for _ in range(args["n_iterations"])]
-        assert args["n_iterations"] <= MAX_POOL_SIZE
 
     for agent in agents:
         for env_config in env_configs:
