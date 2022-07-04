@@ -33,7 +33,7 @@ def fname_to_dict(fname):
 if __name__ == '__main__':
 
     args = parse_args()
-    fpath = args.path_to_json
+    fpath = args.path_to_jsons
 
     lst = []
 
