@@ -2,7 +2,7 @@ AXP
 BA
 BAC
 CAT
-GE 
+GE
 HPQ
 IBM
 JNJ
