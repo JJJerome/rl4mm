@@ -9,6 +9,5 @@ JNJ
 JPM
 KO
 MMM
-NVDA
 TXN
 WMT
