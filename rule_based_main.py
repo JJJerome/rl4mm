@@ -178,7 +178,6 @@ if __name__ == "__main__":
     args = parse_args()
     env_config, _ = get_configs(args)
     experiment = args["experiment"]
-    assert experiment in experiment_list, f"Experiment name {experiment} not in list of experiments {experiment_list}."
     module = importlib.import_module(f"experiments." + args["experiment"])
     get_env_configs_and_agents = getattr(module, "get_env_configs_and_agents")
     env_configs, agents = get_env_configs_and_agents(env_config)
