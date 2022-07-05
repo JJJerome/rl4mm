@@ -109,7 +109,7 @@ class ContinuousTeradactyl(Agent):
         self.max_kappa = max_kappa
         self.exponent = exponent
         self.market_clearing = market_clearing
-        self.eps = 0.00001 # np.finfo(float).eps
+        self.eps = 0.00001  # np.finfo(float).eps
 
         if max_inventory is None:
             self.denom = 100

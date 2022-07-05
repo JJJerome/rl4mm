@@ -48,8 +48,8 @@ def main(args):
     eval_env_config = copy.deepcopy(env_config)
     eval_env_config["min_date"] = args["min_date_eval"]
     eval_env_config["max_date"] = args["max_date_eval"]
-    eval_env_config["per_step_reward_function"] = 'PnL'
-    eval_env_config["terminal_reward_function"] = 'PnL'
+    eval_env_config["per_step_reward_function"] = "PnL"
+    eval_env_config["terminal_reward_function"] = "PnL"
 
     if args["rule_based_agent"] == "fixed":
         custom_model_config = {
@@ -101,15 +101,15 @@ def main(args):
     }
 
     # ---------------- For testing.... ----------------------
-    #Uncomment for basic testing
-    #print(rule_based_agent(config=config).train())
-    #print(FixedActionAgentWrapper(config=config).evaluate())
-    # -------------------------------------------------------   
+    # Uncomment for basic testing
+    # print(rule_based_agent(config=config).train())
+    # print(FixedActionAgentWrapper(config=config).evaluate())
+    # -------------------------------------------------------
     tensorboard_logdir = f"{args['tensorboard_logdir']}{args['experiment']}/{args['per_step_reward_function']}"
     search_alg = BayesOptSearch(metric="episode_reward_mean", mode="max")
-    # Use ray.tune.suggest.ConcurrencyLimiter to limit the amount of 
-    # concurrency when using a search algorithm. This is useful when 
-    # a given optimization algorithm does not parallelize very well 
+    # Use ray.tune.suggest.ConcurrencyLimiter to limit the amount of
+    # concurrency when using a search algorithm. This is useful when
+    # a given optimization algorithm does not parallelize very well
     # (like a naive Bayesian Optimization).
     # https://docs.ray.io/en/latest/tune/api_docs/suggestion.html#limiter
     search_alg = ConcurrencyLimiter(search_alg, max_concurrent=2)
