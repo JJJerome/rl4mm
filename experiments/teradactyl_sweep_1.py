@@ -1,7 +1,7 @@
 min_quote_range = [0]  # [1, 0, -1]
 max_quote_range = [10]  # [10, 15, 20]
 default_omega_range = [0.1, 0.3]  # to reduce. Choose one
-default_kappa_range = [6]  # maybe to reduce. Choose one
+default_kappa_range = [4]  # maybe to reduce. Choose one
 
 from RL4MM.agents.baseline_agents import ContinuousTeradactyl
 
