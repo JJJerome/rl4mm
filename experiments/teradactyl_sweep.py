@@ -1,13 +1,13 @@
 min_quote_range = [0]  # [1, 0, -1]
 max_quote_range = [10]  # [10, 15, 20]
-default_omega_range = [0.2]  # to reduce. Choose one
-default_kappa_range = [5]  # maybe to reduce. Choose one
+default_omega_range = [0.1, 0.3]  # to reduce. Choose one
+default_kappa_range = [6]  # maybe to reduce. Choose one
 
 from RL4MM.agents.baseline_agents import ContinuousTeradactyl
 
 
-kappa_scaling_range = [3,5,10]
-max_inv_range = [200,500,1000]
+kappa_scaling_range = [1,5,10]
+max_inv_range = [200,1000]
 
 
 def get_env_configs_and_agents(env_config:dict):
