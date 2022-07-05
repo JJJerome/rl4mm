@@ -131,7 +131,7 @@ class ContinuousTeradactyl(Agent):
 
     def get_kappa(self, inventory: int):
         return (
-            abs((self.max_kappa - self.default_kappa) * inventory / self.max_inventory) ** self.exponent
+            (self.max_kappa - self.default_kappa) * abs(inventory / self.max_inventory) ** self.exponent
             + self.default_kappa
         )
 
