@@ -16,8 +16,10 @@ import copy
 import ray
 import os
 
+from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.tune.suggest.bayesopt import BayesOptSearch
 from ray.tune.suggest import ConcurrencyLimiter
+
 
 
 def main(args):
@@ -70,14 +72,26 @@ def main(args):
         rule_based_agent = TeradactylAgentWrapper
     elif args["rule_based_agent"] == "continuous_teradactyl":
         custom_model_config = {
-            "default_kappa": tune.uniform(10.0, 11.0),
-            "default_omega": tune.uniform(0.4, 0.6),
-            "max_kappa": tune.uniform(45.0, 55.0),
+            "default_kappa": tune.uniform(3.0, 15.0),
+            "default_omega": tune.uniform(0.1, 0.5),
+            "max_kappa": tune.uniform(10.0, 100.0),
             "max_inventory": args["max_inventory"],
         }
+        """
+        space = {
+            "model":{
+                "custom_model_config": {
+                    "default_kappa": (3.0, 15.0),
+                    "default_omega": (0.1, 0.5),
+                    "max_kappa": (10.0, 100.0),
+                }
+            }
+        }
+        """
         rule_based_agent = ContinuousTeradactylWrapper
     else:
         raise Exception(f"{args['rule_based_agent']} wrapper not implemented.")
+
 
     config = {
         "env": "HistoricalOrderbookEnvironment",
@@ -86,14 +100,14 @@ def main(args):
         "_fake_gpus": 0,
         "num_workers": 0,
         "train_batch_size": 0,
-        # "rollout_fragment_length": 0,
+        "rollout_fragment_length": 3600,
         "timesteps_per_iteration": 0,
         # -----------------
         "framework": args["framework"],
         "num_cpus_per_worker": 1,
         "model": {"custom_model_config": custom_model_config},
         "env_config": env_config,
-        "evaluation_interval": 1,  # Run one evaluation step on every 3rd `Trainer.train()` call.
+        "evaluation_interval": 1,  
         "evaluation_num_workers": args["num_workers_eval"],
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
@@ -106,23 +120,61 @@ def main(args):
     #print(FixedActionAgentWrapper(config=config).evaluate())
     # -------------------------------------------------------   
     tensorboard_logdir = f"{args['tensorboard_logdir']}{args['experiment']}/{args['per_step_reward_function']}"
-    search_alg = BayesOptSearch(metric="episode_reward_mean", mode="max")
+    #search_alg = BayesOptSearch(
+    #    utility_kwargs={"kind": "ucb", "kappa": 2.5, "xi": 0.0}
+    #    )
     # Use ray.tune.suggest.ConcurrencyLimiter to limit the amount of 
     # concurrency when using a search algorithm. This is useful when 
     # a given optimization algorithm does not parallelize very well 
     # (like a naive Bayesian Optimization).
     # https://docs.ray.io/en/latest/tune/api_docs/suggestion.html#limiter
-    search_alg = ConcurrencyLimiter(search_alg, max_concurrent=2)
+    #search_alg = ConcurrencyLimiter(search_alg, max_concurrent=4)
+    #scheduler = AsyncHyperBandScheduler()
+    """
     analysis = tune.run(
         rule_based_agent,
         name=args["ticker"],
         search_alg=search_alg,
+        scheduler=scheduler,
+        metric="episode_reward_mean", 
+        mode="max",
         num_samples=10,
         stop={"training_iteration": args["iterations"]},
         config=config,
         local_dir=tensorboard_logdir,
         checkpoint_at_end=True,
     )
+    """
+    algo = BayesOptSearch(
+        utility_kwargs={"kind": "ucb", "kappa": 2.5, "xi": 0.0},
+        random_search_steps=5, 
+    )
+    algo = ConcurrencyLimiter(algo, max_concurrent=10)
+    scheduler = AsyncHyperBandScheduler()
+    analysis = tune.run(
+        #easy_objective,
+        rule_based_agent,
+        #name="my_exp",
+        name=args["ticker"],
+        #metric="mean_loss",
+        metric="episode_reward_mean", 
+        #mode="min",
+        mode="max",
+        search_alg=algo,
+        scheduler=scheduler,
+        num_samples=1000, #if args.smoke_test else 1000,
+        config=config,
+        #config={
+        #    "steps": 100,
+        #    "width": tune.uniform(0, 20),
+        #    "height": tune.uniform(-100, 100),
+        #},
+        local_dir=tensorboard_logdir,
+        checkpoint_at_end=True,
+        resume="AUTO",
+        stop={"training_iteration":1},# args["iterations"]},
+    )
+    print("Best hyperparameters found were: ", analysis.best_config)
 
 
 if __name__ == "__main__":
@@ -137,9 +189,9 @@ if __name__ == "__main__":
         type=str,
     )
     # -------------------- Training Args ----------------------
-    parser.add_argument("-nw", "--num_workers", default=10, help="Number of workers to use during training.", type=int)
+    parser.add_argument("-nw", "--num_workers", default=20, help="Number of workers to use during training.", type=int)
     parser.add_argument(
-        "-nwe", "--num_workers_eval", default=10, help="Number of workers used during evaluation.", type=int
+        "-nwe", "--num_workers_eval", default=1, help="Number of workers used during evaluation.", type=int
     )
     parser.add_argument("-fw", "--framework", default="torch", help="Framework, torch or tf.", type=str)
     parser.add_argument("-i", "--iterations", default=1000, help="Training iterations.", type=int)
@@ -168,7 +220,7 @@ if __name__ == "__main__":
     parser.add_argument("-ex", "--experiment", default="bayesopt", help="The experiment to run", type=str)
     # -------------------- Training env Args ---------------------------
     parser.add_argument("-ia", "--inc_prev_action_in_obs", default=True, help="Include prev action in obs.", type=bool)
-    parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=bool)
+    parser.add_argument("-n", "--normalisation_on", default=False, help="Normalise features.", type=bool)
     parser.add_argument("-mind", "--min_date", default="2018-02-20", help="Train data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2018-03-05", help="Train data end date.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
@@ -194,12 +246,12 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument(
-        "-moc", "--market_order_clearing", default=True, help="Market order clearing on/off.", type=boolean_string
+        "-moc", "--market_order_clearing", default=False, help="Market order clearing on/off.", type=boolean_string
     )
     parser.add_argument(
         "-mofi",
         "--market_order_fraction_of_inventory",
-        default=1.0,
+        default=None,
         help="Market order fraction of inventory.",
         type=float,
     )
