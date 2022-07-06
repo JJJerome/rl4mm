@@ -8,10 +8,10 @@ from RL4MM.agents.baseline_agents import ContinuousTeradactyl
 
 kappa_scaling_range = [10]
 max_inv_range = [300]
-exponent_range = [1.5,2]
+exponent_range = [1.5, 2]
 
 
-def get_env_configs_and_agents(env_config:dict):
+def get_env_configs_and_agents(env_config: dict):
     env_configs = [env_config]
     agents = list()
 
@@ -19,10 +19,14 @@ def get_env_configs_and_agents(env_config:dict):
         for default_kappa in default_kappa_range:
             for kappa_scaling in kappa_scaling_range:
                 for max_inv in max_inv_range:
-                    agents.append(ContinuousTeradactyl(max_inventory=max_inv,
-                                                       default_kappa=default_kappa,
-                                                       default_omega=default_omega,
-                                                       max_kappa=default_kappa*kappa_scaling))
+                    for exponent in exponent_range:
+                        agents.append(
+                            ContinuousTeradactyl(
+                                max_inventory=max_inv,
+                                default_kappa=default_kappa,
+                                default_omega=default_omega,
+                                max_kappa=default_kappa * kappa_scaling,
+                                exponent=exponent,
+                            ),
+                        )
     return env_configs, agents
-
-

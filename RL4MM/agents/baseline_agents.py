@@ -130,10 +130,9 @@ class ContinuousTeradactyl(Agent):
         return omega_bid, omega_ask
 
     def get_kappa(self, inventory: int):
-        return (
-            (self.max_kappa - self.default_kappa) * abs(inventory / self.max_inventory) ** self.exponent
-            + self.default_kappa
-        )
+        return (self.max_kappa - self.default_kappa) * abs(
+            inventory / self.max_inventory
+        ) ** self.exponent + self.default_kappa
 
     def get_action(self, state: np.ndarray) -> np.ndarray:
 
@@ -167,7 +166,7 @@ class ContinuousTeradactyl(Agent):
         return tmp
 
     def get_name(self):
-        return f"ContinuousTeradactyl_def_omega_{self.default_omega}_def_kappa_{self.default_kappa}_max_inv_{self.max_inventory}_max_kappa_{self.max_kappa}"
+        return f"ContinuousTeradactyl_def_omega_{self.default_omega}_def_kappa_{self.default_kappa}_max_inv_{self.max_inventory}_max_kappa_{self.max_kappa}_exponent_{self.exponent}"
 
     @staticmethod
     def calculate_alpha(omega, kappa):
