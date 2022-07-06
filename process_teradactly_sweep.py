@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
         lst.append(tmp)
 
-    df = pd.DataFrame.from_records(lst)
+    df_all = pd.DataFrame.from_records(lst)
 
     # print(df.sort_values(["minq", "ticker"]))
 
@@ -115,9 +115,9 @@ if __name__ == "__main__":
         return list(itertools.chain.from_iterable(x))
 
     df_list = []
-    df_list.append(df.groupby(strategy_params)['mean'].apply(count_pos))
-    df_list.append(df.groupby(strategy_params)['returns'].apply(concat_lists).apply(lambda x: np.mean(x)))
-    df_list.append(df.groupby(strategy_params)['returns'].apply(concat_lists).apply(lambda x: np.std(x)))
+    df_list.append(df_all.groupby(strategy_params)['mean'].apply(count_pos))
+    df_list.append(df_all.groupby(strategy_params)['returns'].apply(concat_lists).apply(lambda x: np.mean(x)))
+    df_list.append(df_all.groupby(strategy_params)['returns'].apply(concat_lists).apply(lambda x: np.std(x)))
 
     from functools import reduce
     df = reduce(lambda df1,df2: pd.merge(df1,df2,left_index=True, right_index=True), df_list)
@@ -134,3 +134,9 @@ if __name__ == "__main__":
     df.to_csv('test.csv',index=False,float_format="%.2f")
 
     print(df.sort_values('nprofitable'))
+
+
+
+    tickers = list(start_prices.keys()) 
+    missing_tickers = lambda x: [t for t in tickers if t not in np.unique(x['ticker'])] 
+    df_all.groupby(strategy_params).apply(missing_tickers)
