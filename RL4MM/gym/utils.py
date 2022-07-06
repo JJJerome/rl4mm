@@ -103,14 +103,29 @@ def get_episode_summary_dict(
 
 
 def get_episode_summary_dict_NONPARALLEL(agent: Agent, env: gym.Env, n_iterations: int = 100):
-    episode_summary_dict: Dict = {"equity_curves": [], "rewards": [], "actions": [], "inventory": [], "spread": []}
+    episode_summary_dict: Dict = {
+        "equity_curves": [],
+        "rewards": [],
+        "actions": [],
+        "inventory": [],
+        "spread": [],
+        "inventories": [],
+        "asset_prices": [],
+        "agent_midprice_offsets": [],
+    }
     for _ in tqdm(range(n_iterations), desc="Simulating trajectories"):
         d = generate_trajectory(agent=agent, env=env)
         episode_summary_dict["equity_curves"].append(d["rewards"])
         episode_summary_dict["rewards"].append(np.mean(d["rewards"]))
         episode_summary_dict["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
-        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
         episode_summary_dict["spread"].append(np.mean([info["market_spread"] for info in d["infos"]]))
+        inventories = np.array([info["market_spread"] for info in d["infos"]])
+        asset_prices = np.array([info["asset_price"] for info in d["infos"]])
+        midprice_offsets = np.array([info["weighted_midprice_offset"] for info in d["infos"]])
+        episode_summary_dict["inventories"].append(inventories)
+        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
+        episode_summary_dict["agent_midprice_offsets"] = midprice_offsets
+        episode_summary_dict["asset_prices"] = asset_prices
     return episode_summary_dict
 
 
@@ -142,15 +157,29 @@ def process_parallel_results(results):
 
     """
 
-    episode_summary_dict: Dict = {"equity_curves": [], "rewards": [], "actions": [], "inventory": [], "spread": []}
+    episode_summary_dict: Dict = {
+        "equity_curves": [],
+        "rewards": [],
+        "actions": [],
+        "inventory": [],
+        "spread": [],
+        "inventories": [],
+        "asset_prices": [],
+        "agent_midprice_offsets": [],
+    }
 
     for d in results:
         episode_summary_dict["equity_curves"].append(d["rewards"])
         episode_summary_dict["rewards"].append(np.mean(d["rewards"]))
         episode_summary_dict["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
-        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
         episode_summary_dict["spread"].append(np.mean([info["market_spread"] for info in d["infos"]]))
-
+        inventories = np.array([info["market_spread"] for info in d["infos"]])
+        asset_prices = np.array([info["asset_price"] for info in d["infos"]])
+        midprice_offsets = np.array([info["weighted_midprice_offset"] for info in d["infos"]])
+        episode_summary_dict["inventories"].append(inventories)
+        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
+        episode_summary_dict["agent_midprice_offsets"] = midprice_offsets
+        episode_summary_dict["asset_prices"] = asset_prices
     return episode_summary_dict
 
 

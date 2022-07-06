@@ -5,22 +5,9 @@ import numpy as np
 import importlib
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.database.PostgresEngine import MAX_POOL_SIZE
-from RL4MM.gym.utils import env_creator
-from RL4MM.gym.utils import generate_trajectory, plot_reward_distributions, get_episode_summary_dict
-from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent, ContinuousTeradactyl
-from RL4MM.utils.utils import boolean_string
 
-from experiments.fixed_action_vs_teradactyl import agents
-from experiments.teradactyl_sweep import (
-    a_range,
-    b_range,
-    min_quote_range,
-    max_quote_range,
-    max_inv_range,
-    default_omega_range,
-    kappa_range,
-)
+from RL4MM.gym.utils import plot_reward_distributions, get_episode_summary_dict
+
 
 experiment_list = [
     "ladder_sweep",
@@ -180,6 +167,9 @@ def parse_args():
     args = vars(parser.parse_args())
     if args["concentration"] == 0:
         args["concentration"] = None
+
+    # args["output"] = os.path.join(args["output"], args["experiment"])
+
     return args
 
 
@@ -188,7 +178,6 @@ if __name__ == "__main__":
     args = parse_args()
     env_config, _ = get_configs(args)
     experiment = args["experiment"]
-    assert experiment in experiment_list, f"Experiment name {experiment} not in list of experiments {experiment_list}."
     module = importlib.import_module(f"experiments." + args["experiment"])
     get_env_configs_and_agents = getattr(module, "get_env_configs_and_agents")
     env_configs, agents = get_env_configs_and_agents(env_config)
@@ -217,5 +206,5 @@ if __name__ == "__main__":
                 enter_spread=env_config["enter_spread"],
                 episode_summary_dict=emd1,
                 output_dir=args["output"],
-                experiment_name=experiment
+                experiment_name=experiment,
             )
