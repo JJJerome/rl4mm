@@ -42,10 +42,12 @@ def fname_to_dict(fname):
 
     return d
 
+
 def get_start_prices():
     import json
-    fname = 'start_prices.json'
-    with open(fname, 'r') as f:
+
+    fname = "start_prices.json"
+    with open(fname, "r") as f:
         data = json.load(f)
     return data
 
@@ -56,8 +58,7 @@ if __name__ == "__main__":
     fpath = args["path_to_jsons"]
 
     # fpath = '/Users/rahul/Dropbox/ICAIF_experimental_results/COMBINED_FIXED_ACTION_LADDER'
-    fpath = '/Users/rahul/Dropbox/ICAIF_experimental_results/COMBINED_TERADACTYL'
-
+    fpath = "/Users/rahul/Dropbox/ICAIF_experimental_results/COMBINED_TERADACTYL"
 
     start_prices = get_start_prices()
 
@@ -75,7 +76,6 @@ if __name__ == "__main__":
         # turn the file name into a dict with the params as key/values
         tmp = fname_to_dict(fname)
 
-
         # these are the mean rewards over each episode
         # i.e., rewards_series has n_iterations entries
         rewards_series = pd.Series(data["rewards"])
@@ -87,14 +87,14 @@ if __name__ == "__main__":
 
         # print(total_pnls)
 
-        ticker = tmp['ticker']
+        ticker = tmp["ticker"]
         start_price = start_prices[ticker]
-    
-        returns = total_pnls/start_price
+
+        returns = total_pnls / start_price
 
         # print(returns)
 
-        tmp['returns'] = list(returns)
+        tmp["returns"] = list(returns)
 
         lst.append(tmp)
 
@@ -104,10 +104,10 @@ if __name__ == "__main__":
 
     # strategy_params = ['alpha_bid','beta_bid','alpha_ask','beta_ask']
 
-    strategy_params = ['def_omega','def_kappa','max_inv','max_kappa']
+    strategy_params = ["def_omega", "def_kappa", "max_inv", "max_kappa"]
 
     # count the number of positive entries in a series
-    count_pos = lambda x: sum([1 if e > 0 else 0 for e in x]) 
+    count_pos = lambda x: sum([1 if e > 0 else 0 for e in x])
 
     import itertools
 
@@ -115,28 +115,21 @@ if __name__ == "__main__":
         return list(itertools.chain.from_iterable(x))
 
     df_list = []
-    df_list.append(df_all.groupby(strategy_params)['mean'].apply(count_pos))
-    df_list.append(df_all.groupby(strategy_params)['returns'].apply(concat_lists).apply(lambda x: np.mean(x)))
-    df_list.append(df_all.groupby(strategy_params)['returns'].apply(concat_lists).apply(lambda x: np.std(x)))
+    df_list.append(df_all.groupby(strategy_params)["mean"].apply(count_pos))
+    df_list.append(df_all.groupby(strategy_params)["returns"].apply(concat_lists).apply(lambda x: np.mean(x)))
+    df_list.append(df_all.groupby(strategy_params)["returns"].apply(concat_lists).apply(lambda x: np.std(x)))
 
     from functools import reduce
-    df = reduce(lambda df1,df2: pd.merge(df1,df2,left_index=True, right_index=True), df_list)
 
-    df = np.round(df,2)
+    df = reduce(lambda df1, df2: pd.merge(df1, df2, left_index=True, right_index=True), df_list)
+
+    df = np.round(df, 2)
     df = df.reset_index()
-    df.columns = ['defomega',
-                  'defkappa',
-                  'maxinv',
-                  'maxkappa',
-                  'nprofitable', 
-                  'meanreturns', 
-                  'sdreturns']
-    df.to_csv('test.csv',index=False,float_format="%.2f")
+    df.columns = ["defomega", "defkappa", "maxinv", "maxkappa", "nprofitable", "meanreturns", "sdreturns"]
+    df.to_csv("test.csv", index=False, float_format="%.2f")
 
-    print(df.sort_values('nprofitable'))
+    print(df.sort_values("nprofitable"))
 
-
-
-    tickers = list(start_prices.keys()) 
-    missing_tickers = lambda x: [t for t in tickers if t not in np.unique(x['ticker'])] 
+    tickers = list(start_prices.keys())
+    missing_tickers = lambda x: [t for t in tickers if t not in np.unique(x["ticker"])]
     df_all.groupby(strategy_params).apply(missing_tickers)
