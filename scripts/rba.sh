@@ -9,7 +9,7 @@ echo "Running experiment: $experiment_name"
 
 mind="2022-03-01"
 maxd="2022-03-14"
-n_iterations=60
+n_iterations=100
 episode_length=60
 step_size=5
 n_levels=50
