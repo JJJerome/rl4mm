@@ -273,9 +273,9 @@ def plot_reward_distributions(
     )
 
     plt.suptitle(
-        f"{ticker} {agent_name} EL: {episode_length} SS: {step_size} mind: {min_date} maxd: {max_date} "
-        + f"moc: {market_order_clearing} minq: {min_quote_level} "
-        + f"maxq: {max_quote_level} \n ES: {enter_spread}"
+        f"{ticker} {agent_name} \n EL: {episode_length} SS: {step_size} mind: {min_date} maxd: {max_date} "
+        + f" moc: {market_order_clearing} minq: {min_quote_level} \n"
+        + f"maxq: {max_quote_level}  ES: {enter_spread}"
     )
 
     ###########################################################################
