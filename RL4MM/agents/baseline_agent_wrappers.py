@@ -69,6 +69,7 @@ class ContinuousTeradactylPolicy(CustomPolicy):
             default_omega=self.config["model"]["custom_model_config"]["default_omega"],
             max_kappa=self.config["model"]["custom_model_config"]["max_kappa"],
             max_inventory=self.config["model"]["custom_model_config"]["max_inventory"],
+            exponent=self.config["model"]["custom_model_config"]["exponent"],
         )
 
 

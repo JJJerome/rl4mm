@@ -71,27 +71,17 @@ def main(args):
         }
         rule_based_agent = TeradactylAgentWrapper
     elif args["rule_based_agent"] == "continuous_teradactyl":
+        # Automatically converted to space format within BayesOpt:
         custom_model_config = {
             "default_kappa": tune.uniform(3.0, 15.0),
             "default_omega": tune.uniform(0.1, 0.5),
             "max_kappa": tune.uniform(10.0, 100.0),
+            "exponent": tune.uniform(1.0, 5.0),
             "max_inventory": args["max_inventory"],
-        }
-        """
-        space = {
-            "model":{
-                "custom_model_config": {
-                    "default_kappa": (3.0, 15.0),
-                    "default_omega": (0.1, 0.5),
-                    "max_kappa": (10.0, 100.0),
-                }
-            }
-        }
-        """
+        } 
         rule_based_agent = ContinuousTeradactylWrapper
     else:
         raise Exception(f"{args['rule_based_agent']} wrapper not implemented.")
-
 
     config = {
         "env": "HistoricalOrderbookEnvironment",
@@ -218,7 +208,7 @@ if __name__ == "__main__":
     parser.add_argument("-nl", "--n_levels", default=50, help="Number of orderbook levels.", type=int)
     parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=int)
     parser.add_argument("-t", "--ticker", default="SPY", help="Specify stock ticker.", type=str)
-    parser.add_argument("-mi", "--max_inventory", default=10000, help="Maximum (absolute) inventory.", type=int)
+    parser.add_argument("-mi", "--max_inventory", default=1000, help="Maximum (absolute) inventory.", type=int)
     parser.add_argument(
         "-psr",
         "--per_step_reward_function",
