@@ -110,21 +110,6 @@ def main(args):
     # print(FixedActionAgentWrapper(config=config).evaluate())
     # -------------------------------------------------------
     tensorboard_logdir = f"{args['tensorboard_logdir']}{args['experiment']}/{args['per_step_reward_function']}"
-    """
-    analysis = tune.run(
-        rule_based_agent,
-        name=args["ticker"],
-        search_alg=search_alg,
-        scheduler=scheduler,
-        metric="episode_reward_mean", 
-        mode="max",
-        num_samples=10,
-        stop={"training_iteration": args["iterations"]},
-        config=config,
-        local_dir=tensorboard_logdir,
-        checkpoint_at_end=True,
-    )
-    """
     algo = BayesOptSearch(
         utility_kwargs={"kind": "ucb", "kappa": 2.5, "xi": 0.0},
         random_search_steps=5, 
@@ -132,27 +117,18 @@ def main(args):
     algo = ConcurrencyLimiter(algo, max_concurrent=10)
     scheduler = AsyncHyperBandScheduler()
     analysis = tune.run(
-        #easy_objective,
         rule_based_agent,
-        #name="my_exp",
         name=args["ticker"],
-        #metric="mean_loss",
         metric="episode_reward_mean", 
-        #mode="min",
         mode="max",
         search_alg=algo,
         scheduler=scheduler,
-        num_samples=1000, #if args.smoke_test else 1000,
+        num_samples=1000, 
         config=config,
-        #config={
-        #    "steps": 100,
-        #    "width": tune.uniform(0, 20),
-        #    "height": tune.uniform(-100, 100),
-        #},
         local_dir=tensorboard_logdir,
         checkpoint_at_end=True,
         resume="AUTO",
-        stop={"training_iteration":1},# args["iterations"]},
+        stop={"training_iteration":60},# args["iterations"]},
     )
     print("Best hyperparameters found were: ", analysis.best_config)
 
