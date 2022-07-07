@@ -26,4 +26,5 @@ swifter-1.1.4
 #gym~=0.21.0
 #pfrl
 #jupyter
+bayesian-optimization
 
