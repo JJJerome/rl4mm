@@ -7,7 +7,7 @@ default_kappa_range = [4]
 kappa_scaling_range = [10]
 max_inv_range = [300]
 exponent_range = [1.5]
-max_quote_level = 15
+max_quote_level = 20
 
 def get_env_configs_and_agents(env_config: dict):
 
