@@ -37,13 +37,13 @@ def main(args):
         resample_probability=0.25,
         # Specifies the mutations of these hyperparams
         hyperparam_mutations={
-            "lambda": lambda: random.uniform(0.9, 1.0),
-            "clip_param": lambda: random.uniform(0.01, 0.5),
-            "lr": [1e-3, 5e-4, 1e-4, 5e-5, 1e-5],
+            #"lambda": lambda: random.uniform(0.9, 1.0),
+            #"clip_param": lambda: random.uniform(0.01, 0.5),
+            #"lr": [1e-3, 5e-4, 1e-4, 5e-5, 1e-5],
             "num_sgd_iter": lambda: random.randint(1, 30),
             "sgd_minibatch_size": lambda: random.randint(128, 16384),
             "train_batch_size": lambda: random.randint(2000, 160000),
-            "rollout_fragment_length": lambda: random.randint(200, 3600),
+            #"rollout_fragment_length": lambda: random.randint(200, 3600),
         },
         custom_explore_fn=explore,
     )
@@ -56,6 +56,9 @@ def main(args):
         "step_size": args["step_size"],
         "episode_length": args["episode_length"],
         "n_levels": args["n_levels"],
+        "features": args["features"],
+        "max_inventory": args["max_inventory"],
+        "normalisation_on": args["normalisation_on"],
         "initial_portfolio": args["initial_portfolio"],
         "per_step_reward_function": args["per_step_reward_function"],
         "terminal_reward_function": args["terminal_reward_function"],
@@ -74,6 +77,9 @@ def main(args):
     # eval_env_config["per_step_reward_function"] = (args["eval_per_step_reward_function"],)
     eval_env_config["per_step_reward_function"] = args["eval_per_step_reward_function"]
     eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
+    eval_env_config["per_step_reward_function"] = 'PnL'
+    eval_env_config["terminal_reward_function"] = 'PnL'
+    
 
     register_env("HistoricalOrderbookEnvironment", env_creator)
 
@@ -90,7 +96,7 @@ def main(args):
         "lr": args["learning_rate"],
         "gamma": args["discount_factor"],
         "model": {
-            "fcnet_hiddens": [256, 256],
+            "fcnet_hiddens": [512, 256],
             "fcnet_activation": "tanh",  # torch.nn.Sigmoid,
             # "use_lstm": args["lstm"],
             # "lstm_use_prev_action": True,
@@ -102,7 +108,11 @@ def main(args):
         "evaluation_num_workers": args["num_workers_eval"],
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
-        "evaluation_config": {"env_config": eval_env_config},
+        "evaluation_config": {
+            "env_config": eval_env_config,
+            "explore": False
+            },
+        "rollout_fragment_length": args["rollout_fragment_length"], #tune.choice([1800, 3600]), 
         # ---------------------------------------------
         # --------------- Tuning: ---------------------
         "rollout_fragment_length": tune.choice([1800, 3600]),  # args["rollout_fragment_length"],
@@ -113,14 +123,14 @@ def main(args):
         # "disable_env_checking": True,
     }
 
-    tensorboard_logdir = args["tensorboard_logdir"]
+    tensorboard_logdir = args["tensorboard_logdir"]+f"{args['per_step_reward_function']}_{args['features']}_moc_{args['market_order_clearing']}"
     if not os.path.exists(tensorboard_logdir):
         os.makedirs(tensorboard_logdir)
 
     analysis = tune.run(
         "PPO",
-        scheduler=pbt,
-        num_samples=8,
+        #scheduler=pbt,
+        num_samples=1,#8,
         metric="episode_reward_mean",
         mode="max",
         stop={"training_iteration": args["iterations"]},
@@ -147,6 +157,14 @@ if __name__ == "__main__":
     parser.add_argument("-fw", "--framework", default="torch", help="Framework, torch or tf.", type=str)
     parser.add_argument("-l", "--lstm", default=False, help="LSTM on/off.", type=boolean_string)
     parser.add_argument("-i", "--iterations", default=1000, help="Training iterations.", type=int)
+    parser.add_argument(
+        "-f", 
+        "--features", 
+        default="full_state", 
+        choices=["agent_state", "full_state"],
+        help="Agent state only or full state.", 
+        type=str
+        )
     parser.add_argument("-la", "--lambda", default=1.0, help="Training iterations.", type=float)
     parser.add_argument(
         "-rfl",
@@ -164,7 +182,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-tbd",
         "--tensorboard_logdir",
-        default="./ray_results/tensorboard",
+        default="./ray_results/tensorboard/",
         help="Directory to save tensorboard logs to.",
         type=str,
     )
@@ -179,6 +197,7 @@ if __name__ == "__main__":
     )
     # -------------------- Training env Args ---------------------------
     parser.add_argument("-ia", "--inc_prev_action_in_obs", default=True, help="Include prev action in obs.", type=bool)
+    parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=bool)
     parser.add_argument("-mind", "--min_date", default="2018-02-20", help="Train data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2018-03-05", help="Train data end date.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
@@ -186,6 +205,7 @@ if __name__ == "__main__":
     parser.add_argument("-nl", "--n_levels", default=200, help="Number of orderbook levels.", type=int)
     parser.add_argument("-sz", "--step_size", default=1, help="Step size in seconds.", type=int)
     parser.add_argument("-t", "--ticker", default="SPY", help="Specify stock ticker.", type=str)
+    parser.add_argument("-mi", "--max_inventory", default=100000, help="Maximum (absolute) inventory.", type=int)
     parser.add_argument(
         "-psr",
         "--per_step_reward_function",
@@ -220,6 +240,18 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-moc", "--market_order_clearing", default=True, help="Market order clearing on/off.", type=boolean_string
+    )
+    parser.add_argument(
+        "-mofi", "--market_order_fraction_of_inventory", default=1.0, help="Market order fraction of inventory.", type=float
+    )
+    parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
+    parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
+    parser.add_argument(
+        "-es",
+        "--enter_spread",
+        default=False,
+        help="Bool for whether best quote is the midprice. Otherwise it is the best bid/best ask price",
+        type=bool,
     )
 
     # ------------------ Eval env args -------------------------------
