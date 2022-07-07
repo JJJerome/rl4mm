@@ -49,7 +49,10 @@ if __name__ == "__main__":
 
     args = parse_args()
     fpath = args["path_to_jsons"]
-    fpath = "/Users/rahul/Dropbox/ICAIF_experimental_results/COMBINED_FIXED_ACTION_LADDER"
+
+    # fpath = "/Users/rahul/Dropbox/ICAIF_experimental_results/COMBINED_FIXED_ACTION_LADDER"
+
+    fpath = '/Users/rahul/Dropbox/ICAIF_experimental_results/ladder_sweep/jsons'
 
     start_prices = get_start_prices()
 
@@ -117,7 +120,7 @@ if __name__ == "__main__":
     df.columns = ["alphabid", "betabid", "alphaask", "betaask", "minq", "nprofitable", "meanreturns", "sdreturns"]
 
 
-    fname = 'fixed_action_sweep.csv'
+    fname = 'ladder_sweep.csv'
     df.to_csv(fname, index=False, float_format="%.2f")
 
     print(df)
