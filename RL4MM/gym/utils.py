@@ -17,6 +17,7 @@ from numpyencoder import NumpyEncoder
 
 from RL4MM.agents.Agent import Agent
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
+from RL4MM.database.PostgresEngine import MAX_POOL_SIZE
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.utils.utils import get_date_time
@@ -132,6 +133,7 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
         terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
         market_order_clearing=env_config["market_order_clearing"],
         market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+        concentration=env_config["concentration"],
         min_quote_level=env_config["min_quote_level"],
         max_quote_level=env_config["max_quote_level"],
         enter_spread=env_config["enter_spread"],
@@ -180,14 +182,29 @@ def get_episode_summary_dict(
 
 
 def get_episode_summary_dict_NONPARALLEL(agent: Agent, env: gym.Env, n_iterations: int = 100):
-    episode_summary_dict: Dict = {"equity_curves": [], "rewards": [], "actions": [], "inventory": [], "spread": []}
+    episode_summary_dict: Dict = {
+        "equity_curves": [],
+        "rewards": [],
+        "actions": [],
+        "inventory": [],
+        "spread": [],
+        "inventories": [],
+        "asset_prices": [],
+        "agent_midprice_offsets": [],
+    }
     for _ in tqdm(range(n_iterations), desc="Simulating trajectories"):
         d = generate_trajectory(agent=agent, env=env)
         episode_summary_dict["equity_curves"].append(d["rewards"])
         episode_summary_dict["rewards"].append(np.mean(d["rewards"]))
         episode_summary_dict["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
-        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
         episode_summary_dict["spread"].append(np.mean([info["market_spread"] for info in d["infos"]]))
+        inventories = np.array([info["market_spread"] for info in d["infos"]])
+        asset_prices = np.array([info["asset_price"] for info in d["infos"]])
+        midprice_offsets = np.array([info["weighted_midprice_offset"] for info in d["infos"]])
+        episode_summary_dict["inventories"].append(inventories)
+        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
+        episode_summary_dict["agent_midprice_offsets"] = midprice_offsets
+        episode_summary_dict["asset_prices"] = asset_prices
     return episode_summary_dict
 
 
@@ -219,15 +236,29 @@ def process_parallel_results(results):
 
     """
 
-    episode_summary_dict: Dict = {"equity_curves": [], "rewards": [], "actions": [], "inventory": [], "spread": []}
+    episode_summary_dict: Dict = {
+        "equity_curves": [],
+        "rewards": [],
+        "actions": [],
+        "inventory": [],
+        "spread": [],
+        "inventories": [],
+        "asset_prices": [],
+        "agent_midprice_offsets": [],
+    }
 
     for d in results:
         episode_summary_dict["equity_curves"].append(d["rewards"])
         episode_summary_dict["rewards"].append(np.mean(d["rewards"]))
         episode_summary_dict["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
-        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
         episode_summary_dict["spread"].append(np.mean([info["market_spread"] for info in d["infos"]]))
-
+        inventories = np.array([info["market_spread"] for info in d["infos"]])
+        asset_prices = np.array([info["asset_price"] for info in d["infos"]])
+        midprice_offsets = np.array([info["weighted_midprice_offset"] for info in d["infos"]])
+        episode_summary_dict["inventories"].append(inventories)
+        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
+        episode_summary_dict["agent_midprice_offsets"] = midprice_offsets
+        episode_summary_dict["asset_prices"] = asset_prices
     return episode_summary_dict
 
 
@@ -237,7 +268,7 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
     l = len(agent_lst)
     print(f"In get_episode_summary_dict_PARALLEL, running for {l} iterations")
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_POOL_SIZE) as executor:
 
         # futures = {executor.submit(f, arg): arg for arg in args_list}
 
@@ -299,11 +330,12 @@ def plot_reward_distributions(
     episode_length,
     step_size,
     market_order_clearing,
-    market_order_fraction_of_inventory,
     min_quote_level,
     max_quote_level,
     enter_spread,
     episode_summary_dict,
+    output_dir,
+    experiment_name,
 ):
     sns.set()
 
@@ -320,9 +352,9 @@ def plot_reward_distributions(
     )
 
     plt.suptitle(
-        f"{ticker} {agent_name} EL: {episode_length} SS: {step_size} mind: {min_date} maxd: {max_date} "
-        + f"moc: {market_order_clearing} mofi: {market_order_fraction_of_inventory} \n minq: {min_quote_level} "
-        + f"maxq: {max_quote_level} ES: {enter_spread}"
+        f"{ticker} {agent_name} \n EL: {episode_length} SS: {step_size} mind: {min_date} maxd: {max_date} "
+        + f" moc: {market_order_clearing} minq: {min_quote_level} \n"
+        + f"maxq: {max_quote_level}  ES: {enter_spread}"
     )
 
     ###########################################################################
@@ -395,14 +427,21 @@ def plot_reward_distributions(
         ticker, min_date, max_date, agent_name, episode_length, min_quote_level, max_quote_level, enter_spread
     )
 
-    os.makedirs("outputs/pdfs", exist_ok=True)
-    os.makedirs("outputs/jsons", exist_ok=True)
+    pdf_path = os.path.join(output_dir, "outputs", experiment_name, "pdfs")
+    json_path = os.path.join(output_dir, "outputs", experiment_name, "jsons")
+    os.makedirs(pdf_path, exist_ok=True)
+    os.makedirs(json_path, exist_ok=True)
+    pdf_filename = os.path.join(pdf_path, f"{fname}.pdf")
+    json_filename = os.path.join(json_path, f"{fname}.json")
+
     # Write plot to pdf
-    fig.savefig(f"outputs/pdfs/{fname}.pdf")
+    print(f"Saving pdf to {pdf_filename}")
+    fig.savefig(pdf_filename)
     plt.close(fig)
 
     # Write data to json
-    with open(f"outputs/jsons/{fname}.json", "w") as outfile:
+    print(f"Saving json of summary dict to {json_filename}")
+    with open(json_filename, "w") as outfile:
         json.dump(episode_summary_dict, outfile, cls=NumpyEncoder)
 
     # return rewards

@@ -95,13 +95,21 @@ class TeradactylAgent(Agent):
 
 class ContinuousTeradactyl(Agent):
     def __init__(
-        self, max_inventory=None, default_kappa: float = 10.0, default_omega: float = 0.5, max_kappa: float = 50.0
+        self,
+        max_inventory=None,
+        default_kappa: float = 10.0,
+        default_omega: float = 0.5,
+        max_kappa: float = 10.0,
+        exponent: float = 1.0,
+        market_clearing: bool = False,
     ):
         self.max_inventory = max_inventory
         self.default_kappa = default_kappa
         self.default_omega = default_omega
-        self.max_midprice_move = TICK_SIZE
         self.max_kappa = max_kappa
+        self.exponent = exponent
+        self.market_clearing = market_clearing
+        self.eps = 0.00001  # np.finfo(float).eps
 
         if max_inventory is None:
             self.denom = 100
@@ -110,15 +118,21 @@ class ContinuousTeradactyl(Agent):
 
     def get_omega_bid_and_ask(self, inv: int):
         if inv >= 0:
-            omega_bid = self.default_omega * (1 + (1 / self.default_omega - 1) * (self.clamp_to_unit(inv / self.denom)))
-            omega_ask = self.default_omega * (1 - (self.clamp_to_unit(inv / self.denom)))
+            omega_bid = self.default_omega * (
+                1 + (1 / self.default_omega - 1) * self.clamp_to_unit(inv / self.denom) ** self.exponent
+            )
+            omega_ask = self.default_omega * (1 - self.clamp_to_unit(inv / self.denom) ** self.exponent)
         else:
-            omega_bid = self.default_omega * (1 + (self.clamp_to_unit(inv / self.denom)))
-            omega_ask = self.default_omega * (1 - (1 / self.default_omega - 1) * (self.clamp_to_unit(inv / self.denom)))
+            omega_bid = self.default_omega * (1 - abs(self.clamp_to_unit(inv / self.denom)) ** self.exponent)
+            omega_ask = self.default_omega * (
+                1 + (1 / self.default_omega - 1) * abs(self.clamp_to_unit(inv / self.denom)) ** self.exponent
+            )
         return omega_bid, omega_ask
 
     def get_kappa(self, inventory: int):
-        return (self.max_kappa - self.default_kappa) * abs(inventory) / self.max_inventory + self.default_kappa
+        return (self.max_kappa - self.default_kappa) * abs(
+            inventory / self.max_inventory
+        ) ** self.exponent + self.default_kappa
 
     def get_action(self, state: np.ndarray) -> np.ndarray:
 
@@ -136,22 +150,23 @@ class ContinuousTeradactyl(Agent):
         inventory = state[3]
 
         omega_bid, omega_ask = self.get_omega_bid_and_ask(inventory)
+        kappa = self.get_kappa(inventory)
 
-        alpha_bid = self.calculate_alpha(omega_bid, self.default_kappa)
-        alpha_ask = self.calculate_alpha(omega_ask, self.default_kappa)
+        alpha_bid = self.calculate_alpha(omega_bid, kappa)
+        alpha_ask = self.calculate_alpha(omega_ask, kappa)
 
-        beta_bid = self.calculate_beta(omega_bid, self.default_kappa)
-        beta_ask = self.calculate_beta(omega_ask, self.default_kappa)
+        beta_bid = self.calculate_beta(omega_bid, kappa)
+        beta_ask = self.calculate_beta(omega_ask, kappa)
 
         tmp = np.array([alpha_bid, beta_bid, alpha_ask, beta_ask])
 
-        if self.max_inventory is not None:
+        if self.market_clearing is True:
             tmp = np.append(tmp, self.max_inventory * 2)
 
         return tmp
 
     def get_name(self):
-        return f"ContinuousTeradactyl_def_omega_{self.default_omega}_def_kappa_{self.default_kappa}_max_inv_{self.max_inventory}_max_kappa_{self.max_kappa}"
+        return f"ContinuousTeradactyl_def_omega_{self.default_omega}_def_kappa_{self.default_kappa}_max_inv_{self.max_inventory}_max_kappa_{self.max_kappa}_exponent_{self.exponent}"
 
     @staticmethod
     def calculate_alpha(omega, kappa):
@@ -161,9 +176,11 @@ class ContinuousTeradactyl(Agent):
     def calculate_beta(omega, kappa):
         return (1 - omega) * (kappa - 2) + 1
 
-    @staticmethod
-    def clamp_to_unit(x: float):
-        return max(min(x, 1), -1)
+    def clamp_to_unit(self, x: float, strict_containment: bool = True):
+        if strict_containment:
+            return max(min(x, 1 - self.eps), -1 + self.eps)
+        else:
+            return max(min(x, 1), -1)
 
     @staticmethod
     def calculate_omega(alpha: float, beta: float):

@@ -1,0 +1,5 @@
+IBM
+JPM
+JNJ
+HPQ
+GE

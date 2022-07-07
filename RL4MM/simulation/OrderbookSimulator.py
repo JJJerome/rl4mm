@@ -17,8 +17,6 @@ from RL4MM.orderbook.Exchange import Exchange
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderGenerator import OrderGenerator
 
-OUTER_LEVELS = 30 / 200
-
 
 class OrderbookSimulator:
     def __init__(
@@ -47,6 +45,7 @@ class OrderbookSimulator:
         self.min_buy_price: int = np.infty  # type:ignore
         self.initial_buy_price_range: int = np.infty  # type:ignore
         self.initial_sell_price_range: int = np.infty  # type:ignore
+        self.outer_levels = 20 / self.n_levels
 
     def reset_episode(self, start_date: datetime, start_book: Optional[Orderbook] = None):
         if not start_book:
@@ -78,7 +77,6 @@ class OrderbookSimulator:
                 filled_internal_orders += filled
         self.now_is = until
         if self._near_exiting_initial_price_range:
-            print("updating outer levels")
             self.update_outer_levels()
         return filled_internal_orders
 
@@ -151,6 +149,6 @@ class OrderbookSimulator:
     @property
     def _near_exiting_initial_price_range(self) -> bool:
         return (
-            self.exchange.best_buy_price < self.min_buy_price + OUTER_LEVELS * self.initial_buy_price_range
-            or self.exchange.best_sell_price > self.max_sell_price - OUTER_LEVELS * self.initial_sell_price_range
+            self.exchange.best_buy_price < self.min_buy_price + self.outer_levels * self.initial_buy_price_range
+            or self.exchange.best_sell_price > self.max_sell_price - self.outer_levels * self.initial_sell_price_range
         )

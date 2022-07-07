@@ -1,0 +1,5 @@
+sh scripts/rba.sh tickers_rahul_part1.txt fixed_action_sweep
+sh scripts/rba.sh tickers_rahul_part2.txt fixed_action_sweep
+sh scripts/rba.sh tickers_joe_part1.txt fixed_action_sweep
+sh scripts/rba.sh tickers_joe_part2.txt fixed_action_sweep
+sh scripts/rba.sh tickers_joe_part3.txt fixed_action_sweep
