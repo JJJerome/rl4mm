@@ -9,6 +9,8 @@ step_size=10
 n_levels=50
 fixed_ticker="JPM"
 per_step_reward="PnL"
+min_start_time="1000"
+max_end_time="1100"
 
 
 python main.py \
@@ -22,4 +24,6 @@ python main.py \
          -t $fixed_ticker \
          -psr $per_step_reward \
          -rfl $rollout_fragment_length \
-         -tb $train_batch_size
+         -tb $train_batch_size \
+         -min_st $min_start_time \
+         -max_et $max_end_time

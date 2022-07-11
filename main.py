@@ -16,7 +16,7 @@ from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
 import copy
 
 # from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
-from RL4MM.utils.utils import save_best_checkpoint_path
+from RL4MM.utils.utils import save_best_checkpoint_path, get_timedelta_from_clock_time
 from RL4MM.utils.utils import boolean_string
 
 
@@ -66,6 +66,8 @@ def main(args):
         "market_order_fraction_of_inventory": args["market_order_fraction_of_inventory"],
         "min_quote_level": args["min_quote_level"],
         "max_quote_level": args["max_quote_level"],
+        "min_start_timedelta": get_timedelta_from_clock_time(args["min_start_time"]),
+        "max_end_timedelta": get_timedelta_from_clock_time(args["min_start_time"]),
         "enter_spread": args["enter_spread"],
         "inc_prev_action_in_obs": args["inc_prev_action_in_obs"],
         "concentration": None,
@@ -256,7 +258,20 @@ if __name__ == "__main__":
         help="Bool for whether best quote is the midprice. Otherwise it is the best bid/best ask price",
         type=bool,
     )
-
+    parser.add_argument(
+        "-min_st",
+        "--min_start_time",
+        default="1000",
+        help="The minimum start time for an episode written in HHMM format.",
+        type=str,
+    )
+    parser.add_argument(
+        "-max_et",
+        "--max_end_time",
+        default="1530",
+        help="The maximum end time for an episode written in HHMM format.",
+        type=str,
+    )
     # ------------------ Eval env args -------------------------------
     parser.add_argument("-minde", "--min_date_eval", default="2018-03-07", help="Evaluation data start date.", type=str)
     parser.add_argument("-maxde", "--max_date_eval", default="2018-03-14", help="Evaluation data end date.", type=str)
