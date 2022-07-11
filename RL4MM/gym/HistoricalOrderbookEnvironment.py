@@ -79,7 +79,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         info_calculator: InfoCalculator = None,
         order_distributor: OrderDistributor = None,
         concentration: Optional[float] = None,
-        market_order_fraction_of_inventory: Optional[float] = None,
+        market_order_fraction_of_inventory: float = 0.0,
         enter_spread: bool = False,
         save_messages_locally: bool = True,
     ):
@@ -394,10 +394,10 @@ class HistoricalOrderbookEnvironment(gym.Env):
         return self.internal_state["inventory"] * self.internal_state["asset_price"] + self.internal_state["cash"]
 
     def _check_market_order_clearing_well_defined(self):
-        if (self.market_order_clearing and self.market_order_fraction_of_inventory is None) or (
-            not self.market_order_clearing and self.market_order_fraction_of_inventory is not None
+        if (self.market_order_clearing and self.market_order_fraction_of_inventory <= 0.0) or (
+            not self.market_order_clearing and self.market_order_fraction_of_inventory > 0.0
         ):
             raise Exception(
                 f"market_order_fraction_of_inventory {self.market_order_fraction_of_inventory} "
-                "must be defined if and only if market order clearing (self.market_order_clearing} is on"
+                "must be positive if and only if market order clearing (self.market_order_clearing} is on"
             )
