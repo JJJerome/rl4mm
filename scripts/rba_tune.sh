@@ -1,12 +1,13 @@
 #TICKERS_FILE='tickers_all.txt'
 TICKERS_FILE='scripts/tickers_batch1.txt'
 #TICKERS_FILE='scripts/tickers_batch2.txt'
+#TICKERS_FILE='scripts/single.txt'
 
 mind="2022-03-01"
 maxd="2022-03-14"
 minde="2022-03-15"
 maxde="2022-03-30"
-episode_length=60
+episode_length=300
 step_size=5
 n_levels=50
 

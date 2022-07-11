@@ -15,6 +15,7 @@ experiment_list = [
     "fixed_action_vs_teradactyl",
     "teradactyl_sweep",
     "teradactyl_sweep_small",
+    "teradactyl_fixed",
 ]
 
 

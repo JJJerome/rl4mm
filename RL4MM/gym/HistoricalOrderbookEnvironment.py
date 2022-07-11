@@ -92,10 +92,10 @@ class HistoricalOrderbookEnvironment(gym.Env):
         else:
             self.action_space = Box(low=0.0, high=max_distribution_param, shape=(4,), dtype=np.float64)
         if market_order_clearing:
-            low = np.append(self.action_space.low, [0.0])
-            high = np.append(self.action_space.high, [max_inventory])
-            self.action_space = Box(low=low, high=high, dtype=np.float64)
-
+            low_action = np.append(self.action_space.low, [0.0])
+            high_action = np.append(self.action_space.high, [max_inventory])
+            self.action_space = Box(low=low_action, high=high_action, dtype=np.float64)
+        
         # Observation space is determined by the features used
         self.features = features or [Spread(), MidpriceMove(), Volatility(), Inventory(), TimeRemaining(), MicroPrice()]
         self.inc_prev_action_in_obs = inc_prev_action_in_obs
@@ -145,7 +145,9 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.now_is = min_date
         self.feature_window_size = feature_window_size
         self.enter_spread = enter_spread
-        self.info_calculator = info_calculator or SimpleInfoCalculator(market_order_fraction_of_inventory, enter_spread)
+        self.info_calculator = info_calculator or SimpleInfoCalculator(
+            market_order_fraction_of_inventory, enter_spread, concentration=concentration
+            )
         self.price = MidPrice()
         self._check_params()
 
@@ -153,6 +155,10 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.now_is = self._get_random_start_time()
         self.simulator.reset_episode(start_date=self.now_is)
         self._reset_internal_state()
+        # Commenting the reset out for now. Useful perhaps
+        # to get good estimates across episodes.
+        #for feature in self.features:
+        #    feature.reset()
         if self.inc_prev_action_in_obs:
             return self.get_observation(np.zeros(shape=self.action_space.shape))
         else:

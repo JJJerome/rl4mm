@@ -23,6 +23,17 @@ from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironm
 from RL4MM.utils.utils import get_date_time
 from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL
 
+from RL4MM.features.Features import (
+    Feature,
+    Spread,
+    MicroPrice,
+    InternalState,
+    MidpriceMove,
+    Volatility,
+    Inventory,
+    TimeRemaining,
+    MidPrice,
+)
 
 def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
     if reward_function == "AD":  # asymmetrically dampened
@@ -34,7 +45,74 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
     else:
         raise NotImplementedError("You must specify one of 'AS', 'SD' or 'PnL'")
 
+def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase()):
 
+    episode_length = timedelta(minutes=env_config["episode_length"])
+
+    orderbook_simulator = OrderbookSimulator(
+        ticker=env_config["ticker"], n_levels=env_config["n_levels"], episode_length=episode_length, database=database
+    )
+    if env_config["features"] == "agent_state":
+        features = [
+                Inventory(
+                    max_value=env_config["max_inventory"], 
+                    normalisation_on=env_config["normalisation_on"]
+                    )
+                ] 
+    elif env_config["features"] == "full_state":
+        features = [
+                Spread(
+                    min_value=-1e4 if env_config["normalisation_on"] else 0, # If feature is a zscore
+                    normalisation_on=env_config["normalisation_on"]
+                    ), 
+                MidpriceMove(normalisation_on=env_config["normalisation_on"]), 
+                Volatility(
+                    min_value=-1e4 if env_config["normalisation_on"] else 0, # If feature is a zscore
+                    normalisation_on=env_config["normalisation_on"]
+                    ), 
+                Inventory(
+                    max_value=env_config["max_inventory"], 
+                    normalisation_on=env_config["normalisation_on"]
+                    ), 
+                TimeRemaining(), 
+                MicroPrice(
+                    min_value=-1e4 if env_config["normalisation_on"] else 0, # If feature is a zscore 
+                    normalisation_on=env_config["normalisation_on"]
+                    )
+                ] 
+    return HistoricalOrderbookEnvironment(
+        #ticker=env_config["ticker"],
+        ticker=env_config["ticker"],
+        #episode_length=timedelta(minutes=env_config["episode_length"]),
+        episode_length=episode_length,
+        #simulator=obs,
+        simulator=orderbook_simulator,
+        features=features,
+        #quote_levels=10,
+        max_inventory=env_config["max_inventory"],
+        #min_date=get_date_time(env_config["min_date"]),  # datetime
+        min_date=get_date_time(env_config["min_date"]),  # datetime
+        #max_date=get_date_time(env_config["max_date"]),  # datetime
+        max_date=get_date_time(env_config["max_date"]),  # datetime
+        #step_size=timedelta(seconds=env_config["step_size"]),
+        step_size=timedelta(seconds=env_config["step_size"]),
+        #initial_portfolio=env_config["initial_portfolio"],  #: dict = None
+        initial_portfolio=env_config["initial_portfolio"],  #: dict = None
+        #per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
+        per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
+        #terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
+        terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
+        #market_order_clearing=env_config["market_order_clearing"],
+        market_order_clearing=env_config["market_order_clearing"],
+        #market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+        market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+        concentration=env_config["concentration"],
+        min_quote_level=env_config["min_quote_level"],
+        max_quote_level=env_config["max_quote_level"],
+        enter_spread=env_config["enter_spread"],
+    )
+
+"""
 def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase()):
 
     episode_length = timedelta(minutes=env_config["episode_length"])
@@ -60,6 +138,7 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
         max_quote_level=env_config["max_quote_level"],
         enter_spread=env_config["enter_spread"],
     )
+"""
 
 
 def generate_trajectory(agent: Agent, env: gym.Env):
