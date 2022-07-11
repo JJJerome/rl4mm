@@ -29,6 +29,11 @@ class Feature(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
+    def name(self):
+        pass
+
+    @property
+    @abc.abstractmethod
     def max_value(self) -> float:
         pass
 
@@ -38,7 +43,10 @@ class Feature(metaclass=abc.ABCMeta):
         pass
 
     def calculate(self, internal_state: InternalState) -> float:
-        value = self.clamp(self._calculate(internal_state), min_value=self.min_value, max_value=self.max_value)
+        pre_clamped_value = self._calculate(internal_state)
+        value = self.clamp(pre_clamped_value, min_value=self.min_value, max_value=self.max_value)
+        if value != pre_clamped_value:
+            print(f"Clamping value of {self.name} from {pre_clamped_value} to {value}.")
         return self.normalise(value) if self.normalisation_on else value
 
     @abc.abstractmethod
@@ -48,7 +56,7 @@ class Feature(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def normalise(self, value: float) -> float:
         pass
-    
+
     @abc.abstractmethod
     def reset(self):
         pass
@@ -60,23 +68,28 @@ class Feature(metaclass=abc.ABCMeta):
 
 # Book features
 class Spread(Feature):
+    name = "Spread"
+
     def __init__(
-            self, 
-            min_value: float=0, 
-            max_value: float=(100 * 100), # 100 ticks
-            maxlen: int=100000, 
-            normalisation_on: bool=False):
+        self,
+        min_value: float = 0,
+        max_value: float = (100 * 100),  # 100 ticks
+        maxlen: int = 100000,
+        normalisation_on: bool = False,
+    ):
         self._min_value = min_value
         self._max_value = max_value
         self.normalisation_on = normalisation_on
         if self.normalisation_on:
-            self.history = deque(maxlen=maxlen) 
-    
-    @property
-    def max_value(self) -> float: return self._max_value
+            self.history = deque(maxlen=maxlen)
 
     @property
-    def min_value(self) -> float: return self._min_value
+    def max_value(self) -> float:
+        return self._max_value
+
+    @property
+    def min_value(self) -> float:
+        return self._min_value
 
     def reset(self):
         if self.normalisation_on:
@@ -86,7 +99,7 @@ class Spread(Feature):
         if len(self.history) == 0:
             # To prevent a Nan vlaue from being returned
             # if the queue is empty:
-            self.history.append(value+1e-06)
+            self.history.append(value + 1e-06)
         self.history.append(value)
         return stats.zscore(self.history)[-1]
 
@@ -94,27 +107,32 @@ class Spread(Feature):
         current_book = internal_state["book_snapshots"].iloc[-1]
         return current_book.sell_price_0 - current_book.buy_price_0
 
+
 class MidpriceMove(Feature):
+    name = "MidpriceMove"
 
     def __init__(
-            self, 
-            min_value: float=-100 * 100,  # 100 tick downward move
-            max_value: float=100 * 100,  # 100 tick upward move
-            lookback_period: int=10, 
-            maxlen: int=100000, 
-            normalisation_on: bool=False):
+        self,
+        min_value: float = -100 * 100,  # 100 tick downward move
+        max_value: float = 100 * 100,  # 100 tick upward move
+        lookback_period: int = 10,
+        maxlen: int = 100000,
+        normalisation_on: bool = False,
+    ):
         self.lookback_period = lookback_period
         self._min_value = min_value
         self._max_value = max_value
         self.normalisation_on = normalisation_on
         if normalisation_on:
-            self.history = deque(maxlen=maxlen) 
+            self.history = deque(maxlen=maxlen)
 
     @property
-    def max_value(self) -> float: return self._max_value
+    def max_value(self) -> float:
+        return self._max_value
 
     @property
-    def min_value(self) -> float: return self._min_value
+    def min_value(self) -> float:
+        return self._min_value
 
     def reset(self):
         if self.normalisation_on:
@@ -124,7 +142,7 @@ class MidpriceMove(Feature):
         if len(self.history) == 0:
             # To prevent a Nan vlaue from being returned
             # if the queue is empty:
-            self.history.append(value+1e-06)
+            self.history.append(value + 1e-06)
         self.history.append(value)
         return stats.zscore(self.history)[-1]
 
@@ -136,23 +154,28 @@ class MidpriceMove(Feature):
 
 
 class PriceRange(Feature):
+    name = "PriceRange"
+
     def __init__(
-            self, 
-            min_value: float=0, 
-            max_value: float=(100 * 100), # 100 ticks
-            maxlen: int=100000, 
-            normalisation_on: bool=False):
+        self,
+        min_value: float = 0,
+        max_value: float = (100 * 100),  # 100 ticks
+        maxlen: int = 100000,
+        normalisation_on: bool = False,
+    ):
         self._min_value = min_value
         self._max_value = max_value
         self.normalisation_on = normalisation_on
         if normalisation_on:
-            self.history = deque(maxlen=maxlen) 
+            self.history = deque(maxlen=maxlen)
 
     @property
-    def max_value(self) -> float: return self._max_value
+    def max_value(self) -> float:
+        return self._max_value
 
     @property
-    def min_value(self) -> float: return self._min_value
+    def min_value(self) -> float:
+        return self._min_value
 
     def reset(self):
         if self.normalisation_on:
@@ -162,7 +185,7 @@ class PriceRange(Feature):
         if len(self.history) == 0:
             # To prevent a Nan vlaue from being returned
             # if the queue is empty:
-            self.history.append(value+1e-06)
+            self.history.append(value + 1e-06)
         self.history.append(value)
         return stats.zscore(self.history)[-1]
 
@@ -174,23 +197,28 @@ class PriceRange(Feature):
 
 
 class Volatility(Feature):
+    name = "Volatility"
+
     def __init__(
-            self, 
-            min_value: float=0, 
-            max_value: float=((100 * 100) ** 2), 
-            maxlen: int=100000, 
-            normalisation_on: bool=False):
+        self,
+        min_value: float = 0,
+        max_value: float = ((100 * 100) ** 2),
+        maxlen: int = 100000,
+        normalisation_on: bool = False,
+    ):
         self._min_value = min_value
         self._max_value = max_value
         self.normalisation_on = normalisation_on
         if normalisation_on:
-            self.history = deque(maxlen=maxlen) 
-    
-    @property
-    def max_value(self) -> float: return self._max_value
+            self.history = deque(maxlen=maxlen)
 
     @property
-    def min_value(self) -> float: return self._min_value
+    def max_value(self) -> float:
+        return self._max_value
+
+    @property
+    def min_value(self) -> float:
+        return self._min_value
 
     def reset(self):
         if self.normalisation_on:
@@ -200,7 +228,7 @@ class Volatility(Feature):
         if len(self.history) == 0:
             # To prevent a Nan vlaue from being returned
             # if the queue is empty:
-            self.history.append(value+1e-06)
+            self.history.append(value + 1e-06)
         self.history.append(value)
         return stats.zscore(self.history)[-1]
 
@@ -212,23 +240,28 @@ class Volatility(Feature):
 
 
 class MidPrice(Feature):
+    name = "MidPrice"
+
     def __init__(
-            self, 
-            min_value: float=0, 
-            max_value: float=(1000 * 10000), # Here, we assume that stock prices are less than $1000
-            maxlen: int=100000, 
-            normalisation_on: bool=False):
+        self,
+        min_value: float = 0,
+        max_value: float = (1000 * 10000),  # Here, we assume that stock prices are less than $1000
+        maxlen: int = 100000,
+        normalisation_on: bool = False,
+    ):
         self._min_value = min_value
         self._max_value = max_value
         self.normalisation_on = normalisation_on
         if normalisation_on:
-            self.history = deque(maxlen=maxlen) 
+            self.history = deque(maxlen=maxlen)
 
     @property
-    def max_value(self) -> float: return self._max_value
+    def max_value(self) -> float:
+        return self._max_value
 
     @property
-    def min_value(self) -> float: return self._min_value
+    def min_value(self) -> float:
+        return self._min_value
 
     def reset(self):
         if self.normalisation_on:
@@ -238,7 +271,7 @@ class MidPrice(Feature):
         if len(self.history) == 0:
             # To prevent a Nan vlaue from being returned
             # if the queue is empty:
-            self.history.append(value+1e-06)
+            self.history.append(value + 1e-06)
         self.history.append(value)
         return stats.zscore(self.history)[-1]
 
@@ -252,12 +285,15 @@ class MidPrice(Feature):
 
 
 class MicroPrice(Feature):
+    name = "MicroPrice"
+
     def __init__(
-            self, 
-            min_value: float=0, 
-            max_value: float=(1000 * 10000), # Here, we assume that stock prices are less than $1000 
-            maxlen: int=100000, 
-            normalisation_on: bool=False):
+        self,
+        min_value: float = 0,
+        max_value: float = (5_000 * 10_000),  # Here, we assume that stock prices are less than $5000
+        maxlen: int = 100000,
+        normalisation_on: bool = False,
+    ):
         self._min_value = min_value
         self._max_value = max_value
         self.normalisation_on = normalisation_on
@@ -265,10 +301,12 @@ class MicroPrice(Feature):
             self.history = deque(maxlen=maxlen)
 
     @property
-    def max_value(self) -> float: return self._max_value
+    def max_value(self) -> float:
+        return self._max_value
 
     @property
-    def min_value(self) -> float: return self._min_value
+    def min_value(self) -> float:
+        return self._min_value
 
     def reset(self):
         if self.normalisation_on:
@@ -278,7 +316,7 @@ class MicroPrice(Feature):
         if len(self.history) == 0:
             # To prevent a Nan vlaue from being returned
             # if the queue is empty:
-            self.history.append(value+1e-06)
+            self.history.append(value + 1e-06)
         self.history.append(value)
         return stats.zscore(self.history)[-1]
 
@@ -296,32 +334,32 @@ class MicroPrice(Feature):
 
 
 class Inventory(Feature):
-    def __init__(
-            self, 
-            max_value:float=1000., 
-            maxlen: int=100000, 
-            normalisation_on: bool=False):
+    name = "Inventory"
+
+    def __init__(self, max_value: float = 1000.0, maxlen: int = 100000, normalisation_on: bool = False):
         self._max_value = max_value
         self._min_value = -max_value
         self.normalisation_on = normalisation_on
         if normalisation_on:
-            self.history = deque(maxlen=maxlen) 
+            self.history = deque(maxlen=maxlen)
 
     def reset(self):
         if self.normalisation_on:
             self.history.clear()
-    
-    @property
-    def max_value(self) -> float: return self._max_value
 
     @property
-    def min_value(self) -> float: return self._min_value
+    def max_value(self) -> float:
+        return self._max_value
+
+    @property
+    def min_value(self) -> float:
+        return self._min_value
 
     def normalise(self, value: float) -> float:
         if len(self.history) == 0:
             # To prevent a Nan vlaue from being returned
             # if the queue is empty:
-            self.history.append(value+1e-06)
+            self.history.append(value + 1e-06)
         self.history.append(value)
         return stats.zscore(self.history)[-1]
 
@@ -330,15 +368,16 @@ class Inventory(Feature):
 
 
 class TimeRemaining(Feature):
+    name = "TimeRemaining"
     min_value = 0
     max_value = 1.0
-    
+
     def __init__(self):
         self.normalisation_on = False
 
     def reset(self):
         pass
-    
+
     def normalise(self, value: float) -> float:
         pass
 
