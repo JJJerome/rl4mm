@@ -1,5 +1,6 @@
+bayesian-optimization==1.2.0
 black==22.3.0
-flake8==4.0.1
+flake8
 gym~=0.21.0
 invoke~=1.6.0
 jupyter
@@ -7,6 +8,7 @@ matplotlib~=3.4.2
 mypy
 nose2~=0.11.0
 numpy>=1.20.0
+numpyencoder
 pandas~=1.3.5
 plotly~=5.3.1
 # install postgres first, e.g., brew install postgresql
@@ -24,4 +26,3 @@ stochastic~=0.6.0
 swifter
 tqdm~=4.62.3
 tensorboard
-numpyencoder
