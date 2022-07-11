@@ -71,3 +71,8 @@ def daterange_in_db(start: datetime, end: datetime, ticker: str):
     bool_1 = next_snapshot.name - start < timedelta(minutes=1)
     bool_2 = end - last_snapshot.name < timedelta(minutes=1)
     return bool_1 and bool_2
+
+
+def get_timedelta_from_clock_time(clock_time: int = 1000):
+    t = datetime.strptime(str(clock_time), "%H%M")
+    return timedelta(hours=t.hour, minutes=t.minute)

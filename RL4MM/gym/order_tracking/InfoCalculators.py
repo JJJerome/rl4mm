@@ -19,7 +19,7 @@ class InfoCalculator(metaclass=abc.ABCMeta):
 class SimpleInfoCalculator(InfoCalculator):
     def __init__(
         self,
-        market_order_fraction_of_inventory: Optional[float] = None,
+        market_order_fraction_of_inventory: float = 0.0,
         enter_spread: bool = False,
         order_distributor: OrderDistributor = None,
         concentration: float = None,
