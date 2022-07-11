@@ -228,13 +228,6 @@ if __name__ == "__main__":
     parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
     parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
     parser.add_argument(
-        "-es",
-        "--enter_spread",
-        default=False,
-        help="Bool for whether best quote is the midprice. Otherwise it is the best bid/best ask price",
-        type=bool,
-    )
-    parser.add_argument(
         "-tr",
         "--terminal_reward_function",
         default="PnL",
@@ -242,8 +235,6 @@ if __name__ == "__main__":
         help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
-    parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
-    parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
     parser.add_argument(
         "-es",
         "--enter_spread",
