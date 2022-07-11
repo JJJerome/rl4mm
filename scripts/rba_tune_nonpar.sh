@@ -1,9 +1,9 @@
 mind="2022-03-01"
 maxd="2022-03-14"
 minde="2022-03-15"
-maxde="2022-03-30"
-episode_length=300
-step_size=5
+maxde="2022-03-18"
+episode_length=60
+step_size=10
 n_levels=50
 fixed_ticker="JPM"
 per_step_reward="PnL"
