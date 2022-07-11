@@ -90,7 +90,7 @@ def main(args):
         "_fake_gpus": 0,
         "num_workers": 0,
         "train_batch_size": 0,
-        "rollout_fragment_length": 3600,
+        "rollout_fragment_length": 0,
         "timesteps_per_iteration": 0,
         # -----------------
         "framework": args["framework"],
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-rfl",
         "--rollout_fragment_length",
-        default=3600,
+        default=0,
         help="Rollout fragment length, collected per worker..",
         type=int,
     )
