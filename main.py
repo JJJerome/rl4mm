@@ -242,13 +242,6 @@ if __name__ == "__main__":
         help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
-    parser.add_argument(
-        "-mofi",
-        "--market_order_fraction_of_inventory",
-        default=1.0,
-        help="Market order fraction of inventory.",
-        type=float,
-    )
     parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
     parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
     parser.add_argument(
