@@ -16,5 +16,5 @@ python tune_rule_based_agents.py \
          -el $episode_length \
          -sz $step_size \
          -nl $n_levels \
-         -t $ticker \
+         -t $fixed_ticker \
          -psr $per_step_reward
