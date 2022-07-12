@@ -152,6 +152,9 @@ def generate_trajectory(agent: Agent, env: gym.Env):
         infos.append(info)
         if done:
             break
+
+    print("Finished trajectory")
+
     return {"observations": observations, "actions": actions, "rewards": rewards, "infos": infos}
 
 
