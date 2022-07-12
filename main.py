@@ -70,7 +70,7 @@ def main(args):
         "max_end_timedelta": get_timedelta_from_clock_time(args["min_start_time"]),
         "enter_spread": args["enter_spread"],
         "inc_prev_action_in_obs": args["inc_prev_action_in_obs"],
-        "concentration": None,
+        "concentration": args["concentration"],
     }
 
     eval_env_config = copy.deepcopy(env_config)
@@ -90,8 +90,6 @@ def main(args):
         "num_workers": args["num_workers"],
         "framework": args["framework"],
         "callbacks": Custom_Callbacks,
-        "sgd_minibatch_size": 100,
-        "num_sgd_iter": 10,
         "num_cpus_per_worker": 1,
         "lambda": args["lambda"],
         "lr": args["learning_rate"],
@@ -105,7 +103,7 @@ def main(args):
         "output": args["output"],
         "output_max_file_size": args["output_max_file_size"],
         "env_config": env_config,
-        "evaluation_interval": 3,  # Run one evaluation step on every 3rd `Trainer.train()` call.
+        "evaluation_interval": 1,  # Run one evaluation step on every 3rd `Trainer.train()` call.
         "evaluation_num_workers": args["num_workers_eval"],
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
@@ -113,21 +111,28 @@ def main(args):
         "rollout_fragment_length": args["rollout_fragment_length"],  # tune.choice([1800, 3600]),
         # ---------------------------------------------
         # --------------- Tuning: ---------------------
-        "rollout_fragment_length": tune.choice([1800, 3600]),  # args["rollout_fragment_length"],
-        "num_sgd_iter": tune.choice([10, 20, 30]),
-        "sgd_minibatch_size": tune.choice([128, 512, 2048]),
-        "train_batch_size": tune.choice([10000, 20000, 40000]),
+        "rollout_fragment_length": args["rollout_fragment_length"], #tune.choice([1800, 3600]),  # args["rollout_fragment_length"],
+        "num_sgd_iter": 20, # tune.choice([10, 20, 30]),
+        "sgd_minibatch_size": 512, # tune.choice([128, 512, 2048]),
+        "train_batch_size": args["train_batch_size"], # tune.choice([10000, 20000, 40000]),
         # "recreate_failed_workers": False, # Get an error for some reason when this is enabled.
         # "disable_env_checking": True,
     }
 
     tensorboard_logdir = (
         args["tensorboard_logdir"]
-        + f"{args['per_step_reward_function']}_{args['features']}_moc_{args['market_order_clearing']}"
+        + f"{args['ticker']}/"
+        + f"{args['per_step_reward_function']}/"
+        + f"concentration_{args['concentration']}/"
+        + f"{args['features']}/"
+        + f"normalisation_on_{args['normalisation_on']}/"
+        + f"moc_{args['market_order_clearing']}/"
     )
     if not os.path.exists(tensorboard_logdir):
         os.makedirs(tensorboard_logdir)
-
+    #import ray.rllib.agents.ppo as ppo
+    #trainer = ppo.PPOTrainer(config=config)
+    #print(trainer.train())
     analysis = tune.run(
         "PPO",
         # scheduler=pbt,
@@ -197,16 +202,17 @@ if __name__ == "__main__":
         type=int,
     )
     # -------------------- Training env Args ---------------------------
-    parser.add_argument("-ia", "--inc_prev_action_in_obs", default=True, help="Include prev action in obs.", type=bool)
-    parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=bool)
-    parser.add_argument("-mind", "--min_date", default="2018-02-20", help="Train data start date.", type=str)
-    parser.add_argument("-maxd", "--max_date", default="2018-03-05", help="Train data end date.", type=str)
+    parser.add_argument("-ia", "--inc_prev_action_in_obs", default=True, help="Include prev action in obs.", type=boolean_string)
+    parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=boolean_string)
+    parser.add_argument("-mind", "--min_date", default="2022-03-01", help="Train data start date.", type=str)
+    parser.add_argument("-maxd", "--max_date", default="2022-03-14", help="Train data end date.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
     parser.add_argument("-nl", "--n_levels", default=50, help="Number of orderbook levels.", type=int)
-    parser.add_argument("-sz", "--step_size", default=1, help="Step size in seconds.", type=int)
-    parser.add_argument("-t", "--ticker", default="SPY", help="Specify stock ticker.", type=str)
-    parser.add_argument("-mi", "--max_inventory", default=100000, help="Maximum (absolute) inventory.", type=int)
+    parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=int)
+    parser.add_argument("-t", "--ticker", default="IBM", help="Specify stock ticker.", type=str)
+    parser.add_argument("-mi", "--max_inventory", default=1000, help="Maximum (absolute) inventory.", type=int)
+    parser.add_argument("-c", "--concentration", default=10.0, help="Concentration param for beta dist.", type=float)
     parser.add_argument(
         "-psr",
         "--per_step_reward_function",
@@ -216,7 +222,12 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument(
-        "-moc", "--market_order_clearing", action="store_true", default=False, help="Market order clearing on/off."
+        "-moc", 
+        "--market_order_clearing", 
+        #action="store_true", 
+        default=False, 
+        help="Market order clearing on/off.", 
+        type=boolean_string
     )
     parser.add_argument(
         "-mofi",
@@ -240,7 +251,7 @@ if __name__ == "__main__":
         "--enter_spread",
         default=False,
         help="Bool for whether best quote is the midprice. Otherwise it is the best bid/best ask price",
-        type=bool,
+        type=boolean_string,
     )
     parser.add_argument(
         "-min_st",
@@ -257,8 +268,8 @@ if __name__ == "__main__":
         type=str,
     )
     # ------------------ Eval env args -------------------------------
-    parser.add_argument("-minde", "--min_date_eval", default="2018-03-07", help="Evaluation data start date.", type=str)
-    parser.add_argument("-maxde", "--max_date_eval", default="2018-03-14", help="Evaluation data end date.", type=str)
+    parser.add_argument("-minde", "--min_date_eval", default="2022-03-15", help="Evaluation data start date.", type=str)
+    parser.add_argument("-maxde", "--max_date_eval", default="2022-03-30", help="Evaluation data end date.", type=str)
     parser.add_argument(
         "-epsr",
         "--eval_per_step_reward_function",
