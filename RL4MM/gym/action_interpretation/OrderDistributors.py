@@ -34,13 +34,13 @@ class BetaOrderDistributor(OrderDistributor):
         self.c = concentration
         self.midpoints = 1 / self.n_levels * np.array([i + 0.5 for i in range(self.n_levels)])
 
-    def _convert_action(self, action: np.ndarray, eps=1e-5) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
+    def _convert_action(self, action: np.ndarray) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         assert all(action) > 0, "Action must be positive"
         assert (self.c is None and len(action) in (4, 5)) or (
             self.c is not None and len(action) in (2, 3)
         ), f"Concentration is set to {self.c} and the action taken is of length {len(action)}"
-        (a_buy, b_buy) = (action[0], self.c - action[0]) if self.c is not None else (action[0], action[1])
-        (a_sell, b_sell) = (action[1], self.c - action[1]) if self.c is not None else (action[2], action[3])
+        (a_buy, b_buy) = (action[0], self.c - action[0] + EPS) if self.c is not None else (action[0], action[1])
+        (a_sell, b_sell) = (action[1], self.c - action[1] + EPS) if self.c is not None else (action[2], action[3])
         beta_buy = self.distribution(a=a_buy, b=b_buy)
         beta_sell = self.distribution(a=a_sell, b=b_sell)
         with warnings.catch_warnings():
