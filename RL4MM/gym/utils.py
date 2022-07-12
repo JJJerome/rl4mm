@@ -306,12 +306,20 @@ def get_sharpe(aum_array):
     
     ######################################################
     # REMOVE THIS WHEN AUM IS FIXED
-    aum_array = aum_array + np.abs(np.min(aum_array)) + 1
+    # aum_array = aum_array + np.abs(np.min(aum_array)) + 1
     # print(aum_array)
     ######################################################
 
+    print("MIN:", np.min(aum_array))
+
+    if np.min(aum_array) <= 0:
+        raise Exception("AUM has gone negative")
+
     log_returns = np.diff(np.log(aum_array))
     simple_returns = np.exp(log_returns) - 1
+
+    print("STD RETURNS:", np.std(simple_returns))
+
     return np.mean(simple_returns)/np.std(simple_returns)
 
 ###############################################################################
