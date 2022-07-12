@@ -174,8 +174,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("-ex", "--experiment", default="bayesopt", help="The experiment to run", type=str)
     # -------------------- Training env Args ---------------------------
-    parser.add_argument("-ia", "--inc_prev_action_in_obs", default=True, help="Include prev action in obs.", type=bool)
-    parser.add_argument("-n", "--normalisation_on", default=False, help="Normalise features.", type=bool)
+    parser.add_argument("-ia", "--inc_prev_action_in_obs", default=True, help="Include prev action in obs.", type=boolean_string)
+    parser.add_argument("-n", "--normalisation_on", default=False, help="Normalise features.", type=boolean_string)
     parser.add_argument("-mind", "--min_date", default="2018-02-20", help="Train data start date.", type=str)
     parser.add_argument("-maxd", "--max_date", default="2018-03-05", help="Train data end date.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
@@ -217,7 +217,7 @@ if __name__ == "__main__":
         "--enter_spread",
         default=False,
         help="Bool for whether best quote is the midprice. Otherwise it is the best bid/best ask price",
-        type=bool,
+        type=boolean_string,
     )
 
     # ------------------ Eval env args -------------------------------
