@@ -25,6 +25,7 @@ def main(args):
     def explore(config):
         # ensure we collect enough timesteps to do sgd
         if config["train_batch_size"] < config["sgd_minibatch_size"] * 2:
+            print(f"Setting training batch size to be sgd minibatch size ({config['sgd_minibatch_size']}) x 2.")
             config["train_batch_size"] = config["sgd_minibatch_size"] * 2
         # ensure we run at least one sgd iter
         if config["num_sgd_iter"] < 1:
@@ -48,7 +49,7 @@ def main(args):
         custom_explore_fn=explore,
     )
 
-    ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"] + 2)
+    ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"] + args["num_workers_eval"] + 1)
     env_config = {
         "ticker": args["ticker"],
         "min_date": args["min_date"],
@@ -111,12 +112,13 @@ def main(args):
         "evaluation_duration": "auto",
         "evaluation_config": {"env_config": eval_env_config, "explore": False},
         "rollout_fragment_length": args["rollout_fragment_length"],  # tune.choice([1800, 3600]),
+        "train_batch_size": args["train_batch_size"]
         # ---------------------------------------------
         # --------------- Tuning: ---------------------
-        "rollout_fragment_length": tune.choice([1800, 3600]),  # args["rollout_fragment_length"],
-        "num_sgd_iter": tune.choice([10, 20, 30]),
-        "sgd_minibatch_size": tune.choice([128, 512, 2048]),
-        "train_batch_size": tune.choice([10000, 20000, 40000]),
+        # "rollout_fragment_length": tune.choice([1800, 3600]),  # args["rollout_fragment_length"],
+        # "num_sgd_iter": tune.choice([10, 20, 30]),
+        # "sgd_minibatch_size": tune.choice([128, 512, 2048]),
+        # "train_batch_size": tune.choice([10000, 20000, 40000]),
         # "recreate_failed_workers": False, # Get an error for some reason when this is enabled.
         # "disable_env_checking": True,
     }
