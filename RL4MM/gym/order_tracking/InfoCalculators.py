@@ -19,7 +19,7 @@ class InfoCalculator(metaclass=abc.ABCMeta):
 class SimpleInfoCalculator(InfoCalculator):
     def __init__(
         self,
-        market_order_fraction_of_inventory: Optional[float] = None,
+        market_order_fraction_of_inventory: float = 0.0,
         enter_spread: bool = False,
         order_distributor: OrderDistributor = None,
         concentration: float = None,
@@ -35,6 +35,8 @@ class SimpleInfoCalculator(InfoCalculator):
         info_dict = dict(
             asset_price=internal_state["asset_price"],
             inventory=internal_state["inventory"],
+            cash=internal_state["cash"],
+            aum=self.calculate_aum(internal_state),
             market_spread=self.calculate_market_spread(internal_state),
             agent_spread=spreads_and_offsets[0],
             agent_weighted_spread=[1],
@@ -78,9 +80,6 @@ class SimpleInfoCalculator(InfoCalculator):
             weighted_midprice_offset += self.calculate_market_spread(internal_state)
         return spread, weighted_spread, midprice_offset, weighted_midprice_offset
 
-    def _calculate_agent_spread(self, action: np.ndarray):
-        orders = self.order_distributor.convert_action(action)
-
     def calculate_market_spread(self, internal_state: InternalState):
         last_snapshot = internal_state["book_snapshots"].iloc[-1]
         return (last_snapshot.sell_price_0 - last_snapshot.buy_price_0) / TICK_SIZE
@@ -88,3 +87,6 @@ class SimpleInfoCalculator(InfoCalculator):
     def _update_market_order_count_and_volume(self, inventory: int):
         self.market_order_count += 1
         self.market_order_total_volume += self.market_order_fraction_of_inventory * abs(inventory)
+
+    def calculate_aum(self, internal_state:InternalState) -> float:
+        return internal_state["cash"] + internal_state["asset_price"] * internal_state["inventory"]

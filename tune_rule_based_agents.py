@@ -21,7 +21,6 @@ from ray.tune.suggest.bayesopt import BayesOptSearch
 from ray.tune.suggest import ConcurrencyLimiter
 
 
-
 def main(args):
     ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"] + args["num_workers_eval"])
     register_env("HistoricalOrderbookEnvironment", env_creator)
@@ -78,7 +77,7 @@ def main(args):
             "max_kappa": tune.uniform(10.0, 100.0),
             "exponent": tune.uniform(1.0, 5.0),
             "max_inventory": args["max_inventory"],
-        } 
+        }
         rule_based_agent = ContinuousTeradactylWrapper
     else:
         raise Exception(f"{args['rule_based_agent']} wrapper not implemented.")
@@ -90,14 +89,14 @@ def main(args):
         "_fake_gpus": 0,
         "num_workers": 0,
         "train_batch_size": 0,
-        "rollout_fragment_length": 3600,
+        # "rollout_fragment_length": 3600, Does rollout fragment length have a meaning for BayesOpt experiments in tune?
         "timesteps_per_iteration": 0,
         # -----------------
         "framework": args["framework"],
         "num_cpus_per_worker": 1,
         "model": {"custom_model_config": custom_model_config},
         "env_config": env_config,
-        "evaluation_interval": 1,  
+        "evaluation_interval": 1,
         "evaluation_num_workers": args["num_workers_eval"],
         "evaluation_parallel_to_training": True,
         "evaluation_duration": "auto",
@@ -112,23 +111,23 @@ def main(args):
     tensorboard_logdir = f"{args['tensorboard_logdir']}{args['experiment']}/{args['per_step_reward_function']}"
     algo = BayesOptSearch(
         utility_kwargs={"kind": "ucb", "kappa": 2.5, "xi": 0.0},
-        random_search_steps=5, 
+        random_search_steps=5,
     )
     algo = ConcurrencyLimiter(algo, max_concurrent=10)
     scheduler = AsyncHyperBandScheduler()
     analysis = tune.run(
         rule_based_agent,
         name=args["ticker"],
-        metric="episode_reward_mean", 
+        metric="episode_reward_mean",
         mode="max",
         search_alg=algo,
         scheduler=scheduler,
-        num_samples=1000, 
+        num_samples=1000,
         config=config,
         local_dir=tensorboard_logdir,
         checkpoint_at_end=True,
         resume="AUTO",
-        stop={"training_iteration":60},# args["iterations"]},
+        stop={"training_iteration": 60},  # args["iterations"]},
     )
     print("Best hyperparameters found were: ", analysis.best_config)
 
