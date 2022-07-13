@@ -7,6 +7,7 @@ import importlib
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 
 from RL4MM.gym.utils import plot_reward_distributions, get_episode_summary_dict
+from RL4MM.utils.utils import save_best_checkpoint_path, get_timedelta_from_clock_time
 
 
 experiment_list = [
@@ -25,6 +26,8 @@ def get_configs(args):
         "ticker": args["ticker"],
         "min_date": args["min_date"],
         "max_date": args["max_date"],
+        "min_start_timedelta": get_timedelta_from_clock_time(args["min_start_time"]),
+        "max_end_timedelta": get_timedelta_from_clock_time(args["min_start_time"]),
         "step_size": args["step_size"],
         "episode_length": args["episode_length"],
         "n_levels": args["n_levels"],
@@ -32,7 +35,7 @@ def get_configs(args):
         "per_step_reward_function": args["per_step_reward_function"],
         "terminal_reward_function": args["terminal_reward_function"],
         "market_order_clearing": args["market_order_clearing"],
-        "market_order_fraction_of_inventory": None,
+        "market_order_fraction_of_inventory": 0.0,
         "min_quote_level": args["min_quote_level"],
         "max_quote_level": args["max_quote_level"],
         "enter_spread": args["enter_spread"],
@@ -174,6 +177,20 @@ def parse_args():
         default="full_state",
         choices=["agent_state", "full_state"],
         help="Agent state only or full state.",
+        type=str,
+    )
+    parser.add_argument(
+        "-min_st",
+        "--min_start_time",
+        default="1100",
+        help="The minimum start time for an episode written in HHMM format.",
+        type=str,
+    )
+    parser.add_argument(
+        "-max_et",
+        "--max_end_time",
+        default="1400",
+        help="The maximum end time for an episode written in HHMM format.",
         type=str,
     )
     parser.add_argument("-mi", "--max_inventory", default=1000, help="Maximum (absolute) inventory.", type=int)
