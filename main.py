@@ -48,7 +48,7 @@ def main(args):
         custom_explore_fn=explore,
     )
 
-    ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"] + 2)
+    ray.init(ignore_reinit_error=True, num_cpus=(args["num_workers"] + args["num_workers_eval"] + 1)*4)
     env_config = {
         "ticker": args["ticker"],
         "min_date": args["min_date"],
@@ -114,9 +114,11 @@ def main(args):
         "rollout_fragment_length": args["rollout_fragment_length"], #tune.choice([1800, 3600]),  # args["rollout_fragment_length"],
         "num_sgd_iter": 20, # tune.choice([10, 20, 30]),
         "sgd_minibatch_size": 512, # tune.choice([128, 512, 2048]),
-        "train_batch_size": args["train_batch_size"], # tune.choice([10000, 20000, 40000]),
+        "train_batch_size": args["rollout_fragment_length"] * args["num_workers"], #args["train_batch_size"], # tune.choice([10000, 20000, 40000]),
         # "recreate_failed_workers": False, # Get an error for some reason when this is enabled.
         # "disable_env_checking": True,
+        'seed':tune.choice(range(1000)),
+        "num_gpus": 0.1,
     }
 
     tensorboard_logdir = (
@@ -136,7 +138,7 @@ def main(args):
     analysis = tune.run(
         "PPO",
         # scheduler=pbt,
-        num_samples=1,  # 8,
+        num_samples=4,  # 8,
         metric="episode_reward_mean",
         mode="max",
         stop={"training_iteration": args["iterations"]},
@@ -175,7 +177,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-rfl",
         "--rollout_fragment_length",
-        default=3600,
+        default=720, #3600,
         help="Rollout fragment length, collected per worker..",
         type=int,
     )
