@@ -89,7 +89,7 @@ def main(args):
         "_fake_gpus": 0,
         "num_workers": 0,
         "train_batch_size": 0,
-        "rollout_fragment_length": 0,
+        "rollout_fragment_length": 3600,
         "timesteps_per_iteration": 0,
         # -----------------
         "framework": args["framework"],
@@ -105,10 +105,15 @@ def main(args):
 
     # ---------------- For testing.... ----------------------
     # Uncomment for basic testing
-    # print(rule_based_agent(config=config).train())
+    #print(rule_based_agent(config=config).train())
     # print(FixedActionAgentWrapper(config=config).evaluate())
     # -------------------------------------------------------
-    tensorboard_logdir = f"{args['tensorboard_logdir']}{args['experiment']}/{args['per_step_reward_function']}"
+    tensorboard_logdir = (
+        args["tensorboard_logdir"]
+        + f"{args['ticker']}/"
+        + f"{args['rule_based_agent']}/"
+        + f"{args['per_step_reward_function']}/"
+    )
     algo = BayesOptSearch(
         utility_kwargs={"kind": "ucb", "kappa": 2.5, "xi": 0.0},
         random_search_steps=5,
@@ -206,7 +211,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-mofi",
         "--market_order_fraction_of_inventory",
-        default=None,
+        default=0.0,
         help="Market order fraction of inventory.",
         type=float,
     )
