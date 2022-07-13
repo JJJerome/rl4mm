@@ -1,10 +1,10 @@
 min_quote_range = [0]  # [1, 0, -1]
 max_quote_range = [10]  # [10, 15, 20]
 #max_inv_range = [1000]  # [1000]
-default_omega = 0.39
-default_kappa = 6.28
-max_kappa = 35.61
-exponent = 4.58
+default_omega = 0.480
+default_kappa = 7.494
+max_kappa = 63.879
+exponent = 3.927
 
 from RL4MM.agents.baseline_agents import ContinuousTeradactyl
 
