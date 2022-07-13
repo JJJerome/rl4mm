@@ -135,6 +135,15 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
     )
 """
 
+def extract_array_from_infos(infos, key):
+    """
+    infos is a list of dictionaries, all with identical keys
+
+    this function takes a key and returns an 
+    np array of just the corresponding dictionary values 
+    """
+    return np.array([info[key] for info in infos]) 
+
 
 def generate_trajectory(agent: Agent, env: gym.Env):
     observations = []
@@ -152,8 +161,6 @@ def generate_trajectory(agent: Agent, env: gym.Env):
         infos.append(info)
         if done:
             break
-
-    print("Finished trajectory")
 
     return {"observations": observations, "actions": actions, "rewards": rewards, "infos": infos}
 
@@ -178,32 +185,72 @@ def get_episode_summary_dict(
 
     return ret
 
-
-def get_episode_summary_dict_NONPARALLEL(agent: Agent, env: gym.Env, n_iterations: int = 100):
+def init_episode_summary_dict():
     episode_summary_dict: Dict = {
-        "equity_curves": [],
-        "rewards": [],
+        "equity_curves": [], # list of aum time series 
+        "reward_series": [], # list of reward time series
+        "rewards": [], 
         "actions": [],
-        "inventory": [],
         "spread": [],
+        "inventory": [],
         "inventories": [],
         "asset_prices": [],
         "agent_midprice_offsets": [],
     }
+    return episode_summary_dict
+
+def append_to_episode_summary_dict(esd, d):
+    """
+    d is a dictionary as returned by get_trajectory
+    """
+
+    # aum series, i.e., the equity curve
+    aum_array = extract_array_from_infos(d['infos'], 'aum') 
+    esd["equity_curves"].append(aum_array)
+
+    # reward series
+    esd["reward_series"].append(d["rewards"])
+
+    # mean reward
+    esd["rewards"].append(np.mean(d["rewards"]))
+
+    # mean action
+    esd["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
+
+    # mean market spread
+    market_spread_array = extract_array_from_infos(d['infos'], 'market_spread')
+    esd["spread"].append(np.mean(market_spread_array))
+
+    # mean inventory
+    inventory_array = extract_array_from_infos(d['infos'], 'inventory')
+    esd["inventory"].append(np.mean(inventory_array))
+
+    # inventory series
+    esd["inventories"].append(inventory_array)
+
+    # asset price series
+    asset_price_array = extract_array_from_infos(d['infos'], 'asset_price')
+    esd["asset_prices"].append(asset_price_array)
+
+    # midprice offset series
+    midprice_offset_array = extract_array_from_infos(d['infos'], 'weighted_midprice_offset')
+    esd["agent_midprice_offsets"].append(midprice_offset_array)
+
+    print("=================")
+    print("Sharpe:",get_sharpe(aum_array))
+    print("=================")
+
+    return esd
+
+def get_episode_summary_dict_NONPARALLEL(agent: Agent, env: gym.Env, n_iterations: int = 100):
+
+    esd = init_episode_summary_dict()
+
     for _ in tqdm(range(n_iterations), desc="Simulating trajectories"):
         d = generate_trajectory(agent=agent, env=env)
-        episode_summary_dict["equity_curves"].append(d["rewards"])
-        episode_summary_dict["rewards"].append(np.mean(d["rewards"]))
-        episode_summary_dict["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
-        episode_summary_dict["spread"].append(np.mean([info["market_spread"] for info in d["infos"]]))
-        inventories = np.array([info["market_spread"] for info in d["infos"]])
-        asset_prices = np.array([info["asset_price"] for info in d["infos"]])
-        midprice_offsets = np.array([info["weighted_midprice_offset"] for info in d["infos"]])
-        episode_summary_dict["inventories"].append(inventories)
-        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
-        episode_summary_dict["agent_midprice_offsets"] = midprice_offsets
-        episode_summary_dict["asset_prices"] = asset_prices
-    return episode_summary_dict
+        esd = append_to_episode_summary_dict(esd, d)
+
+    return esd 
 
 
 def process_parallel_results(results):
@@ -211,54 +258,23 @@ def process_parallel_results(results):
 
     results is a list of length n_iterations
 
-    each element is dictionary with keys:
+    each element is a dictionary with keys:
 
     observations
     actions
     rewards
     infos
 
-    infos is a tuple of dictionaries with keys and values e.g.,
+    as returned by get_trajectory
 
-    {'asset_price': 2729950.0,
-     'inventory': -76.0,
-     'market_spread': 100.0,
-     'agent_weighted_spread':,
-     'midprice_offset':,
-     'bid_action': (array([3, 1]),),
-     'ask_action': (array([3, 1]),),
-     'market_order_count': 0,
-     'market_order_total_volume'
-     }
-
-
+    infos is a tuple of dictionaries with keys and values
     """
-
-    episode_summary_dict: Dict = {
-        "equity_curves": [],
-        "rewards": [],
-        "actions": [],
-        "inventory": [],
-        "spread": [],
-        "inventories": [],
-        "asset_prices": [],
-        "agent_midprice_offsets": [],
-    }
+    esd = init_episode_summary_dict()
 
     for d in results:
-        episode_summary_dict["equity_curves"].append(d["rewards"])
-        episode_summary_dict["rewards"].append(np.mean(d["rewards"]))
-        episode_summary_dict["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
-        episode_summary_dict["spread"].append(np.mean([info["market_spread"] for info in d["infos"]]))
-        inventories = np.array([info["market_spread"] for info in d["infos"]])
-        asset_prices = np.array([info["asset_price"] for info in d["infos"]])
-        midprice_offsets = np.array([info["weighted_midprice_offset"] for info in d["infos"]])
-        episode_summary_dict["inventories"].append(inventories)
-        episode_summary_dict["inventory"].append(np.mean([info["inventory"] for info in d["infos"]]))
-        episode_summary_dict["agent_midprice_offsets"] = midprice_offsets
-        episode_summary_dict["asset_prices"] = asset_prices
-    return episode_summary_dict
+        esd = append_to_episode_summary_dict(esd, d)
 
+    return esd
 
 def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
@@ -286,6 +302,27 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
 ###############################################################################
 
+def get_sharpe(aum_array):
+    
+    ######################################################
+    # REMOVE THIS WHEN AUM IS FIXED
+    # aum_array = aum_array + np.abs(np.min(aum_array)) + 1
+    # print(aum_array)
+    ######################################################
+
+    print("MIN:", np.min(aum_array))
+
+    if np.min(aum_array) <= 0:
+        raise Exception("AUM has gone negative")
+
+    log_returns = np.diff(np.log(aum_array))
+    simple_returns = np.exp(log_returns) - 1
+
+    print("STD RETURNS:", np.std(simple_returns))
+
+    return np.mean(simple_returns)/np.std(simple_returns)
+
+###############################################################################
 
 def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int = 100):
     sns.set()
@@ -361,7 +398,8 @@ def plot_reward_distributions(
 
     tmp = episode_summary_dict["equity_curves"]
     df = pd.DataFrame(tmp).transpose()
-    df.cumsum().plot(ax=ax_dict["A"])
+    # df.cumsum().plot(ax=ax_dict["A"]) # cum sum when we had period by period pnl
+    df.plot(ax=ax_dict["A"]) # aum series IS the equity curve
     ax_dict["A"].get_legend().remove()
 
     ###########################################################################
