@@ -25,6 +25,7 @@ def main(args):
     def explore(config):
         # ensure we collect enough timesteps to do sgd
         if config["train_batch_size"] < config["sgd_minibatch_size"] * 2:
+            print(f"Setting training batch size to be sgd minibatch size ({config['sgd_minibatch_size']}) x 2.")
             config["train_batch_size"] = config["sgd_minibatch_size"] * 2
         # ensure we run at least one sgd iter
         if config["num_sgd_iter"] < 1:
@@ -109,6 +110,7 @@ def main(args):
         "evaluation_duration": "auto",
         "evaluation_config": {"env_config": eval_env_config, "explore": False},
         "rollout_fragment_length": args["rollout_fragment_length"],  # tune.choice([1800, 3600]),
+        "train_batch_size": args["train_batch_size"]
         # ---------------------------------------------
         # --------------- Tuning: ---------------------
         "rollout_fragment_length": args["rollout_fragment_length"], #tune.choice([1800, 3600]),  # args["rollout_fragment_length"],

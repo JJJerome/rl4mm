@@ -31,6 +31,9 @@ def get_configs(args):
         "step_size": args["step_size"],
         "episode_length": args["episode_length"],
         "n_levels": args["n_levels"],
+        "features": args["features"],
+        "max_inventory": args["max_inventory"],
+        "normalisation_on": args["normalisation_on"],
         "initial_portfolio": args["initial_portfolio"],
         "per_step_reward_function": args["per_step_reward_function"],
         "terminal_reward_function": args["terminal_reward_function"],
@@ -113,9 +116,21 @@ def parse_args():
     parser.add_argument("-maxd", "--max_date", default="2018-02-20", help="Train data end date.", type=str)
     parser.add_argument("-t", "--ticker", default="SPY", help="Specify stock ticker.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
-    parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
+    # parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
+    default_ip = dict(inventory=0,cash=1e12)
+    parser.add_argument("-ip", "--initial_portfolio", default=default_ip, help="Initial portfolio.", type=dict)
     parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=int)
     parser.add_argument("-nl", "--n_levels", default=200, help="Number of orderbook levels.", type=int)
+    parser.add_argument("-mi", "--max_inventory", default=100000, help="Maximum (absolute) inventory.", type=int)
+    parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=bool)
+    parser.add_argument(
+        "-f",
+        "--features",
+        default="full_state",
+        choices=["agent_state", "full_state"],
+        help="Agent state only or full state.",
+        type=str,
+    )
     parser.add_argument(
         "-psr",
         "--per_step_reward_function",

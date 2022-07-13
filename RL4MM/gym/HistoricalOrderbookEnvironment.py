@@ -395,7 +395,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def _check_market_order_clearing_well_defined(self):
         if (self.market_order_clearing and self.market_order_fraction_of_inventory <= 0.0) or (
-            not self.market_order_clearing and self.market_order_fraction_of_inventory > 0.0
+            not self.market_order_clearing and (self.market_order_fraction_of_inventory is not None and self.market_order_fraction_of_inventory > 0.0)
         ):
             raise Exception(
                 f"market_order_fraction_of_inventory {self.market_order_fraction_of_inventory} "

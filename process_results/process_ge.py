@@ -25,13 +25,18 @@ def fname_to_dict(fname):
     tmp = fname.split("_")
     d = dict()
 
+    # teradactyl_sweep:
+
+    # 0                    1   2     3   4   5     6 7   8   9   10  11    12 13       14  15 16         17         18 19 20   21
+    # ContinuousTeradactyl_def_omega_0.2_def_kappa_4_max_inv_300_max_kappa_40_exponent_1.5_GE_2022-03-01_2022-03-14_el_60_minq_0_maxq_15_es_False.json
+
     d["strategy"] = tmp[0]
-    d["alpha_bid"] = tmp[1]
-    d["beta_bid"] = tmp[2]
-    d["alpha_ask"] = tmp[3]
-    d["beta_ask"] = tmp[4]
-    d["ticker"] = tmp[5]
-    d["minq"] = tmp[11]
+    d["def_omega"] = tmp[3]
+    d["def_kappa"] = tmp[6]
+    d["max_inv"] = tmp[9]
+    d["max_kappa"] = tmp[12]
+    d["ticker"] = tmp[15]
+    d["minq"] = tmp[21]
 
     return d
 
@@ -49,7 +54,10 @@ if __name__ == "__main__":
 
     args = parse_args()
     fpath = args["path_to_jsons"]
-    fpath = "/Users/rahul/Dropbox/ICAIF_experimental_results/COMBINED_FIXED_ACTION_LADDER"
+
+    # fpath = '/Users/rahul/Dropbox/ICAIF_experimental_results/COMBINED_FIXED_ACTION_LADDER'
+    # fpath = "/Users/rahul/Dropbox/ICAIF_experimental_results/COMBINED_TERADACTYL"
+    fpath = "/Users/rahul/Dropbox/ICAIF_experimental_results/GE"
 
     start_prices = get_start_prices()
 
@@ -89,11 +97,13 @@ if __name__ == "__main__":
 
         lst.append(tmp)
 
-    df = pd.DataFrame.from_records(lst)
+    df_all = pd.DataFrame.from_records(lst)
 
     # print(df.sort_values(["minq", "ticker"]))
 
-    strategy_params = ["alpha_bid", "beta_bid", "alpha_ask", "beta_ask"]
+    # strategy_params = ['alpha_bid','beta_bid','alpha_ask','beta_ask']
+
+    strategy_params = ["def_omega", "def_kappa", "max_inv", "max_kappa"]
 
     # count the number of positive entries in a series
     count_pos = lambda x: sum([1 if e > 0 else 0 for e in x])
@@ -104,9 +114,9 @@ if __name__ == "__main__":
         return list(itertools.chain.from_iterable(x))
 
     df_list = []
-    df_list.append(df.groupby(strategy_params)["mean"].apply(count_pos))
-    df_list.append(df.groupby(strategy_params)["returns"].apply(concat_lists).apply(lambda x: np.mean(x)))
-    df_list.append(df.groupby(strategy_params)["returns"].apply(concat_lists).apply(lambda x: np.std(x)))
+    df_list.append(df_all.groupby(strategy_params)["mean"].apply(count_pos))
+    df_list.append(df_all.groupby(strategy_params)["returns"].apply(concat_lists).apply(lambda x: np.mean(x)))
+    df_list.append(df_all.groupby(strategy_params)["returns"].apply(concat_lists).apply(lambda x: np.std(x)))
 
     from functools import reduce
 
@@ -114,5 +124,11 @@ if __name__ == "__main__":
 
     df = np.round(df, 2)
     df = df.reset_index()
-    df.columns = ["alphabid", "betabid", "alphaask", "betaask", "nprofitable", "meanreturns", "sdreturns"]
+    df.columns = ["defomega", "defkappa", "maxinv", "maxkappa", "nprofitable", "meanreturns", "sdreturns"]
     df.to_csv("test.csv", index=False, float_format="%.2f")
+
+    print(df.sort_values("nprofitable"))
+
+    tickers = list(start_prices.keys())
+    missing_tickers = lambda x: [t for t in tickers if t not in np.unique(x["ticker"])]
+    df_all.groupby(strategy_params).apply(missing_tickers)
