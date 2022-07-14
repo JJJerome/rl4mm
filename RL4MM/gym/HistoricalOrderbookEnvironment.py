@@ -152,9 +152,10 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.now_is = min_date
         self.feature_window_size = feature_window_size
         self.enter_spread = enter_spread
-        self.info_calculator = info_calculator or SimpleInfoCalculator(
-            market_order_fraction_of_inventory, enter_spread, concentration=concentration
-        )
+        self.info_calculator = info_calculator
+        #                        or SimpleInfoCalculator(
+        #     market_order_fraction_of_inventory, enter_spread, concentration=concentration
+        # )
         self.price = MidPrice()
         self._check_params()
 
@@ -182,16 +183,17 @@ class HistoricalOrderbookEnvironment(gym.Env):
         current_state = deepcopy(self.internal_state)
         self.now_is += self.step_size
         self.update_internal_state(filled)
-        if self.info_calculator is not None:
-            info = self.info_calculator.calculate(
-                filled_orders=filled, internal_state=self.internal_state, action=action
-            )
         next_state = self.internal_state
         reward = self.per_step_reward_function.calculate(current_state, next_state)
         observation = self.get_observation(action) if self.inc_prev_action_in_obs else self.get_observation()
         if np.isclose(self.internal_state["proportion_of_episode_remaining"], 0):
             reward = self.terminal_reward_function.calculate(current_state, next_state)
             done = True
+        info = {}
+        if self.info_calculator is not None:
+            info = self.info_calculator.calculate(
+                filled_orders=filled, internal_state=self.internal_state, action=action
+            )
         return observation, reward, done, info
 
     def get_observation(self, previous_action: np.ndarray = None) -> np.ndarray:
