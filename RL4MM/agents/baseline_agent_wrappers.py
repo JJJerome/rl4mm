@@ -3,6 +3,7 @@ from ray.rllib.agents.trainer import Trainer
 from RL4MM.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent, ContinuousTeradactyl
 import numpy as np
 
+
 class FixedActionAgentPolicy(CustomPolicy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,12 +52,14 @@ class TeradactylAgentPolicy(CustomPolicy):
             max_inventory=self.config["model"]["custom_model_config"]["max_inventory"],
         )
 
+
 class TeradactylAgentWrapper(Trainer):
     def get_default_policy_class(self, config):
         return TeradactylAgentPolicy
 
 
 # --------------------------------------------------------------------------------------------------
+
 
 class ContinuousTeradactylPolicy(CustomPolicy):
     def __init__(self, *args, **kwargs):
@@ -69,7 +72,7 @@ class ContinuousTeradactylPolicy(CustomPolicy):
             exponent=self.config["model"]["custom_model_config"]["exponent"],
         )
 
+
 class ContinuousTeradactylWrapper(Trainer):
     def get_default_policy_class(self, config):
         return ContinuousTeradactylPolicy
-

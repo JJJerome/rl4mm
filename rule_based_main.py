@@ -117,7 +117,7 @@ def parse_args():
     parser.add_argument("-t", "--ticker", default="SPY", help="Specify stock ticker.", type=str)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     # parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
-    default_ip = dict(inventory=0,cash=1e12)
+    default_ip = dict(inventory=0, cash=1e12)
     parser.add_argument("-ip", "--initial_portfolio", default=default_ip, help="Initial portfolio.", type=dict)
     parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=int)
     parser.add_argument("-nl", "--n_levels", default=200, help="Number of orderbook levels.", type=int)
