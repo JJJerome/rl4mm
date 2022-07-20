@@ -88,5 +88,5 @@ class SimpleInfoCalculator(InfoCalculator):
         self.market_order_count += 1
         self.market_order_total_volume += self.market_order_fraction_of_inventory * abs(inventory)
 
-    def calculate_aum(self, internal_state:InternalState) -> float:
+    def calculate_aum(self, internal_state: InternalState) -> float:
         return internal_state["cash"] + internal_state["asset_price"] * internal_state["inventory"]

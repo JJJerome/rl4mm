@@ -138,14 +138,15 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
     )
 """
 
+
 def extract_array_from_infos(infos, key):
     """
     infos is a list of dictionaries, all with identical keys
 
-    this function takes a key and returns an 
-    np array of just the corresponding dictionary values 
+    this function takes a key and returns an
+    np array of just the corresponding dictionary values
     """
-    return np.array([info[key] for info in infos]) 
+    return np.array([info[key] for info in infos])
 
 
 def generate_trajectory(agent: Agent, env: gym.Env):
@@ -188,11 +189,12 @@ def get_episode_summary_dict(
 
     return ret
 
+
 def init_episode_summary_dict():
     episode_summary_dict: Dict = {
-        "equity_curves": [], # list of aum time series 
-        "reward_series": [], # list of reward time series
-        "rewards": [], 
+        "equity_curves": [],  # list of aum time series
+        "reward_series": [],  # list of reward time series
+        "rewards": [],
         "actions": [],
         "spread": [],
         "inventory": [],
@@ -202,6 +204,7 @@ def init_episode_summary_dict():
     }
     return episode_summary_dict
 
+
 def append_to_episode_summary_dict(esd, d):
     """
     d is a dictionary as returned by get_trajectory
@@ -209,7 +212,7 @@ def append_to_episode_summary_dict(esd, d):
     print(d['infos'][0])
 
     # aum series, i.e., the equity curve
-    aum_array = extract_array_from_infos(d['infos'], 'aum') 
+    aum_array = extract_array_from_infos(d["infos"], "aum")
     esd["equity_curves"].append(aum_array)
 
     # reward series
@@ -222,29 +225,30 @@ def append_to_episode_summary_dict(esd, d):
     esd["actions"].append(np.mean(np.array(d["actions"]), axis=0)[:-1])
 
     # mean market spread
-    market_spread_array = extract_array_from_infos(d['infos'], 'market_spread')
+    market_spread_array = extract_array_from_infos(d["infos"], "market_spread")
     esd["spread"].append(np.mean(market_spread_array))
 
     # mean inventory
-    inventory_array = extract_array_from_infos(d['infos'], 'inventory')
+    inventory_array = extract_array_from_infos(d["infos"], "inventory")
     esd["inventory"].append(np.mean(inventory_array))
 
     # inventory series
     esd["inventories"].append(inventory_array)
 
     # asset price series
-    asset_price_array = extract_array_from_infos(d['infos'], 'asset_price')
+    asset_price_array = extract_array_from_infos(d["infos"], "asset_price")
     esd["asset_prices"].append(asset_price_array)
 
     # midprice offset series
-    midprice_offset_array = extract_array_from_infos(d['infos'], 'weighted_midprice_offset')
+    midprice_offset_array = extract_array_from_infos(d["infos"], "weighted_midprice_offset")
     esd["agent_midprice_offsets"].append(midprice_offset_array)
 
     print("=================")
-    print("Sharpe:",get_sharpe(aum_array))
+    print("Sharpe:", get_sharpe(aum_array))
     print("=================")
 
     return esd
+
 
 def get_episode_summary_dict_NONPARALLEL(agent: Agent, env: gym.Env, n_iterations: int = 100):
 
@@ -254,7 +258,7 @@ def get_episode_summary_dict_NONPARALLEL(agent: Agent, env: gym.Env, n_iteration
         d = generate_trajectory(agent=agent, env=env)
         esd = append_to_episode_summary_dict(esd, d)
 
-    return esd 
+    return esd
 
 
 def process_parallel_results(results):
@@ -279,6 +283,7 @@ def process_parallel_results(results):
         esd = append_to_episode_summary_dict(esd, d)
 
     return esd
+
 
 def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
@@ -381,7 +386,7 @@ def plot_reward_distributions(
     tmp = episode_summary_dict["equity_curves"]
     df = pd.DataFrame(tmp).transpose()
     # df.cumsum().plot(ax=ax_dict["A"]) # cum sum when we had period by period pnl
-    df.plot(ax=ax_dict["A"]) # aum series IS the equity curve
+    df.plot(ax=ax_dict["A"])  # aum series IS the equity curve
     ax_dict["A"].get_legend().remove()
 
     ###########################################################################
