@@ -32,7 +32,7 @@ from RL4MM.features.Features import (
     Volatility,
     Inventory,
     TimeRemaining,
-    MidPrice,
+    MidPrice, TimeOfDay,
 )
 from RL4MM.gym.action_interpretation.OrderDistributors import OrderDistributor, BetaOrderDistributor
 from RL4MM.orderbook.create_order import create_order
@@ -104,6 +104,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
             Inventory(max_value=max_inventory),
             TimeRemaining(),
             MicroPrice(),
+            TimeOfDay()
         ]
         self.inc_prev_action_in_obs = inc_prev_action_in_obs
         low_obs = np.array([feature.min_value for feature in self.features])
