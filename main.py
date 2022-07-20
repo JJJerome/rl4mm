@@ -20,7 +20,7 @@ from RL4MM.utils.utils import boolean_string
 
 def main(args):
 
-    ray.init(ignore_reinit_error=True, num_cpus=(args["num_workers"] + args["num_workers_eval"] + 1)*4)
+    ray.init(ignore_reinit_error=True, num_cpus=(args["num_workers"] + args["num_workers_eval"] + 1) * 4)
     env_config = {
         "ticker": args["ticker"],
         "min_date": args["min_date"],
@@ -54,12 +54,12 @@ def main(args):
     register_env("HistoricalOrderbookEnvironment", env_creator)
 
     config = {
-        # ---  CPUs, GPUs, Workers --- 
+        # ---  CPUs, GPUs, Workers ---
         "num_cpus_per_worker": 1,
         "num_gpus": args["num_gpus"],
         "framework": args["framework"],
         "num_workers": args["num_workers"],
-        # --- Env --- 
+        # --- Env ---
         "env_config": env_config,
         "evaluation_duration": "auto",
         "callbacks": Custom_Callbacks,
@@ -67,7 +67,7 @@ def main(args):
         "env": "HistoricalOrderbookEnvironment",
         "evaluation_num_workers": args["num_workers_eval"],
         "evaluation_config": {"env_config": eval_env_config, "explore": False},
-        "evaluation_interval": 1, # Run one evaluation step every n `Trainer.train()` calls.
+        "evaluation_interval": 1,  # Run one evaluation step every n `Trainer.train()` calls.
         # --- Hyperparams ---
         "lambda": args["lambda"],
         "lr": args["learning_rate"],
@@ -100,9 +100,9 @@ def main(args):
     )
     if not os.path.exists(tensorboard_logdir):
         os.makedirs(tensorboard_logdir)
-    #import ray.rllib.agents.ppo as ppo
-    #trainer = ppo.PPOTrainer(config=config)
-    #print(trainer.train())
+    # import ray.rllib.agents.ppo as ppo
+    # trainer = ppo.PPOTrainer(config=config)
+    # print(trainer.train())
     analysis = tune.run(
         "PPO",
         num_samples=8,
@@ -149,22 +149,22 @@ if __name__ == "__main__":
         help="Directory to save tensorboard logs to.",
         type=str,
     )
-    
+
     # -------------------- Hyperparameters
     parser.add_argument("-la", "--lambda", default=1.0, help="Lambda for PBT.", type=float)
     parser.add_argument("-lr", "--learning_rate", default=0.0001, help="Learning rate.", type=float)
     parser.add_argument("-df", "--discount_factor", default=0.99, help="Discount factor gamma of the MDP.", type=float)
     # Currently using tune to determine the following:
-    #parser.add_argument(
+    # parser.add_argument(
     #    "-rfl",
     #    "--rollout_fragment_length",
     #    default=3600,
     #    help="Rollout fragment length, collected per worker..",
     #    type=int,
-    #)
-    #parser.add_argument(
+    # )
+    # parser.add_argument(
     #    "-tb", "--train_batch_size", default=20000, help="The size of the training batch used for updates.", type=int
-    #)
+    # )
 
     # -------------------- Generating a dataset of eval episodes
     parser.add_argument("-o", "--output", default=None, help="Directory to save episode data to.", type=str)
@@ -187,7 +187,9 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--concentration", default=10.0, help="Concentration param for beta dist.", type=float)
     parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
     parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
-    parser.add_argument("-ia", "--inc_prev_action_in_obs", default=True, help="Include prev action in obs.", type=boolean_string)
+    parser.add_argument(
+        "-ia", "--inc_prev_action_in_obs", default=True, help="Include prev action in obs.", type=boolean_string
+    )
     parser.add_argument(
         "-es",
         "--enter_spread",
@@ -195,7 +197,7 @@ if __name__ == "__main__":
         help="Bool for whether best quote is the midprice. Otherwise it is the best bid/best ask price",
         type=boolean_string,
     )
-    
+
     # ------------------ Date & Time -------------------------------
     parser.add_argument("-maxd", "--max_date", default="2022-03-14", help="Train data end date.", type=str)
     parser.add_argument("-mind", "--min_date", default="2022-03-01", help="Train data start date.", type=str)
@@ -215,34 +217,54 @@ if __name__ == "__main__":
         help="The maximum end time for an episode written in HHMM format.",
         type=str,
     )
-    
-    # -------------------- Reards functions ------------- 
-    r_choices =  [
-        "AD", # Asymmetrically Dampened
-        "SD", # Symmetrically Dampened 
-        "PnL", # PnL
+
+    # -------------------- Reards functions -------------
+    r_choices = [
+        "AD",  # Asymmetrically Dampened
+        "SD",  # Symmetrically Dampened
+        "PnL",  # PnL
     ]
     parser.add_argument(
-        "-psr", "--per_step_reward_function", default="PnL", choices=r_choices, help="Per step rewards.", type=str,
+        "-psr",
+        "--per_step_reward_function",
+        default="PnL",
+        choices=r_choices,
+        help="Per step rewards.",
+        type=str,
     )
     parser.add_argument(
-        "-tr", "--terminal_reward_function", default="PnL", choices=r_choices, help="Terminal rewards.", type=str,
+        "-tr",
+        "--terminal_reward_function",
+        default="PnL",
+        choices=r_choices,
+        help="Terminal rewards.",
+        type=str,
     )
     parser.add_argument(
-        "-epsr", "--eval_per_step_reward_function", default="PnL", choices=r_choices, help="Eval per step rewards.", type=str,
+        "-epsr",
+        "--eval_per_step_reward_function",
+        default="PnL",
+        choices=r_choices,
+        help="Eval per step rewards.",
+        type=str,
     )
     parser.add_argument(
-        "-etr", "--eval_terminal_reward_function", default="PnL", choices=r_choices, help="Eval terminal rewards.", type=str,
+        "-etr",
+        "--eval_terminal_reward_function",
+        default="PnL",
+        choices=r_choices,
+        help="Eval terminal rewards.",
+        type=str,
     )
 
     # ---------------------- Market Order Clearing
     parser.add_argument(
-        "-moc", 
-        "--market_order_clearing", 
-        #action="store_true", 
-        default=False, 
-        help="Market order clearing on/off.", 
-        type=boolean_string
+        "-moc",
+        "--market_order_clearing",
+        # action="store_true",
+        default=False,
+        help="Market order clearing on/off.",
+        type=boolean_string,
     )
     parser.add_argument(
         "-mofi",
@@ -251,7 +273,7 @@ if __name__ == "__main__":
         help="Market order fraction of inventory.",
         type=float,
     )
-    
+
     # -------------------------------------------------
     args = vars(parser.parse_args())
     # -------------------  Run ------------------------
