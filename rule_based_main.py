@@ -185,15 +185,6 @@ def parse_args():
     parser.add_argument(
         "-md", "--multiple_databases", action="store_true", default=False, help="Run using multiple databases."
     )
-    parser.add_argument("-n", "--normalisation_on", default=False, help="Normalise features.", type=bool)
-    parser.add_argument(
-        "-f",
-        "--features",
-        default="full_state",
-        choices=["agent_state", "full_state"],
-        help="Agent state only or full state.",
-        type=str,
-    )
     parser.add_argument(
         "-min_st",
         "--min_start_time",
@@ -208,7 +199,6 @@ def parse_args():
         help="The maximum end time for an episode written in HHMM format.",
         type=str,
     )
-    parser.add_argument("-mi", "--max_inventory", default=1000, help="Maximum (absolute) inventory.", type=int)
     # -------------------------------------------------
     args = vars(parser.parse_args())
     if args["concentration"] == 0:
