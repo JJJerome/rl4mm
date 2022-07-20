@@ -221,6 +221,7 @@ if __name__ == "__main__":
         "AD", # Asymmetrically Dampened
         "SD", # Symmetrically Dampened 
         "PnL", # PnL
+        "RS", # Rolling Sharpe
     ]
     parser.add_argument(
         "-psr", "--per_step_reward_function", default="PnL", choices=r_choices, help="Per step rewards.", type=str,

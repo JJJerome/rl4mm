@@ -43,6 +43,9 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=False)
     elif reward_function == "PnL":
         return PnL()
+    elif reward_function == "RS": # RollingSharpe
+        sys.exit('WOOPS')
+        return PnL()
     else:
         raise NotImplementedError("You must specify one of 'AS', 'SD' or 'PnL'")
 

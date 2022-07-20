@@ -17,4 +17,5 @@ def get_env_configs_and_agents(env_config:dict):
                                                      default_beta,
                                                      default_alpha,
                                                      default_beta])))
+    env_config['per_step_reward_function'] = 'RS'
     return [env_config], agents
