@@ -1,4 +1,5 @@
 from collections import deque
+from datetime import datetime, time
 from scipy import stats
 import abc
 import sys
@@ -9,6 +10,9 @@ else:
     from typing_extensions import TypedDict
 
 import pandas as pd
+
+MIN_TRADING_TIME = time(10)  # We ignore the first half an hour of trading
+MAX_TRADING_TIME = time(15, 30)  # We ignore the last half an hour of trading
 
 
 class CannotUpdateError(Exception):
@@ -58,7 +62,7 @@ class Feature(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def reset(self):
+    def reset(self, internal_state: InternalState):
         pass
 
     @staticmethod
@@ -91,7 +95,7 @@ class Spread(Feature):
     def min_value(self) -> float:
         return self._min_value
 
-    def reset(self):
+    def reset(self, internal_state: InternalState):
         if self.normalisation_on:
             self.history.clear()
 
@@ -134,7 +138,7 @@ class MidpriceMove(Feature):
     def min_value(self) -> float:
         return self._min_value
 
-    def reset(self):
+    def reset(self, internal_state: InternalState):
         if self.normalisation_on:
             self.history.clear()
 
@@ -177,7 +181,7 @@ class PriceRange(Feature):
     def min_value(self) -> float:
         return self._min_value
 
-    def reset(self):
+    def reset(self, internal_state: InternalState):
         if self.normalisation_on:
             self.history.clear()
 
@@ -220,7 +224,7 @@ class Volatility(Feature):
     def min_value(self) -> float:
         return self._min_value
 
-    def reset(self):
+    def reset(self, internal_state: InternalState):
         if self.normalisation_on:
             self.history.clear()
 
@@ -263,7 +267,7 @@ class MidPrice(Feature):
     def min_value(self) -> float:
         return self._min_value
 
-    def reset(self):
+    def reset(self, internal_state: InternalState):
         if self.normalisation_on:
             self.history.clear()
 
@@ -308,7 +312,7 @@ class MicroPrice(Feature):
     def min_value(self) -> float:
         return self._min_value
 
-    def reset(self):
+    def reset(self, internal_state: InternalState):
         if self.normalisation_on:
             self.history.clear()
 
@@ -343,7 +347,7 @@ class Inventory(Feature):
         if normalisation_on:
             self.history = deque(maxlen=maxlen)
 
-    def reset(self):
+    def reset(self, internal_state: InternalState):
         if self.normalisation_on:
             self.history.clear()
 
@@ -375,7 +379,7 @@ class TimeRemaining(Feature):
     def __init__(self):
         self.normalisation_on = False
 
-    def reset(self):
+    def reset(self, internal_state: InternalState):
         pass
 
     def normalise(self, value: float) -> float:
@@ -383,3 +387,32 @@ class TimeRemaining(Feature):
 
     def _calculate(self, internal_state: InternalState) -> float:
         return internal_state["proportion_of_episode_remaining"]
+
+
+class TimeOfDay(Feature):
+    name = "TimeOfDay"
+    min_value = 0
+    normalisation_on = False
+
+    def __init__(self, n_buckets: int = 10):
+        self.n_buckets = n_buckets
+        self.min_time = datetime(1, 1, 1, 0, 0, 0)
+        self.max_time = datetime(1, 1, 1, 0, 0, 0)
+        self.bucket_size = (self.max_time - self.min_time) / self.n_buckets
+        self._max_value = n_buckets - 1
+
+    def reset(self, internal_state: InternalState):
+        start_timestamp = internal_state["book_snapshots"].iloc[-1].name
+        self.min_time = datetime.combine(start_timestamp.date(), MIN_TRADING_TIME)
+        self.max_time = datetime.combine(start_timestamp.date(), MAX_TRADING_TIME)
+
+    def normalise(self, value: float) -> float:
+        pass
+
+    def _calculate(self, internal_state: InternalState) -> float:
+        current_time = internal_state["book_snapshots"].iloc[-1].name
+        return (current_time - self.min_time) // self.bucket_size
+
+    @property
+    def min_value(self) -> float:
+        return self._max_value
