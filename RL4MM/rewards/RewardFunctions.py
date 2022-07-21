@@ -6,8 +6,6 @@ from RL4MM.features.Features import InternalState
 ###############################################################################
 
 def get_sharpe(aum_array):
-    
-    # print("MIN:", np.min(aum_array))
 
     if np.min(aum_array) <= 0:
         raise Exception("AUM has gone non_positive")
@@ -15,13 +13,8 @@ def get_sharpe(aum_array):
     log_returns = np.diff(np.log(aum_array))
     simple_returns = np.exp(log_returns) - 1
 
-
-    # print("STD RETURNS:", np.std(simple_returns))
-
     # ddof = 1 to get divisor n-1 in std
     sharpe = np.mean(simple_returns)/np.std(simple_returns, ddof=1)
-
-    print("Sharpe:", sharpe)
 
     return sharpe
 
@@ -84,8 +77,6 @@ class RollingSharpe(RewardFunction):
         # first update self.aum_array
         # self.update_aum_array(next_state)
         self.update_aum_array(current_state, next_state)
-        
-        print(self.aum_array)
 
         # Not enough elements to compute a Sharpe
         if self.n_filled < self.min_window_size:
