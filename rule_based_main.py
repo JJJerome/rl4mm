@@ -8,7 +8,7 @@ from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 
 from RL4MM.gym.utils import plot_reward_distributions, get_episode_summary_dict
 from RL4MM.utils.utils import save_best_checkpoint_path, get_timedelta_from_clock_time
-
+from RL4MM.gym.order_tracking.InfoCalculators import SimpleInfoCalculator
 
 experiment_list = [
     "ladder_sweep",
@@ -21,7 +21,6 @@ experiment_list = [
 
 
 def get_configs(args):
-    # ray.init()
     env_config = {
         "ticker": args["ticker"],
         "min_date": args["min_date"],
@@ -46,6 +45,9 @@ def get_configs(args):
         "features": args["features"],
         "normalisation_on": args["normalisation_on"],
         "max_inventory": args["max_inventory"],
+        "info_calculator": SimpleInfoCalculator(market_order_fraction_of_inventory=0, 
+                                      enter_spread=args["enter_spread"], 
+                                      concentration=args["concentration"])
     }
 
     eval_env_config = copy.deepcopy(env_config)

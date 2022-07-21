@@ -75,55 +75,16 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
             ),
         ]
     return HistoricalOrderbookEnvironment(
-        # ticker=env_config["ticker"],
         ticker=env_config["ticker"],
-        # episode_length=timedelta(minutes=env_config["episode_length"]),
         episode_length=episode_length,
-        # simulator=obs,
         simulator=orderbook_simulator,
         features=features,
         # quote_levels=10,
         max_inventory=env_config["max_inventory"],
-        # min_date=get_date_time(env_config["min_date"]),  # datetime
-        min_date=get_date_time(env_config["min_date"]),  # datetime
-        # max_date=get_date_time(env_config["max_date"]),  # datetime
-        max_date=get_date_time(env_config["max_date"]),  # datetime
-        # step_size=timedelta(seconds=env_config["step_size"]),
+        min_date=get_date_time(env_config["min_date"]), 
+        max_date=get_date_time(env_config["max_date"]),
         step_size=timedelta(seconds=env_config["step_size"]),
-        # initial_portfolio=env_config["initial_portfolio"],  #: dict = None
-        initial_portfolio=env_config["initial_portfolio"],  #: dict = None
-        # per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
-        per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
-        # terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
-        terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
-        # market_order_clearing=env_config["market_order_clearing"],
-        market_order_clearing=env_config["market_order_clearing"],
-        # market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
-        market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
-        concentration=env_config["concentration"],
-        min_quote_level=env_config["min_quote_level"],
-        max_quote_level=env_config["max_quote_level"],
-        enter_spread=env_config["enter_spread"],
-    )
-
-
-"""
-def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase()):
-
-    episode_length = timedelta(minutes=env_config["episode_length"])
-
-    orderbook_simulator = OrderbookSimulator(
-        ticker=env_config["ticker"], n_levels=env_config["n_levels"], episode_length=episode_length, database=database
-    )
-
-    return HistoricalOrderbookEnvironment(
-        ticker=env_config["ticker"],
-        episode_length=episode_length,
-        simulator=orderbook_simulator,
-        min_date=get_date_time(env_config["min_date"]),  # datetime
-        max_date=get_date_time(env_config["max_date"]),  # datetime
-        step_size=timedelta(seconds=env_config["step_size"]),
-        initial_portfolio=env_config["initial_portfolio"],  #: dict = None
+        initial_portfolio=env_config["initial_portfolio"],  
         per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
         terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
         market_order_clearing=env_config["market_order_clearing"],
@@ -132,8 +93,8 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
         min_quote_level=env_config["min_quote_level"],
         max_quote_level=env_config["max_quote_level"],
         enter_spread=env_config["enter_spread"],
+        info_calculator=env_config["info_calculator"],
     )
-"""
 
 
 def extract_array_from_infos(infos, key):
