@@ -45,9 +45,9 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
     elif reward_function == "PnL":
         return PnL()
     elif reward_function == "RS": # RollingSharpe
-        return RollingSharpe(window_size=100)
+        return RollingSharpe()
     else:
-        raise NotImplementedError("You must specify one of 'AS', 'SD' or 'PnL'")
+        raise NotImplementedError("You must specify one of 'AS', 'SD', 'PnL', or 'RS'")
 
 
 def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase()):
