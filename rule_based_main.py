@@ -47,6 +47,7 @@ def add_rule_based_main_args(parser):
     """
     These args are only currently used in this script
     """
+    parser.add_argument("-nt", "--n_trajectories", default=10, help="Number of trajectories to use.", type=int)
     parser.add_argument("-ex", "--experiment", default="fixed_action_sweep", help="The experiment to run.", type=str)
     parser.add_argument("-par", "--parallel", action="store_true", default=False, help="Run in parallel or not.")
 
@@ -69,14 +70,14 @@ if __name__ == "__main__":
     env_configs, agents = get_env_configs_and_agents(env_config)
 
     if args["multiple_databases"]:
-        databases = [HistoricalDatabase() for _ in range(args["n_iterations"])]
+        databases = [HistoricalDatabase() for _ in range(args["n_trajectories"])]
     else:
         database = HistoricalDatabase()
-        databases = [database for _ in range(args["n_iterations"])]
+        databases = [database for _ in range(args["n_trajectories"])]
 
     for agent in agents:
         for env_config in env_configs:
             emd1 = get_episode_summary_dict(
-                agent, env_config, args["n_iterations"], PARALLEL_FLAG=args["parallel"], databases=databases
+                agent, env_config, args["n_trajectories"], PARALLEL_FLAG=args["parallel"], databases=databases
             )
             plot_reward_distributions_wrapper(env_config, agent, emd1, experiment)

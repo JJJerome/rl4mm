@@ -4,6 +4,7 @@ from RL4MM.utils.utils import boolean_string
 from RL4MM.utils.utils import get_timedelta_from_clock_time
 from RL4MM.gym.order_tracking.InfoCalculators import SimpleInfoCalculator
 
+from ray import tune
 
 def add_ray_args(parser):
 
@@ -74,13 +75,12 @@ def add_env_args(parser):
     parser.add_argument("-nl", "--n_levels", default=50, help="Number of orderbook levels.", type=int)
 
     default_ip = dict(inventory=0, cash=1e12)
-    parser.add_argument("-ip", "--initial_portfolio", default=None, help="Initial portfolio.", type=dict)
+    parser.add_argument("-ip", "--initial_portfolio", default=default_ip, help="Initial portfolio.", type=dict)
 
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-mi", "--max_inventory", default=10000, help="Maximum (absolute) inventory.", type=int)
     parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=boolean_string)
-    # parser.add_argument("-con", "--concentration", default=None, help="Concentration of the order distributor.", type=int)
-    parser.add_argument("-c", "--concentration", default=10.0, help="Concentration param for beta dist.", type=float)
+    parser.add_argument("-c", "--concentration", default=None, help="Concentration param for beta dist.", type=float)
     parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
     parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
     parser.add_argument(
@@ -230,9 +230,13 @@ def get_env_configs(args):
         "features": args["features"],
         "normalisation_on": args["normalisation_on"],
         "max_inventory": args["max_inventory"],
+        #######################################################################
+        # TODO: remove from here, since we don't want this on for RL
+        #######################################################################
         "info_calculator": SimpleInfoCalculator(market_order_fraction_of_inventory=0, 
                                       enter_spread=args["enter_spread"], 
-                                      concentration=args["concentration"])
+                                      concentration=args["concentration"]),
+        "inc_prev_action_in_obs": args["inc_prev_action_in_obs"],
     }
 
     eval_env_config = copy.deepcopy(env_config)
@@ -242,3 +246,48 @@ def get_env_configs(args):
     eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
 
     return env_config, eval_env_config
+
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+
+def get_ray_config(args):
+
+    ray_config = {
+        # ---  CPUs, GPUs, Workers ---
+        "num_cpus_per_worker": 1,
+        "num_gpus": args["num_gpus"],
+        "framework": args["framework"],
+        "num_workers": args["num_workers"],
+        # --- Env ---
+        "env_config": env_config,
+        "evaluation_duration": "auto",
+        "callbacks": Custom_Callbacks,
+        "evaluation_parallel_to_training": True,
+        "env": "HistoricalOrderbookEnvironment",
+        "evaluation_num_workers": args["num_workers_eval"],
+        "evaluation_config": {"env_config": eval_env_config, "explore": False},
+        "evaluation_interval": 1,  # Run one evaluation step every n `Trainer.train()` calls.
+        # --- Hyperparams ---
+        "lambda": args["lambda"],
+        "lr": args["learning_rate"],
+        "gamma": args["discount_factor"],
+        "model": {
+            "fcnet_activation": "tanh",
+            "fcnet_hiddens": [512, 256],
+        },
+        # --- Directory to save dataset data to ---
+        "output": args["output"],
+        "output_max_file_size": args["output_max_file_size"],
+        # --------------- Tuning: ---------------------
+        "num_sgd_iter": tune.choice([10, 20, 30]),
+        "sgd_minibatch_size": tune.choice([128, 512, 2048]),
+        "train_batch_size": tune.choice([2000, 5000, 10000, 20000, 40000]),
+        "rollout_fragment_length": tune.choice([900, 1800, 3600]),  # args["rollout_fragment_length"],
+        # "recreate_failed_workers": False, # Get an error for some reason when this is enabled.
+        # "disable_env_checking": True,
+        #'seed':tune.choice(range(1000)),
+    }
+
+    return ray_config
