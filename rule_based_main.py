@@ -7,9 +7,10 @@ import importlib
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 
 from RL4MM.gym.utils import plot_reward_distributions, get_episode_summary_dict
-from RL4MM.utils.utils import save_best_checkpoint_path, get_timedelta_from_clock_time
+# from RL4MM.utils.utils import save_best_checkpoint_path, get_timedelta_from_clock_time
 
-from main_helper import add_env_args
+from main_helper import add_env_args, get_env_configs
+
 from RL4MM.gym.order_tracking.InfoCalculators import SimpleInfoCalculator
 
 experiment_list = [
@@ -20,46 +21,6 @@ experiment_list = [
     "teradactyl_sweep_small",
     "teradactyl_fixed",
 ]
-
-def get_configs(args):
-    env_config = {
-        "ticker": args["ticker"],
-        "min_date": args["min_date"],
-        "max_date": args["max_date"],
-        "min_start_timedelta": get_timedelta_from_clock_time(args["min_start_time"]),
-        "max_end_timedelta": get_timedelta_from_clock_time(args["min_start_time"]),
-        "step_size": args["step_size"],
-        "episode_length": args["episode_length"],
-        "n_levels": args["n_levels"],
-        "features": args["features"],
-        "max_inventory": args["max_inventory"],
-        "normalisation_on": args["normalisation_on"],
-        "initial_portfolio": args["initial_portfolio"],
-        "per_step_reward_function": args["per_step_reward_function"],
-        "terminal_reward_function": args["terminal_reward_function"],
-        "market_order_clearing": args["market_order_clearing"],
-        "market_order_fraction_of_inventory": 0.0,
-        "min_quote_level": args["min_quote_level"],
-        "max_quote_level": args["max_quote_level"],
-        "enter_spread": args["enter_spread"],
-        "concentration": args["concentration"],
-        "features": args["features"],
-        "normalisation_on": args["normalisation_on"],
-        "max_inventory": args["max_inventory"],
-        "info_calculator": SimpleInfoCalculator(market_order_fraction_of_inventory=0, 
-                                      enter_spread=args["enter_spread"], 
-                                      concentration=args["concentration"])
-    }
-
-    eval_env_config = copy.deepcopy(env_config)
-    eval_env_config["min_date"] = args["min_date_eval"]
-    eval_env_config["max_date"] = args["max_date_eval"]
-    eval_env_config["per_step_reward_function"] = args["eval_per_step_reward_function"]
-    eval_env_config["terminal_reward_function"] = args["terminal_reward_function"]
-
-    return env_config, eval_env_config
-
-
 
 def plot_reward_distributions_wrapper(env_config, 
                                       agent, 
@@ -82,17 +43,25 @@ def plot_reward_distributions_wrapper(env_config,
         experiment_name=experiment,
     )
 
+def add_rule_based_main_args(parser):
+    """
+    These args are only currently used in this script
+    """
+    parser.add_argument("-ex", "--experiment", default="fixed_action_sweep", help="The experiment to run.", type=str)
+    parser.add_argument("-par", "--parallel", action="store_true", default=False, help="Run in parallel or not.")
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="")
-    parser = add_env_args(parser)
+
+    # add env args
+    add_env_args(parser)
+    # add args specific to this script
+    add_rule_based_main_args(parser)
+
     args = vars(parser.parse_args())
 
-    # if args["concentration"] == 0:
-        # args["concentration"] = None
-
-    env_config, _ = get_configs(args)
+    env_config, _ = get_env_configs(args)
 
     experiment = args["experiment"]
     module = importlib.import_module(f"experiments." + args["experiment"])
