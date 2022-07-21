@@ -253,7 +253,7 @@ def get_env_configs(args):
 ###############################################################################
 ###############################################################################
 
-def get_ray_config(args, env_config):
+def get_ray_config(args, env_config, eval_env_config):
 
     ray_config = {
         # ---  CPUs, GPUs, Workers ---
