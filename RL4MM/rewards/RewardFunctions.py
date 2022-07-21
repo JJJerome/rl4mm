@@ -1,3 +1,4 @@
+import sys
 import abc
 import numpy as np
 
@@ -14,7 +15,8 @@ def get_sharpe(aum_array):
     simple_returns = np.exp(log_returns) - 1
 
     # ddof = 1 to get divisor n-1 in std
-    sharpe = np.mean(simple_returns)/np.std(simple_returns, ddof=1)
+    # add sys.float_info.min to avoid e.g. 0/0 = inf
+    sharpe = np.mean(simple_returns)/(np.std(simple_returns, ddof=1) + sys.float_info.min)
 
     return sharpe
 

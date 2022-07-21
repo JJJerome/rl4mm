@@ -62,3 +62,11 @@ class TestRollingSharpe(TestCase):
         with self.assertRaises(Exception):
             # now we get a 0 aum value 
             rs.calculate(MOCK_INTERNAL_STATE_3, MOCK_INTERNAL_STATE_4)
+
+        rs.reset()
+        # Now test that we get 0 when aum doesn't change
+        sharpe1 = rs.calculate(MOCK_INTERNAL_STATE_1, MOCK_INTERNAL_STATE_1)
+        sharpe2 = rs.calculate(MOCK_INTERNAL_STATE_1, MOCK_INTERNAL_STATE_1)
+        sharpe3 = rs.calculate(MOCK_INTERNAL_STATE_1, MOCK_INTERNAL_STATE_1)
+        
+        self.assertEqual(0, sharpe2)
