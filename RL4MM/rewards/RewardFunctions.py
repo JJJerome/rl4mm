@@ -15,9 +15,11 @@ def get_sharpe(aum_array):
     log_returns = np.diff(np.log(aum_array))
     simple_returns = np.exp(log_returns) - 1
 
+
     # print("STD RETURNS:", np.std(simple_returns))
 
-    sharpe = np.mean(simple_returns)/np.std(simple_returns)
+    # ddof = 1 to get divisor n-1 in std
+    sharpe = np.mean(simple_returns)/np.std(simple_returns, ddof=1)
 
     print("Sharpe:", sharpe)
 
@@ -83,6 +85,8 @@ class RollingSharpe(RewardFunction):
         # self.update_aum_array(next_state)
         self.update_aum_array(current_state, next_state)
         
+        print(self.aum_array)
+
         # Not enough elements to compute a Sharpe
         if self.n_filled < self.min_window_size:
             return 0
