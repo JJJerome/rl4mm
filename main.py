@@ -27,7 +27,7 @@ def main(args):
 
     register_env("HistoricalOrderbookEnvironment", env_creator)
 
-    ray_config = get_ray_config(args)
+    ray_config = get_ray_config(args, env_config)
 
     tensorboard_logdir = (
         args["tensorboard_logdir"]
@@ -55,6 +55,8 @@ def main(args):
         stop={"training_iteration": args["iterations"]},
         scheduler=ASHAScheduler(metric="episode_reward_mean", mode="max"),
     )
+
+    # TODO: use eval_env_config !!
 
     best_checkpoint = analysis.get_trial_checkpoints_paths(
         trial=analysis.get_best_trial("episode_reward_mean"), metric="episode_reward_mean"
