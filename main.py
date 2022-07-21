@@ -67,6 +67,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="")
 
+    add_env_args(parser)
+    add_ray_args(parser)
+
     args = vars(parser.parse_args())
 
     main(args)
