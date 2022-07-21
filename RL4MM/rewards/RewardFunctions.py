@@ -55,7 +55,7 @@ class RollingSharpe(RewardFunction):
         # create array of nans; this array will contain our array of aum values
         # we use nans (rather than say zeros) to drop them during the init period
         # when the array is first filling up
-        self.aum_array = np.full(self.window_size, np.nan)
+        self.aum_array = np.full(self.max_window_size, np.nan)
 
     def calculate_aum(self, internal_state:InternalState) -> float:
         return internal_state["cash"] + internal_state["asset_price"] * internal_state["inventory"]
