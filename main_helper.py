@@ -52,7 +52,7 @@ def add_ray_args(parser):
     # )
 
     # -------------------- Generating a dataset of eval episodes
-    parser.add_argument("-o", "--output", default=None, help="Directory to save episode data to.", type=str)
+    # parser.add_argument("-o", "--output", default=None, help="Directory to save episode data to.", type=str)
     parser.add_argument(
         "-omfs",
         "--output_max_file_size",
