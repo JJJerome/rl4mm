@@ -2,6 +2,7 @@ import copy
 
 from RL4MM.utils.utils import boolean_string
 from RL4MM.utils.utils import get_timedelta_from_clock_time
+from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
 from RL4MM.gym.order_tracking.InfoCalculators import SimpleInfoCalculator
 
 from ray import tune
