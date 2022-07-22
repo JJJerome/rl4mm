@@ -217,12 +217,12 @@ if __name__ == "__main__":
         help="The maximum end time for an episode written in HHMM format.",
         type=str,
     )
-
-    # -------------------- Reards functions -------------
-    r_choices = [
-        "AD",  # Asymmetrically Dampened
-        "SD",  # Symmetrically Dampened
-        "PnL",  # PnL
+    # -------------------- Reards functions ------------- 
+    r_choices =  [
+        "AD", # Asymmetrically Dampened
+        "SD", # Symmetrically Dampened 
+        "PnL", # PnL
+        "RS", # Rolling Sharpe
     ]
     parser.add_argument(
         "-psr",

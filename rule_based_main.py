@@ -137,7 +137,7 @@ def parse_args():
         "-psr",
         "--per_step_reward_function",
         default="PnL",
-        choices=["AD", "SD", "PnL"],
+        choices=["AD", "SD", "PnL", "RS"],
         help="Per step reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
@@ -170,7 +170,7 @@ def parse_args():
         "-epsr",
         "--eval_per_step_reward_function",
         default="PnL",
-        choices=["AD", "SD", "PnL"],
+        choices=["AD", "SD", "PnL", "RS"],
         help="Eval per step reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
         type=str,
     )
