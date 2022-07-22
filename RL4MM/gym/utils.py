@@ -1,3 +1,4 @@
+import sys
 import os
 from contextlib import suppress
 from typing import Dict, List
@@ -21,7 +22,7 @@ from RL4MM.database.PostgresEngine import MAX_POOL_SIZE
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.utils.utils import get_date_time
-from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL
+from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL, RollingSharpe, get_sharpe
 
 from RL4MM.features.Features import (
     Feature,
@@ -43,8 +44,10 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=False)
     elif reward_function == "PnL":
         return PnL()
+    elif reward_function == "RS": # RollingSharpe
+        return RollingSharpe()
     else:
-        raise NotImplementedError("You must specify one of 'AS', 'SD' or 'PnL'")
+        raise NotImplementedError("You must specify one of 'AS', 'SD', 'PnL', or 'RS'")
 
 
 def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase()):
@@ -167,6 +170,7 @@ def append_to_episode_summary_dict(esd, d):
     """
     d is a dictionary as returned by get_trajectory
     """
+    print(d['infos'][0])
 
     # aum series, i.e., the equity curve
     aum_array = extract_array_from_infos(d["infos"], "aum")
@@ -267,31 +271,6 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
 
 ###############################################################################
-
-
-def get_sharpe(aum_array):
-
-    ######################################################
-    # REMOVE THIS WHEN AUM IS FIXED
-    # aum_array = aum_array + np.abs(np.min(aum_array)) + 1
-    # print(aum_array)
-    ######################################################
-
-    print("MIN:", np.min(aum_array))
-
-    if np.min(aum_array) <= 0:
-        raise Exception("AUM has gone negative")
-
-    log_returns = np.diff(np.log(aum_array))
-    simple_returns = np.exp(log_returns) - 1
-
-    print("STD RETURNS:", np.std(simple_returns))
-
-    return np.mean(simple_returns) / np.std(simple_returns)
-
-
-###############################################################################
-
 
 def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int = 100):
     sns.set()
