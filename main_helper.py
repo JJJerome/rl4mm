@@ -9,6 +9,7 @@ from RL4MM.gym.order_tracking.InfoCalculators import SimpleInfoCalculator
 
 from ray import tune
 
+
 def add_ray_args(parser):
 
     # -------------------- Workers, GPUs, CPUs ----------------------
@@ -21,14 +22,6 @@ def add_ray_args(parser):
     # -------------------- Training Args ----------------------
     parser.add_argument("-i", "--iterations", default=1000, help="Training iterations.", type=int)
     parser.add_argument("-fw", "--framework", default="torch", help="Framework, torch or tf.", type=str)
-    # parser.add_argument(
-        # "-f",
-        # "--features",
-        # default="full_state",
-        # choices=["agent_state", "full_state"],
-        # help="Agent state only or full state.",
-        # type=str,
-    # )
     parser.add_argument("-mp", "--model_path", default=None, help="Path to existing model.", type=str)
     parser.add_argument(
         "-tbd",
@@ -255,43 +248,68 @@ def get_env_configs(args):
 ###############################################################################
 ###############################################################################
 
-def get_ray_config(args, env_config, eval_env_config):
+def get_ray_config(args, env_config, eval_env_config, name):
 
-    ray_config = {
-        # ---  CPUs, GPUs, Workers ---
-        "num_cpus_per_worker": 1,
-        "num_gpus": args["num_gpus"],
-        "framework": args["framework"],
-        "num_workers": args["num_workers"],
-        # --- Env ---
-        "env_config": env_config,
-        "evaluation_duration": "auto",
-        "callbacks": Custom_Callbacks,
-        "evaluation_parallel_to_training": True,
-        "env": "HistoricalOrderbookEnvironment",
-        "evaluation_num_workers": args["num_workers_eval"],
-        "evaluation_config": {"env_config": eval_env_config, "explore": False},
-        "evaluation_interval": 1,  # Run one evaluation step every n `Trainer.train()` calls.
-        # --- Hyperparams ---
-        "lambda": args["lambda"],
-        "lr": args["learning_rate"],
-        "gamma": args["discount_factor"],
-        "model": {
-            "fcnet_activation": "tanh",
-            "fcnet_hiddens": [512, 256],
-        },
-        # --- Directory to save dataset data to ---
-        "output": args["output"],
-        "output_max_file_size": args["output_max_file_size"],
-        # --------------- Tuning: ---------------------
-        "num_sgd_iter": tune.choice([10, 20, 30]),
-        "sgd_minibatch_size": tune.choice([128, 512, 2048]),
-        "train_batch_size": tune.choice([2000, 5000, 10000, 20000, 40000]),
-        "rollout_fragment_length": tune.choice([900, 1800, 3600]),  # args["rollout_fragment_length"],
-        # "recreate_failed_workers": False, # Get an error for some reason when this is enabled.
-        # "disable_env_checking": True,
-        #'seed':tune.choice(range(1000)),
-    }
+    if name == 'main':
+
+        ray_config = {
+            # ---  CPUs, GPUs, Workers ---
+            "num_cpus_per_worker": 1,
+            "num_gpus": args["num_gpus"],
+            "framework": args["framework"],
+            "num_workers": args["num_workers"],
+            # --- Env ---
+            "env_config": env_config,
+            "evaluation_duration": "auto",
+            "callbacks": Custom_Callbacks,
+            "evaluation_parallel_to_training": True,
+            "env": "HistoricalOrderbookEnvironment",
+            "evaluation_num_workers": args["num_workers_eval"],
+            "evaluation_config": {"env_config": eval_env_config, "explore": False},
+            "evaluation_interval": 1,  # Run one evaluation step every n `Trainer.train()` calls.
+            # --- Hyperparams ---
+            "lambda": args["lambda"],
+            "lr": args["learning_rate"],
+            "gamma": args["discount_factor"],
+            "model": {
+                "fcnet_activation": "tanh",
+                "fcnet_hiddens": [512, 256],
+            },
+            # --- Directory to save dataset data to ---
+            "output": args["output"],
+            "output_max_file_size": args["output_max_file_size"],
+            # --------------- Tuning: ---------------------
+            "num_sgd_iter": tune.choice([10, 20, 30]),
+            "sgd_minibatch_size": tune.choice([128, 512, 2048]),
+            "train_batch_size": tune.choice([2000, 5000, 10000, 20000, 40000]),
+            "rollout_fragment_length": tune.choice([900, 1800, 3600]),  # args["rollout_fragment_length"],
+            # "recreate_failed_workers": False, # Get an error for some reason when this is enabled.
+            # "disable_env_checking": True,
+            #'seed':tune.choice(range(1000)),
+        }
+
+    elif name == 'tune_rule_based_agents':
+
+        ray_config = {
+            "env": "HistoricalOrderbookEnvironment",
+            # -----------------
+            "simple_optimizer": True,
+            "_fake_gpus": 0,
+            "num_workers": 0,
+            "train_batch_size": 0,
+            "rollout_fragment_length": 3600,
+            "timesteps_per_iteration": 0,
+            # -----------------
+            "framework": args["framework"],
+            "num_cpus_per_worker": 1,
+            "model": {"custom_model_config": cmc}, # DIFFERENT
+            "env_config": env_config,
+            "evaluation_interval": 1,
+            "evaluation_num_workers": args["num_workers_eval"],
+            "evaluation_parallel_to_training": True,
+            "evaluation_duration": "auto",
+            "evaluation_config": {"env_config": eval_env_config},
+        }
 
     return ray_config
 
@@ -312,8 +330,55 @@ def get_tensorboard_logdir(args, name):
             + f"normalisation_on_{args['normalisation_on']}/"
             + f"moc_{args['market_order_clearing']}/"
         )
-    
+    elif name == 'tune_rule_based_agents' :
+        tensorboard_logdir = (
+            args["tensorboard_logdir"]
+            + f"{args['ticker']}/"
+            + f"{args['rule_based_agent']}/"
+            + f"{args['per_step_reward_function']}/"
+        )
+
+    else:
+        sys.exit(f"name: {name} not recognised in get_tensorboard_logdir")
 
     if not os.path.exists(tensorboard_logdir):
         os.makedirs(tensorboard_logdir)
 
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+
+def get_rule_based_agent_and_custom_model_config(args):
+
+    if args["rule_based_agent"] == "fixed":
+        custom_model_config = {
+            "a_1": tune.uniform(1, 10),
+            "a_2": tune.uniform(1, 10),
+            "b_1": tune.uniform(1, 10),
+            "b_2": tune.uniform(1, 10),
+            "threshold": tune.uniform(500, 1000),
+        }
+        rule_based_agent = FixedActionAgentWrapper
+    elif args["rule_based_agent"] == "teradactyl":
+        custom_model_config = {
+            "kappa": tune.uniform(10.0, 10.0),
+            "default_a": tune.uniform(3.0, 4.0),
+            "default_b": tune.uniform(1.0, 2.0),
+            "max_inventory": args["max_inventory"],
+        }
+        rule_based_agent = TeradactylAgentWrapper
+    elif args["rule_based_agent"] == "continuous_teradactyl":
+        # Automatically converted to space format within BayesOpt:
+        custom_model_config = {
+            "default_kappa": tune.uniform(3.0, 15.0),
+            "default_omega": tune.uniform(0.1, 0.5),
+            "max_kappa": tune.uniform(10.0, 100.0),
+            "exponent": tune.uniform(1.0, 5.0),
+            "max_inventory": args["max_inventory"],
+        }
+        rule_based_agent = ContinuousTeradactylWrapper
+    else:
+        raise Exception(f"{args['rule_based_agent']} wrapper not implemented.")
+
+    return rule_based_agent, custom_model_config

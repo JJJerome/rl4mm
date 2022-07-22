@@ -1,7 +1,5 @@
 import argparse
-import os
 
-# from datetime import timedelta
 import ray
 from ray import tune
 from ray.tune.schedulers import PopulationBasedTraining
@@ -9,12 +7,9 @@ from ray.tune.schedulers import ASHAScheduler
 from ray.tune.registry import register_env
 import random
 
+from RL4MM.utils.utils import save_best_checkpoint_path,\
+                              get_timedelta_from_clock_time
 from RL4MM.gym.utils import env_creator
-
-import copy
-
-from RL4MM.utils.utils import save_best_checkpoint_path, get_timedelta_from_clock_time
-from RL4MM.utils.utils import boolean_string
 
 from main_helper import add_env_args,\
                         add_ray_args,\
@@ -24,13 +19,15 @@ from main_helper import add_env_args,\
 
 def main(args):
 
-    ray.init(ignore_reinit_error=True, num_cpus=(args["num_workers"] + args["num_workers_eval"] + 1) * 4)
+    num_cpus = (args["num_workers"] + args["num_workers_eval"] + 1) * 4
+
+    ray.init(ignore_reinit_error=True, num_cpus=num_cpus)
 
     env_config, eval_env_config = get_env_configs(args)
 
     register_env("HistoricalOrderbookEnvironment", env_creator)
 
-    ray_config = get_ray_config(args, env_config, eval_env_config)
+    ray_config = get_ray_config(args, env_config, eval_env_config, 'main')
 
     tensorboard_logdir = get_tensorboard_logdir(args, 'main')
 
