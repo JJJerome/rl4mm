@@ -19,7 +19,7 @@ from main_helper import add_env_args,\
 
 def main(args):
 
-    num_cpus = (args["num_workers"] + args["num_workers_eval"] + 1) * 4
+    num_cpus = (args["num_workers"] + args["num_workers_eval"] + 1)
 
     ray.init(ignore_reinit_error=True, num_cpus=num_cpus)
 
