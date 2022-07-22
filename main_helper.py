@@ -229,12 +229,7 @@ def get_env_configs(args):
         "max_quote_level": args["max_quote_level"],
         "enter_spread": args["enter_spread"],
         "concentration": args["concentration"],
-        #######################################################################
-        # TODO: remove from here, since we don't want this on for RL
-        #######################################################################
-        "info_calculator": SimpleInfoCalculator(market_order_fraction_of_inventory=0, 
-                                      enter_spread=args["enter_spread"], 
-                                      concentration=args["concentration"]),
+        "info_calculator": None,
         "inc_prev_action_in_obs": args["inc_prev_action_in_obs"],
     }
 

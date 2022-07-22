@@ -64,6 +64,14 @@ if __name__ == "__main__":
 
     env_config, _ = get_env_configs(args)
 
+    #######################################################################
+    # Add in info calculator (off by default for speed)
+    #######################################################################
+    tmp = SimpleInfoCalculator(market_order_fraction_of_inventory=0, 
+                               enter_spread=args["enter_spread"], 
+                               concentration=args["concentration"]),
+    env_config["info_calculator"] = tmp
+
     experiment = args["experiment"]
     module = importlib.import_module(f"experiments." + args["experiment"])
     get_env_configs_and_agents = getattr(module, "get_env_configs_and_agents")
