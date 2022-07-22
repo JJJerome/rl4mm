@@ -44,13 +44,14 @@ def main(args):
         config=ray_config,
         checkpoint_at_end=True,
         local_dir=tensorboard_logdir,
-        mode="max",
         stop={"training_iteration": args["iterations"]},
         scheduler=ASHAScheduler(metric="episode_reward_mean", mode="max"),
     )
 
     best_checkpoint = analysis.get_trial_checkpoints_paths(
-        trial=analysis.get_best_trial("episode_reward_mean"), metric="episode_reward_mean"
+        trial=analysis.get_best_trial("episode_reward_mean"), 
+        metric="episode_reward_mean",
+        mode="max"
     )
     print(best_checkpoint)
     path_to_save_dir = args["output"] or "/home/ray"
