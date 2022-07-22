@@ -229,7 +229,6 @@ def get_env_configs(args):
         "max_quote_level": args["max_quote_level"],
         "enter_spread": args["enter_spread"],
         "concentration": args["concentration"],
-        "max_inventory": args["max_inventory"],
         #######################################################################
         # TODO: remove from here, since we don't want this on for RL
         #######################################################################
