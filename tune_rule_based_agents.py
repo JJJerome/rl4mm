@@ -23,9 +23,8 @@ def main(args):
 
     # TODO: any reason to have a different number of cpus for main.py and
     # tune_rule_based_agents.py
-    num_cpus = 
-
-    ray.init(ignore_reinit_error=True, num_cpus=args["num_workers"] + args["num_workers_eval"])
+    num_cpus = args["num_workers"] + args["num_workers_eval"]
+    ray.init(ignore_reinit_error=True, num_cpus=num_cpus)
 
     register_env("HistoricalOrderbookEnvironment", env_creator)
 
