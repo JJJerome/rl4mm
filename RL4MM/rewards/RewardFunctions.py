@@ -95,6 +95,9 @@ class PnL(RewardFunction):
         next_value = next_state["cash"] + next_state["inventory"] * next_state["asset_price"]
         return next_value - current_value
 
+    def reset(self):
+        pass
+
 
 class InventoryAdjustedPnL(RewardFunction):
     def __init__(self, inventory_aversion: float, asymmetrically_dampened: bool = False):
