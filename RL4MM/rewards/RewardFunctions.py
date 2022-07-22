@@ -108,3 +108,6 @@ class InventoryAdjustedPnL(RewardFunction):
         if self.asymmetrically_dampened:
             dampened_inventory_term = max(0, dampened_inventory_term)
         return self.pnl.calculate(current_state, next_state) - dampened_inventory_term
+
+    def reset(self):
+        pass
