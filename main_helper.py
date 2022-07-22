@@ -9,6 +9,12 @@ from RL4MM.gym.order_tracking.InfoCalculators import SimpleInfoCalculator
 
 from ray import tune
 
+from RL4MM.agents.baseline_agent_wrappers import (
+    FixedActionAgentWrapper,
+    TeradactylAgentWrapper,
+    ContinuousTeradactylWrapper,
+)
+
 
 def add_ray_args(parser):
 
@@ -248,7 +254,7 @@ def get_env_configs(args):
 ###############################################################################
 ###############################################################################
 
-def get_ray_config(args, env_config, eval_env_config, name):
+def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
 
     if name == 'main':
 

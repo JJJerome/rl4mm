@@ -1,11 +1,6 @@
 
 # from ray.tune.schedulers import PopulationBasedTraining
 
-from RL4MM.agents.baseline_agent_wrappers import (
-    FixedActionAgentWrapper,
-    TeradactylAgentWrapper,
-    ContinuousTeradactylWrapper,
-)
 from RL4MM.utils.utils import boolean_string
 from ray.tune.registry import register_env
 from RL4MM.gym.utils import env_creator
@@ -18,6 +13,14 @@ import ray
 from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.tune.suggest.bayesopt import BayesOptSearch
 from ray.tune.suggest import ConcurrencyLimiter
+
+from main_helper import add_env_args,\
+                        add_ray_args,\
+                        get_env_configs,\
+                        get_ray_config,\
+                        get_tensorboard_logdir,\
+                        get_rule_based_agent_and_custom_model_config
+
 
 def main(args):
 
@@ -33,9 +36,11 @@ def main(args):
     # eval_env_config["per_step_reward_function"] = "PnL"
     # eval_env_config["terminal_reward_function"] = "PnL"
 
-    rule_baed_agent, custom_model_config = get_rule_based_agent_and_custom_model_config(args) 
+    rba, cmc = get_rule_based_agent_and_custom_model_config(args) 
 
-    ray_config = get_ray_config(args, env_config, eval_env_config, 'tune_rule_based_agents')
+    ray_config = get_ray_config(args, env_config, eval_env_config, 'tune_rule_based_agents', cmc)
+
+    tensorboard_logdir = get_tensorboard_logdir(args, 'tune_rule_based_agents')
 
     # ---------------- For testing.... ----------------------
     # Uncomment for basic testing
@@ -51,14 +56,14 @@ def main(args):
     algo = ConcurrencyLimiter(algo, max_concurrent=10)
     scheduler = AsyncHyperBandScheduler()
     analysis = tune.run(
-        rule_based_agent,
+        rba,
         name=args["ticker"],
         metric="episode_reward_mean",
         mode="max",
         search_alg=algo,
         scheduler=scheduler,
         num_samples=1000,
-        config=config,
+        config=ray_config,
         local_dir=tensorboard_logdir,
         checkpoint_at_end=True,
         resume="AUTO",
