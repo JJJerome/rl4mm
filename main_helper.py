@@ -1,3 +1,4 @@
+import sys
 import copy
 
 from RL4MM.utils.utils import boolean_string
@@ -292,3 +293,26 @@ def get_ray_config(args, env_config, eval_env_config):
     }
 
     return ray_config
+
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+
+def get_tensorboard_logdir(args, name):
+
+    if name == 'main':
+        tensorboard_logdir = (
+            args["tensorboard_logdir"]
+            + f"{args['ticker']}/"
+            + f"{args['per_step_reward_function']}/"
+            + f"concentration_{args['concentration']}/"
+            + f"{args['features']}/"
+            + f"normalisation_on_{args['normalisation_on']}/"
+            + f"moc_{args['market_order_clearing']}/"
+        )
+    
+
+    if not os.path.exists(tensorboard_logdir):
+        os.makedirs(tensorboard_logdir)
+
