@@ -143,13 +143,14 @@ def add_env_args(parser):
         "AD",  # Asymmetrically Dampened
         "SD",  # Symmetrically Dampened
         "PnL",  # PnL
+        "RS",  # RollingSharpe
     ]
     parser.add_argument(
         "-tr",
         "--terminal_reward_function",
         default="PnL",
-        choices=["AD", "SD", "PnL"],
-        help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL).",
+        choices=r_choices,
+        help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL), RollingSharpe (RS)",
         type=str,
     )
     parser.add_argument(

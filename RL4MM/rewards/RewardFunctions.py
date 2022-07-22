@@ -32,7 +32,7 @@ class RewardFunction(metaclass=abc.ABCMeta):
         pass
 
 class RollingSharpe(RewardFunction):
-    def __init__(self, max_window_size: int=20, min_window_size: int=10):
+    def __init__(self, max_window_size: int=120, min_window_size: int=60):
 
         assert max_window_size >= min_window_size, "Error with window sizes"
 
