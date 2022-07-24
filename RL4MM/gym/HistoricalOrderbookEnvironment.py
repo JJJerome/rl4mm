@@ -32,7 +32,7 @@ from RL4MM.features.Features import (
     Volatility,
     Inventory,
     TimeRemaining,
-    MidPrice,
+    MidPrice, TimeOfDay,
 )
 from RL4MM.gym.action_interpretation.OrderDistributors import OrderDistributor, BetaOrderDistributor
 from RL4MM.orderbook.create_order import create_order
@@ -104,6 +104,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
             Inventory(max_value=max_inventory),
             TimeRemaining(),
             MicroPrice(),
+            TimeOfDay()
         ]
         self.inc_prev_action_in_obs = inc_prev_action_in_obs
         low_obs = np.array([feature.min_value for feature in self.features])
@@ -163,10 +164,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.now_is = self._get_random_start_time()
         self.simulator.reset_episode(start_date=self.now_is)
         self._reset_internal_state()
-        # Commenting the reset out for now. Useful perhaps
-        # to get good estimates across episodes.
-        # for feature in self.features:
-        #    feature.reset()
+        for feature in self.features:
+            feature.reset(self.internal_state)
         if self.inc_prev_action_in_obs:
             return self.get_observation(np.zeros(shape=self.action_space.shape))
         else:
@@ -397,7 +396,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def _check_market_order_clearing_well_defined(self):
         if (self.market_order_clearing and self.market_order_fraction_of_inventory <= 0.0) or (
-            not self.market_order_clearing and (self.market_order_fraction_of_inventory is not None and self.market_order_fraction_of_inventory > 0.0)
+            not self.market_order_clearing
+            and (self.market_order_fraction_of_inventory is not None and self.market_order_fraction_of_inventory > 0.0)
         ):
             raise Exception(
                 f"market_order_fraction_of_inventory {self.market_order_fraction_of_inventory} "
