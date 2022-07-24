@@ -81,8 +81,8 @@ def main(args):
         "output_max_file_size": args["output_max_file_size"],
         # --------------- Tuning: ---------------------
         "num_sgd_iter": tune.choice([10, 20, 30]),
-        "sgd_minibatch_size": tune.choice([128, 512, 2048]),
-        "train_batch_size": tune.choice([2000, 5000, 10000, 20000, 40000]),
+        "sgd_minibatch_size": tune.choice([2**7, 2**9, 2**11]),
+        "train_batch_size": tune.choice([2**11, 2**12, 2**13, 2**14, 2**15]),
         "rollout_fragment_length": tune.choice([900, 1800, 3600]),  # args["rollout_fragment_length"],
         # "recreate_failed_workers": False, # Get an error for some reason when this is enabled.
         # "disable_env_checking": True,
