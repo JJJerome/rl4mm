@@ -69,7 +69,7 @@ if __name__ == "__main__":
     #######################################################################
     tmp = SimpleInfoCalculator(market_order_fraction_of_inventory=0, 
                                enter_spread=args["enter_spread"], 
-                               concentration=args["concentration"]),
+                               concentration=args["concentration"])
     env_config["info_calculator"] = tmp
 
     experiment = args["experiment"]
