@@ -42,7 +42,10 @@ class HistoricalOrderGenerator(OrderGenerator):
         else:
             messages = self.database.get_messages(start_date, end_date, self.ticker)
             messages = self._process_messages_and_add_internal(messages)
-        return list(messages.internal_message)
+        if len(messages) == 0:
+            return list()
+        else:
+            return list(messages.internal_message)
 
     @staticmethod
     def _remove_hidden_executions(messages: pd.DataFrame):
@@ -73,7 +76,9 @@ class HistoricalOrderGenerator(OrderGenerator):
             )
         else:
             internal_messages = messages.apply(get_order_from_external_message, axis=1).values
-        return messages.assign(internal_message=internal_messages)
+        if len(internal_messages) > 0:
+            messages = messages.assign(internal_message=internal_messages)
+        return messages
 
 
 def get_order_from_external_message(message: pd.Series):
