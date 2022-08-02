@@ -9,7 +9,7 @@ import sys
 
 # from typing import Optional, List, Literal, Union
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from typing import Optional, List, Literal, Union, cast
+    from typing import Optional, List, Literal, Union, cast, Tuple
 else:
     from typing import Optional, List, Union, cast
     from typing_extensions import Literal
@@ -25,6 +25,7 @@ from RL4MM.orderbook.models import (
     Deletion,
     OrderDict,
     FillableOrder,
+    FilledOrderTuple,
 )
 
 
@@ -46,15 +47,15 @@ class Exchange:
     def __post_init__(self):
         self.central_orderbook = self.central_orderbook or self.get_empty_orderbook()
         self.internal_orderbook = self.internal_orderbook or self.get_empty_orderbook()
-        assert self.central_orderbook["ticker"] == self.ticker, "Orderbook ticker must agree with the exchange ticker."
-        assert self.internal_orderbook["ticker"] == self.ticker, "Orderbook ticker must agree with the exchange ticker."
+        for orderbook in [self.central_orderbook, self.internal_orderbook]:
+            assert orderbook["ticker"] == self.ticker, "Orderbook ticker must agree with the exchange ticker."
         self.order_id_convertor = OrderIdConvertor()
         self.name = "NASDAQ"
 
     def reset_internal_orderbook(self):
         self.internal_orderbook = self.get_empty_orderbook()
 
-    def process_order(self, order: Order) -> Optional[List[Union[MarketOrder, LimitOrder]]]:
+    def process_order(self, order: Order) -> Optional[FilledOrderTuple]:
         if isinstance(order, LimitOrder):
             return self.submit_order(order)
         elif isinstance(order, MarketOrder):
@@ -65,7 +66,7 @@ class Exchange:
         else:
             raise NotImplementedError
 
-    def submit_order(self, order: LimitOrder) -> Optional[List[Union[MarketOrder, LimitOrder]]]:
+    def submit_order(self, order: LimitOrder) -> Optional[FilledOrderTuple]:
         if self._does_order_cross_spread(order):
             return self.execute_order(order)  # Execute against orders already in the book
         order = self.order_id_convertor.add_internal_id_to_order_and_track(order)
@@ -79,8 +80,9 @@ class Exchange:
                 orderbook[order.direction][order.price] = deque([order])
         return None
 
-    def execute_order(self, order: FillableOrder) -> List[FillableOrder]:
+    def execute_order(self, order: FillableOrder) -> FilledOrderTuple:
         executed_internal_orders: List[Union[MarketOrder, LimitOrder]] = list()
+        executed_external_orders: List[Union[MarketOrder, LimitOrder]] = list()
         remaining_volume = order.volume
         while remaining_volume > 0 and self._does_order_cross_spread(order):
             best_limit_order = self._get_highest_priority_matching_order(order)
@@ -91,7 +93,7 @@ class Exchange:
             volume_to_execute = min(remaining_volume, best_limit_order.volume)
             orderbooks_to_update = [self.central_orderbook]
             if not best_limit_order.is_external:
-                orderbooks_to_update.append(self.internal_orderbook)
+                orderbooks_to_update = [self.internal_orderbook, self.central_orderbook]
             for orderbook in orderbooks_to_update:
                 executed_order = self._reduce_order_with_queue_position(
                     best_limit_order,
@@ -99,7 +101,9 @@ class Exchange:
                     volume_to_remove=volume_to_execute,
                     orderbook=orderbook,
                 )
-            if not executed_order.is_external:
+            if executed_order.is_external:
+                executed_external_orders.append(executed_order)
+            else:
                 executed_internal_orders.append(executed_order)
             remaining_volume -= volume_to_execute
             if not order.is_external:
@@ -111,7 +115,7 @@ class Exchange:
             remaining_order = copy(order)
             remaining_order.volume = remaining_volume
             self.submit_order(remaining_order)  # submit a limit order with the remaining volume
-        return executed_internal_orders
+        return executed_internal_orders, executed_external_orders
 
     def remove_order(self, order: Union[Cancellation, Deletion]) -> None:
         orderbooks_to_update = [self.central_orderbook]
