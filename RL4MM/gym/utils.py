@@ -34,6 +34,7 @@ from RL4MM.features.Features import (
     Inventory,
     TimeRemaining,
     MidPrice,
+    TimeOfDay,
 )
 
 
@@ -44,7 +45,7 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=False)
     elif reward_function == "PnL":
         return PnL()
-    elif reward_function == "RS": # RollingSharpe
+    elif reward_function == "RS":  # RollingSharpe
         return RollingSharpe()
     else:
         raise NotImplementedError("You must specify one of 'AS', 'SD', 'PnL', or 'RS'")
@@ -76,6 +77,7 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
                 min_value=-1e4 if env_config["normalisation_on"] else 0,  # If feature is a zscore
                 normalisation_on=env_config["normalisation_on"],
             ),
+            TimeOfDay(),
         ]
     return HistoricalOrderbookEnvironment(
         ticker=env_config["ticker"],
@@ -84,10 +86,10 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
         features=features,
         # quote_levels=10,
         max_inventory=env_config["max_inventory"],
-        min_date=get_date_time(env_config["min_date"]), 
+        min_date=get_date_time(env_config["min_date"]),
         max_date=get_date_time(env_config["max_date"]),
         step_size=timedelta(seconds=env_config["step_size"]),
-        initial_portfolio=env_config["initial_portfolio"],  
+        initial_portfolio=env_config["initial_portfolio"],
         per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
         terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
         market_order_clearing=env_config["market_order_clearing"],
@@ -170,7 +172,7 @@ def append_to_episode_summary_dict(esd, d):
     """
     d is a dictionary as returned by get_trajectory
     """
-    print(d['infos'][0])
+    print(d["infos"][0])
 
     # aum series, i.e., the equity curve
     aum_array = extract_array_from_infos(d["infos"], "aum")
@@ -271,6 +273,7 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
 
 ###############################################################################
+
 
 def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int = 100):
     sns.set()

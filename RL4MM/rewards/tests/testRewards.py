@@ -20,8 +20,8 @@ MOCK_INTERNAL_STATE_2 = InternalState(inventory=1, cash=0, asset_price=110, book
 MOCK_INTERNAL_STATE_3 = InternalState(inventory=1, cash=0, asset_price=100, book_snapshots=None)
 MOCK_INTERNAL_STATE_4 = InternalState(inventory=1, cash=0, asset_price=0, book_snapshots=None)
 
-class TestRollingSharpe(TestCase):
 
+class TestRollingSharpe(TestCase):
     def test_calculate(self):
 
         rs = RollingSharpe(max_window_size=3, min_window_size=3)
@@ -36,7 +36,7 @@ class TestRollingSharpe(TestCase):
 
         # now 3 entries so we get a proper Sharpe calculation
         sharpe3 = rs.calculate(MOCK_INTERNAL_STATE_2, MOCK_INTERNAL_STATE_3)
-        # produces aum array [100,110,100] by sharp3 giving via 
+        # produces aum array [100,110,100] by sharp3 giving via
         # separate calculation in R:
         # > rets <- c(110/100,100/110) - 1
         # > mean(rets)/sd(rets)
@@ -45,7 +45,7 @@ class TestRollingSharpe(TestCase):
         self.assertAlmostEqual(expected, sharpe3)
 
         with self.assertRaises(Exception):
-            # now we get a 0 aum value 
+            # now we get a 0 aum value
             rs.calculate(MOCK_INTERNAL_STATE_3, MOCK_INTERNAL_STATE_4)
 
         rs.reset()
@@ -53,5 +53,5 @@ class TestRollingSharpe(TestCase):
         sharpe1 = rs.calculate(MOCK_INTERNAL_STATE_1, MOCK_INTERNAL_STATE_1)
         sharpe2 = rs.calculate(MOCK_INTERNAL_STATE_1, MOCK_INTERNAL_STATE_1)
         sharpe3 = rs.calculate(MOCK_INTERNAL_STATE_1, MOCK_INTERNAL_STATE_1)
-        
+
         self.assertEqual(0, sharpe3)

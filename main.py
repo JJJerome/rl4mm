@@ -7,19 +7,15 @@ from ray.tune.schedulers import ASHAScheduler
 from ray.tune.registry import register_env
 import random
 
-from RL4MM.utils.utils import save_best_checkpoint_path,\
-                              get_timedelta_from_clock_time
+from RL4MM.utils.utils import save_best_checkpoint_path, get_timedelta_from_clock_time
 from RL4MM.gym.utils import env_creator
 
-from main_helper import add_env_args,\
-                        add_ray_args,\
-                        get_env_configs,\
-                        get_ray_config,\
-                        get_tensorboard_logdir
+from main_helper import add_env_args, add_ray_args, get_env_configs, get_ray_config, get_tensorboard_logdir
+
 
 def main(args):
 
-    num_cpus = (args["num_workers"] + args["num_workers_eval"] + 1)
+    num_cpus = args["num_workers"] + args["num_workers_eval"] + 1
 
     ray.init(ignore_reinit_error=True, num_cpus=num_cpus)
 
@@ -27,9 +23,9 @@ def main(args):
 
     register_env("HistoricalOrderbookEnvironment", env_creator)
 
-    ray_config = get_ray_config(args, env_config, eval_env_config, 'main')
+    ray_config = get_ray_config(args, env_config, eval_env_config, "main")
 
-    tensorboard_logdir = get_tensorboard_logdir(args, 'main')
+    tensorboard_logdir = get_tensorboard_logdir(args, "main")
 
     # import ray.rllib.agents.ppo as ppo
     # trainer = ppo.PPOTrainer(config=config)
@@ -46,9 +42,7 @@ def main(args):
     )
 
     best_checkpoint = analysis.get_trial_checkpoints_paths(
-        trial=analysis.get_best_trial("episode_reward_mean"), 
-        metric="episode_reward_mean",
-        mode="max"
+        trial=analysis.get_best_trial("episode_reward_mean"), metric="episode_reward_mean", mode="max"
     )
     print(best_checkpoint)
     path_to_save_dir = args["output"] or "/home/ray"

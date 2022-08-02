@@ -22,10 +22,7 @@ experiment_list = [
 ]
 
 
-def plot_reward_distributions_wrapper(env_config, 
-                                      agent, 
-                                      episode_summary_dict,
-                                      experiment):
+def plot_reward_distributions_wrapper(env_config, agent, episode_summary_dict, experiment):
 
     plot_reward_distributions(
         ticker=env_config["ticker"],
@@ -43,6 +40,7 @@ def plot_reward_distributions_wrapper(env_config,
         experiment_name=experiment,
     )
 
+
 def add_rule_based_main_args(parser):
     """
     These args are only currently used in this script
@@ -50,6 +48,7 @@ def add_rule_based_main_args(parser):
     parser.add_argument("-nt", "--n_trajectories", default=10, help="Number of trajectories to use.", type=int)
     parser.add_argument("-ex", "--experiment", default="fixed_action_sweep", help="The experiment to run.", type=str)
     parser.add_argument("-par", "--parallel", action="store_true", default=False, help="Run in parallel or not.")
+
 
 if __name__ == "__main__":
 
@@ -67,9 +66,9 @@ if __name__ == "__main__":
     #######################################################################
     # Add in info calculator (off by default for speed)
     #######################################################################
-    tmp = SimpleInfoCalculator(market_order_fraction_of_inventory=0, 
-                               enter_spread=args["enter_spread"], 
-                               concentration=args["concentration"])
+    tmp = SimpleInfoCalculator(
+        market_order_fraction_of_inventory=0, enter_spread=args["enter_spread"], concentration=args["concentration"]
+    )
     env_config["info_calculator"] = tmp
 
     experiment = args["experiment"]

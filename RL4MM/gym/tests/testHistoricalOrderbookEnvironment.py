@@ -35,7 +35,7 @@ class testHistoricalOrderbookEnvironment(TestCase):
         min_start_timedelta=timedelta(hours=10, seconds=1),
         max_end_timedelta=timedelta(hours=10, seconds=2),
         simulator=simulator,
-        feature_window_size=3,
+        max_feature_window_size=3,
         save_messages_locally=False,
     )
 

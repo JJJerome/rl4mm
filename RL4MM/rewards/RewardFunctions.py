@@ -6,6 +6,7 @@ from RL4MM.features.Features import InternalState
 
 ###############################################################################
 
+
 def get_sharpe(aum_array):
 
     if np.min(aum_array) <= 0:
@@ -16,23 +17,26 @@ def get_sharpe(aum_array):
 
     # ddof = 1 to get divisor n-1 in std
     # add sys.float_info.min to avoid e.g. 0/0 = inf
-    sharpe = np.mean(simple_returns)/(np.std(simple_returns, ddof=1) + sys.float_info.min)
+    sharpe = np.mean(simple_returns) / (np.std(simple_returns, ddof=1) + sys.float_info.min)
 
     return sharpe
 
+
 ###############################################################################
+
 
 class RewardFunction(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def calculate(self, current_state: InternalState, next_state: InternalState) -> float:
         pass
-    
+
     @abc.abstractmethod
     def reset(self):
         pass
 
+
 class RollingSharpe(RewardFunction):
-    def __init__(self, max_window_size: int=120, min_window_size: int=60):
+    def __init__(self, max_window_size: int = 120, min_window_size: int = 60):
 
         assert max_window_size >= min_window_size, "Error with window sizes"
 
@@ -45,7 +49,7 @@ class RollingSharpe(RewardFunction):
 
     def reset(self):
         # counter for how many elements of window have been filled
-        # used to ensure we never compute Sharpes on tiny windows  
+        # used to ensure we never compute Sharpes on tiny windows
         # maxes out at self.max_window_size
         self.n_filled = 0
 
@@ -54,16 +58,16 @@ class RollingSharpe(RewardFunction):
         # when the array is first filling up
         self.aum_array = np.full(self.max_window_size, np.nan)
 
-    def calculate_aum(self, internal_state:InternalState) -> float:
+    def calculate_aum(self, internal_state: InternalState) -> float:
         return internal_state["cash"] + internal_state["asset_price"] * internal_state["inventory"]
 
     def update_aum_array(self, current_state: InternalState, next_state: InternalState):
         """
         current_state not currently used
         Don't need it? Or use it but only use in first period?
-        """       
+        """
         # calculate new aum
-        new_aum = self.calculate_aum(next_state) 
+        new_aum = self.calculate_aum(next_state)
 
         # self.aum array has the oldest aum in idx 0, newest in -1
         # first overwrite oldest
@@ -72,7 +76,7 @@ class RollingSharpe(RewardFunction):
         self.aum_array = np.roll(self.aum_array, -1)
 
         # update self.n_filled, maxing out at self.max_window_size
-        self.n_filled = min(self.n_filled+1, self.max_window_size)
+        self.n_filled = min(self.n_filled + 1, self.max_window_size)
 
     def calculate(self, current_state: InternalState, next_state: InternalState) -> float:
 
@@ -88,6 +92,7 @@ class RollingSharpe(RewardFunction):
             return get_sharpe(self.aum_array[~np.isnan(self.aum_array)])
         else:
             return get_sharpe(self.aum_array)
+
 
 class PnL(RewardFunction):
     def calculate(self, current_state: InternalState, next_state: InternalState) -> float:

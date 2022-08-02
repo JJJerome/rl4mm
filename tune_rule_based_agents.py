@@ -1,4 +1,3 @@
-
 # from ray.tune.schedulers import PopulationBasedTraining
 
 from RL4MM.utils.utils import boolean_string
@@ -14,12 +13,14 @@ from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.tune.suggest.bayesopt import BayesOptSearch
 from ray.tune.suggest import ConcurrencyLimiter
 
-from main_helper import add_env_args,\
-                        add_ray_args,\
-                        get_env_configs,\
-                        get_ray_config,\
-                        get_tensorboard_logdir,\
-                        get_rule_based_agent_and_custom_model_config
+from main_helper import (
+    add_env_args,
+    add_ray_args,
+    get_env_configs,
+    get_ray_config,
+    get_tensorboard_logdir,
+    get_rule_based_agent_and_custom_model_config,
+)
 
 
 def main(args):
@@ -36,18 +37,17 @@ def main(args):
     # eval_env_config["per_step_reward_function"] = "PnL"
     # eval_env_config["terminal_reward_function"] = "PnL"
 
-    rba, cmc = get_rule_based_agent_and_custom_model_config(args) 
+    rba, cmc = get_rule_based_agent_and_custom_model_config(args)
 
-    ray_config = get_ray_config(args, env_config, eval_env_config, 'tune_rule_based_agents', cmc)
+    ray_config = get_ray_config(args, env_config, eval_env_config, "tune_rule_based_agents", cmc)
 
-    tensorboard_logdir = get_tensorboard_logdir(args, 'tune_rule_based_agents')
+    tensorboard_logdir = get_tensorboard_logdir(args, "tune_rule_based_agents")
 
     # ---------------- For testing.... ----------------------
     # Uncomment for basic testing
     # print(rule_based_agent(config=config).train())
     # print(FixedActionAgentWrapper(config=config).evaluate())
     # -------------------------------------------------------
-
 
     algo = BayesOptSearch(
         utility_kwargs={"kind": "ucb", "kappa": 2.5, "xi": 0.0},

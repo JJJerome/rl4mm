@@ -196,7 +196,7 @@ def add_env_args(parser):
         default=0.0,
         help="Market order fraction of inventory.",
         type=float,
-    )    
+    )
 
     ###########################################################################
     # ---------------------- END OF ENV ARGS ----------------------------------
@@ -207,6 +207,7 @@ def add_env_args(parser):
 ###############################################################################
 ###############################################################################
 ###############################################################################
+
 
 def get_env_configs(args):
     env_config = {
@@ -242,14 +243,16 @@ def get_env_configs(args):
 
     return env_config, eval_env_config
 
+
 ###############################################################################
 ###############################################################################
 ###############################################################################
 ###############################################################################
+
 
 def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
 
-    if name == 'main':
+    if name == "main":
 
         ray_config = {
             # ---  CPUs, GPUs, Workers ---
@@ -287,7 +290,7 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             #'seed':tune.choice(range(1000)),
         }
 
-    elif name == 'tune_rule_based_agents':
+    elif name == "tune_rule_based_agents":
 
         ray_config = {
             "env": "HistoricalOrderbookEnvironment",
@@ -301,7 +304,7 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             # -----------------
             "framework": args["framework"],
             "num_cpus_per_worker": 1,
-            "model": {"custom_model_config": cmc}, # DIFFERENT
+            "model": {"custom_model_config": cmc},  # DIFFERENT
             "env_config": env_config,
             "evaluation_interval": 1,
             "evaluation_num_workers": args["num_workers_eval"],
@@ -312,14 +315,16 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
 
     return ray_config
 
+
 ###############################################################################
 ###############################################################################
 ###############################################################################
 ###############################################################################
+
 
 def get_tensorboard_logdir(args, name):
 
-    if name == 'main':
+    if name == "main":
         tensorboard_logdir = (
             args["tensorboard_logdir"]
             + f"{args['ticker']}/"
@@ -329,7 +334,7 @@ def get_tensorboard_logdir(args, name):
             + f"normalisation_on_{args['normalisation_on']}/"
             + f"moc_{args['market_order_clearing']}/"
         )
-    elif name == 'tune_rule_based_agents' :
+    elif name == "tune_rule_based_agents":
         tensorboard_logdir = (
             args["tensorboard_logdir"]
             + f"{args['ticker']}/"
@@ -343,10 +348,12 @@ def get_tensorboard_logdir(args, name):
     if not os.path.exists(tensorboard_logdir):
         os.makedirs(tensorboard_logdir)
 
+
 ###############################################################################
 ###############################################################################
 ###############################################################################
 ###############################################################################
+
 
 def get_rule_based_agent_and_custom_model_config(args):
 
