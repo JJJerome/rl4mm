@@ -1,8 +1,10 @@
 # from typing import Optional, List, Literal, Union
 import sys
 
+import numpy as np
+
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from typing import Optional, Literal, Union, TypedDict
+    from typing import Optional, Literal, Union, TypedDict, Tuple, List
 else:
     from typing import Optional, Union
     from typing_extensions import Literal, TypedDict
@@ -15,7 +17,6 @@ from sortedcontainers.sorteddict import SortedDict
 @dataclass
 class Order:
     """Base class for Orders."""
-
     timestamp: datetime
     direction: Literal["buy", "sell"]
     ticker: str
@@ -51,9 +52,11 @@ class Cancellation(Deletion):
 
 
 FillableOrder = Union[MarketOrder, LimitOrder]
+FilledOrderTuple = Tuple[List[FillableOrder], List[FillableOrder]]
 
 
-class Orderbook(TypedDict):
+@dataclass
+class Orderbook:
     buy: SortedDict  # SortedDict does not currently support typing. Type is SortedDict[int, Deque[Order]].
     sell: SortedDict
     ticker: str
@@ -69,3 +72,11 @@ class OrderDict(TypedDict):
     internal_id: Optional[int]
     external_id: Optional[int]
     is_external: bool
+
+
+def get_best_buy_price(orderbook: Orderbook):
+    return next(reversed(orderbook.buy), 0)
+
+
+def get_best_sell_price(orderbook: Orderbook):
+    return next(iter(orderbook.sell.keys()), np.infty)

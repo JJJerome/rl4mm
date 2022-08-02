@@ -6,14 +6,14 @@ from RL4MM.orderbook.models import Orderbook
 def convert_to_lobster_format(orderbook: Orderbook, n_levels: int = 10):
     lobster_book = dict()
     for direction in ["buy", "sell"]:
-        half_book = orderbook[direction]  # type: ignore
+        half_book = getattr(orderbook, direction)  # type: ignore
         if direction == "buy":
             half_book = reversed(half_book)
         for level, price in enumerate(half_book):
             if level < n_levels:
                 lobster_book[direction + "_price_" + str(level)] = float(price)
                 volume = 0
-                for order in orderbook[direction][price]:  # type: ignore
+                for order in getattr(orderbook, direction)[price]:  # type: ignore
                     volume += order.volume
                 lobster_book[direction + "_volume_" + str(level)] = float(volume)
     return lobster_book

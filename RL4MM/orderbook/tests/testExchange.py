@@ -41,7 +41,7 @@ class TestExchange(TestCase):
     def test_post_init(self):
         exchange = Exchange(TICKER)
         self.assertEqual(exchange.name, "NASDAQ")
-        empty_orderbook = {"buy": SortedDict(), "sell": SortedDict(), "ticker": TICKER, "tick_size": TICK_SIZE}
+        empty_orderbook = Orderbook(buy = SortedDict(), sell=SortedDict(), ticker=TICKER, tick_size=TICK_SIZE)
         self.assertEqual(exchange.central_orderbook, empty_orderbook)
 
     def test_get_initial_orderbook_from_orders(self):
@@ -66,8 +66,9 @@ class TestExchange(TestCase):
             exchange.submit_order(order)
         count = 1
         for direction in ["buy", "sell"]:
-            for level in exchange.central_orderbook[direction].keys():  # type: ignore
-                for order in exchange.central_orderbook[direction][level]:  # type: ignore
+            book_side = getattr(exchange.central_orderbook, direction)
+            for level in book_side.keys():  # type: ignore
+                for order in book_side[level]:  # type: ignore
                     self.assertEqual(count, order.internal_id)
                     count += 1
         for count, order in enumerate([LIMIT_1, LIMIT_2, LIMIT_3, submission_4]):
@@ -94,16 +95,16 @@ class TestExchange(TestCase):
         exchange = Exchange(TICKER, deepcopy(orderbook), internal_book)
         # Execute first order
         exchange.execute_order(MARKET_1)
-        orderbook["buy"].pop(30.2 * 10000)
-        orderbook["buy"][30.1 * 10000][0].volume -= MARKET_1.volume - LIMIT_3.volume
+        orderbook.buy.pop(30.2 * 10000)
+        orderbook.buy[30.1 * 10000][0].volume -= MARKET_1.volume - LIMIT_3.volume
         self.assertEqual(orderbook, exchange.central_orderbook)
         # Execute second order
         exchange.execute_order(MARKET_2)
-        orderbook["buy"][30.1 * 10000].popleft()
+        orderbook.buy[30.1 * 10000].popleft()
         self.assertEqual(orderbook, exchange.central_orderbook)
         # Execute third order
         exchange.execute_order(MARKET_3)
-        orderbook["sell"].pop(30.3 * 10000)
+        orderbook.sell.pop(30.3 * 10000)
         self.assertEqual(orderbook, exchange.central_orderbook)
 
     def test_cancel_order_basic(self):
