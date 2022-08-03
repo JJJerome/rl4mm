@@ -59,7 +59,7 @@ class RollingSharpe(RewardFunction):
         self.aum_array = np.full(self.max_window_size, np.nan)
 
     def calculate_aum(self, internal_state: State) -> float:
-        return internal_state["cash"] + internal_state["asset_price"] * internal_state["inventory"]
+        return internal_state.portfolio.cash + internal_state.price * internal_state.portfolio.inventory
 
     def update_aum_array(self, current_state: State, next_state: State):
         """
@@ -96,8 +96,8 @@ class RollingSharpe(RewardFunction):
 
 class PnL(RewardFunction):
     def calculate(self, current_state: State, next_state: State) -> float:
-        current_value = current_state["cash"] + current_state["inventory"] * current_state["asset_price"]
-        next_value = next_state["cash"] + next_state["inventory"] * next_state["asset_price"]
+        current_value = current_state.portfolio.cash + current_state.portfolio.inventory * current_state.price
+        next_value = next_state.portfolio.cash + next_state.portfolio.inventory * next_state.price
         return next_value - current_value
 
     def reset(self):
@@ -111,8 +111,8 @@ class InventoryAdjustedPnL(RewardFunction):
         self.asymmetrically_dampened = asymmetrically_dampened
 
     def calculate(self, current_state: State, next_state: State) -> float:
-        delta_midprice = next_state["asset_price"] - current_state["asset_price"]
-        dampened_inventory_term = self.inventory_aversion * next_state["inventory"] * delta_midprice
+        delta_midprice = next_state.price - current_state.price
+        dampened_inventory_term = self.inventory_aversion * next_state.portfolio.inventory * delta_midprice
         if self.asymmetrically_dampened:
             dampened_inventory_term = max(0, dampened_inventory_term)
         return self.pnl.calculate(current_state, next_state) - dampened_inventory_term
