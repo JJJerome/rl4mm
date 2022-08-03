@@ -32,11 +32,12 @@ from RL4MM.features.Features import (
     Volatility,
     Inventory,
     TimeRemaining,
-    MidPrice, TimeOfDay,
+    MidPrice,
+    TimeOfDay,
 )
 from RL4MM.gym.action_interpretation.OrderDistributors import OrderDistributor, BetaOrderDistributor
 from RL4MM.orderbook.create_order import create_order
-from RL4MM.orderbook.models import Orderbook, FillableOrder, OrderDict, Cancellation, LimitOrder
+from RL4MM.orderbook.models import Order, Orderbook, FillableOrder, OrderDict, Cancellation, LimitOrder
 from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
@@ -65,7 +66,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
         initial_portfolio: Portfolio = None,
         min_quote_level: int = 0,
         max_quote_level: int = 10,
-        feature_window_size: int = 10,
         min_date: datetime = datetime(2019, 1, 2),
         max_date: datetime = datetime(2019, 1, 2),
         min_start_timedelta: timedelta = timedelta(hours=10),  # Ignore the first half an hour of trading
@@ -104,7 +104,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
             Inventory(max_value=max_inventory),
             TimeRemaining(),
             MicroPrice(),
-            TimeOfDay()
+            TimeOfDay(),
         ]
         self.inc_prev_action_in_obs = inc_prev_action_in_obs
         low_obs = np.array([feature.min_value for feature in self.features])
@@ -120,6 +120,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         )
         self.max_distribution_param = max_distribution_param
         self.ticker = ticker
+        assert step_size >= timedelta(seconds=1), "Step size must be larger than one second."
         self.step_size = step_size
         self.min_quote_level = min_quote_level
         self.max_quote_level = max_quote_level
@@ -151,37 +152,34 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.per_step_reward_function = per_step_reward_function
         self.terminal_reward_function = terminal_reward_function
         self.now_is = min_date
-        self.feature_window_size = feature_window_size
+        self.max_feature_window_size = max([feature.window_size for feature in self.features])
         self.enter_spread = enter_spread
         self.info_calculator = info_calculator
-        #                        or SimpleInfoCalculator(
-        #     market_order_fraction_of_inventory, enter_spread, concentration=concentration
-        # )
         self.price = MidPrice()
         self._check_params()
 
     def reset(self):
-        self.now_is = self._get_random_start_time()
+        self.now_is = self._get_random_start_time() - self.max_feature_window_size
         self.simulator.reset_episode(start_date=self.now_is)
-        self._reset_internal_state()
         for feature in self.features:
-            feature.reset(self.internal_state)
+            feature.reset(self.central_orderbook)
+        for step in range(int(self.max_feature_window_size / self.step_size)):
+            self._forward(list())
+
+        #### TODO: Write this.
+
+        self._reset_internal_state_slow()
+
         if self.inc_prev_action_in_obs:
             return self.get_observation(np.zeros(shape=self.action_space.shape))
         else:
             return self.get_observation()
 
     def step(self, action: np.ndarray):
-        done = False  # rllib requires a bool
+        done = False
         internal_orders = self.convert_action_to_orders(action=action)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            filled = self.simulator.forward_step(
-                until=self.now_is + self.step_size, internal_orders=internal_orders  # type: ignore
-            )
         current_state = deepcopy(self.internal_state)
-        self.now_is += self.step_size
-        self.update_internal_state(filled)
+        filled_orders = self._forward(internal_orders)
         next_state = self.internal_state
         reward = self.per_step_reward_function.calculate(current_state, next_state)
         observation = self.get_observation(action) if self.inc_prev_action_in_obs else self.get_observation()
@@ -191,9 +189,19 @@ class HistoricalOrderbookEnvironment(gym.Env):
         info = {}
         if self.info_calculator is not None:
             info = self.info_calculator.calculate(
-                filled_orders=filled, internal_state=self.internal_state, action=action
+                filled_orders=filled_orders, internal_state=self.internal_state, action=action
             )
         return observation, reward, done, info
+
+    def _forward(self, internal_orders: List[Order]):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            filled = self.simulator.forward_step(
+                until=self.now_is + self.step_size, internal_orders=internal_orders  # type: ignore
+            )
+        self.now_is += self.step_size
+        self.update_internal_state(filled)
+        return filled
 
     def get_observation(self, previous_action: np.ndarray = None) -> np.ndarray:
         obs = np.array([feature.calculate(self.internal_state) for feature in self.features])
@@ -236,7 +244,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
                     order = create_order("limit", order_dict)
                     orders.append(order)
                 if order_volume < 0:
-                    current_orders = deepcopy(self.internal_orderbook[side][price])
+                    current_orders = deepcopy(getattr(self.internal_orderbook, side)[price])
                     while order_volume < 0:
                         worst_order = current_orders[-1]
                         volume_to_remove = min(worst_order.volume, order_volume)
@@ -246,9 +254,9 @@ class HistoricalOrderbookEnvironment(gym.Env):
                         orders.append(cancellation)
                         order_volume -= volume_to_remove
                         current_orders.pop()
-            for price in set(self.internal_orderbook[side].keys()) - set(best_prices):
+            for price in set(getattr(self.internal_orderbook, side).keys()) - set(best_prices):
                 try:
-                    wide_orders = list(self.internal_orderbook[side][price])
+                    wide_orders = list(getattr(self.internal_orderbook, side)[price])
                 except KeyError:
                     wide_orders = list()
                 for order in wide_orders:
@@ -307,7 +315,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         return internal_volumes  # type: ignore
 
     def _get_best_prices(self):
-        tick_size = self.central_orderbook["tick_size"]
+        tick_size = self.central_orderbook.tick_size
         if self.enter_spread:
             midprice = (self.simulator.exchange.best_buy_price + self.simulator.exchange.best_sell_price) / 2
             best_buy = int(np.floor(midprice / tick_size) * tick_size)
@@ -333,7 +341,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         volumes = list()
         for price in price_levels:
             try:
-                volumes.append(sum(order.volume for order in orderbook[direction][price]))
+                volumes.append(sum(order.volume for order in getattr(orderbook, direction)[price]))
             except KeyError:
                 volumes.append(0)
         return np.array(volumes)
@@ -356,8 +364,8 @@ class HistoricalOrderbookEnvironment(gym.Env):
         trading_date = get_next_trading_dt(pd.to_datetime(np.random.choice(trading_dates)))
         return datetime.combine(trading_date.date(), datetime.min.time())
 
-    def _reset_internal_state(self):
-        snapshot_start = self.now_is - self.step_size * self.feature_window_size
+    def _reset_internal_state_slow(self):
+        snapshot_start = self.now_is - self.step_size * self.max_feature_window_size
         book_snapshots = self.simulator.database.get_book_snapshot_series(
             start_date=snapshot_start,
             end_date=self.now_is,

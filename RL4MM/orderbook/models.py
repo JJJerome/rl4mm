@@ -62,6 +62,18 @@ class Orderbook:
     ticker: str
     tick_size: int
 
+    @property
+    def best_buy_price(self):
+        return next(reversed(self.buy), 0)
+
+    @property
+    def best_sell_price(self):
+        return next(iter(self.sell.keys()), np.infty)
+
+    @property
+    def midprice(self):
+        return (self.best_sell_price + self.best_buy_price) / 2
+
 
 class OrderDict(TypedDict):
     timestamp: datetime
@@ -73,9 +85,6 @@ class OrderDict(TypedDict):
     external_id: Optional[int]
     is_external: bool
 
-
-def get_best_buy_price(orderbook: Orderbook):
-    return next(reversed(orderbook.buy), 0)
 
 
 def get_best_sell_price(orderbook: Orderbook):

@@ -27,7 +27,7 @@ class OrderbookSimulator:
         n_levels: int = 50,
         database: HistoricalDatabase = None,
         save_messages_locally: bool = True,
-        episode_length: Optional[datetime] = None,
+        episode_length: Optional[timedelta] = None,
     ) -> None:
         self.ticker = ticker
         self.exchange = exchange or Exchange(ticker)
@@ -45,17 +45,14 @@ class OrderbookSimulator:
         self.min_buy_price: int = np.infty  # type:ignore
         self.initial_buy_price_range: int = np.infty  # type:ignore
         self.initial_sell_price_range: int = np.infty  # type:ignore
-        self.outer_levels = 20 / self.n_levels
+        self.outer_levels: float = 20 / self.n_levels
 
     def reset_episode(self, start_date: datetime, start_book: Optional[Orderbook] = None):
         if not start_book:
             start_book = self.get_historical_start_book(start_date)
         self.exchange.central_orderbook = start_book
         self.exchange.reset_internal_orderbook()
-        self.min_buy_price, self.max_sell_price = self.exchange.orderbook_price_range
-        self.initial_buy_price_range = self.exchange.best_buy_price - self.min_buy_price
-        self.initial_sell_price_range = self.max_sell_price - self.exchange.best_sell_price
-        self.initial_buy_price_range = self.exchange.best_buy_price - self.min_buy_price
+        self._reset_initial_price_ranges()
         self.now_is = start_date
         if self.save_messages_locally:
             for order_generator_name in self.order_generators.keys():
@@ -71,14 +68,16 @@ class OrderbookSimulator:
         orders = internal_orders or list()
         orders += external_orders
         filled_internal_orders = []
+        filled_external_orders = []
         for order in orders:
-            filled = self.exchange.process_order(order)
-            if filled:
-                filled_internal_orders += filled
+            filled_orders = self.exchange.process_order(order)
+            if filled_orders:
+                filled_internal_orders += filled_orders[0]
+                filled_external_orders += filled_orders[1]
         self.now_is = until
-        if self._near_exiting_initial_price_range:
+        if self._near_exiting_initial_price_range and self.now_is.microsecond == 0:
             self.update_outer_levels()
-        return filled_internal_orders
+        return filled_internal_orders, filled_external_orders
 
     def get_historical_start_book(self, start_date: datetime) -> Orderbook:
         start_series = self.database.get_last_snapshot(start_date, ticker=self.ticker)
@@ -99,10 +98,11 @@ class OrderbookSimulator:
         orderbook_series = self.database.get_last_snapshot(self.now_is, ticker=self.ticker)
         orders_to_add = self._get_initial_orders_from_book(orderbook_series, self._initial_prices_filter_function)
         for order in orders_to_add:
+            book_side = getattr(self.exchange.internal_orderbook, order.direction)
             assert (
-                order.price not in self.exchange.internal_orderbook[order.direction].keys()  # type:ignore
+                order.price not in book_side.keys()
             ), "Attempting to re-syncronise levels containing internal orders."
-            self.exchange.central_orderbook[order.direction][order.price] = deque([order])  # type:ignore
+            book_side[order.price] = deque([order])
         self.min_buy_price = min(self.min_buy_price, self.exchange.orderbook_price_range[0])
         self.max_sell_price = max(self.max_sell_price, self.exchange.orderbook_price_range[1])
 
@@ -152,3 +152,9 @@ class OrderbookSimulator:
             self.exchange.best_buy_price < self.min_buy_price + self.outer_levels * self.initial_buy_price_range
             or self.exchange.best_sell_price > self.max_sell_price - self.outer_levels * self.initial_sell_price_range
         )
+
+    def _reset_initial_price_ranges(self):
+        self.min_buy_price, self.max_sell_price = self.exchange.orderbook_price_range
+        self.initial_buy_price_range = self.exchange.best_buy_price - self.min_buy_price
+        self.initial_sell_price_range = self.max_sell_price - self.exchange.best_sell_price
+        self.initial_buy_price_range = self.exchange.best_buy_price - self.min_buy_price
