@@ -6,14 +6,14 @@ from datetime import datetime, timedelta
 import sys
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.gym.order_tracking.InfoCalculators import InfoCalculator, SimpleInfoCalculator
+from RL4MM.gym.order_tracking.InfoCalculators import InfoCalculator
 from RL4MM.utils.utils import convert_timedelta_to_freq, get_next_trading_dt
 
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from typing import List, TypedDict, Literal, Union, Optional
+    from typing import List, Literal, Union, Optional
 else:
     from typing import List
-    from typing_extensions import TypedDict, Literal
+    from typing_extensions import Literal
 
 import gym
 import numpy as np
@@ -26,14 +26,14 @@ from RL4MM.extras.orderbook_comparison import convert_to_lobster_format
 from RL4MM.features.Features import (
     Feature,
     Spread,
-    MicroPrice,
-    InternalState,
-    MidpriceMove,
+    Price,
+    State,
+    PriceMove,
     Volatility,
     Inventory,
-    TimeRemaining,
-    MidPrice,
+    EpisodeProportion,
     TimeOfDay,
+    Portfolio,
 )
 from RL4MM.gym.action_interpretation.OrderDistributors import OrderDistributor, BetaOrderDistributor
 from RL4MM.orderbook.create_order import create_order
@@ -46,11 +46,6 @@ ORDERBOOK_FREQ = "1S"
 ORDERBOOK_MIN_STEP = pd.to_timedelta(ORDERBOOK_FREQ)
 LEVELS_FOR_FEATURE_CALCULATION = 1
 MARKET_ORDER_FRACTION_OF_INVENTORY = 0.1
-
-
-class Portfolio(TypedDict):
-    inventory: int
-    cash: float
 
 
 class HistoricalOrderbookEnvironment(gym.Env):
@@ -99,11 +94,11 @@ class HistoricalOrderbookEnvironment(gym.Env):
         # Observation space is determined by the features used
         self.features = features or [
             Spread(),
-            MidpriceMove(),
+            PriceMove(),
             Volatility(),
             Inventory(max_value=max_inventory),
-            TimeRemaining(),
-            MicroPrice(),
+            EpisodeProportion(),
+            Price(),
             TimeOfDay(),
         ]
         self.inc_prev_action_in_obs = inc_prev_action_in_obs
@@ -129,7 +124,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.episode_length = episode_length
         self.initial_portfolio = initial_portfolio or Portfolio(inventory=0, cash=0)
         book_snapshots = pd.DataFrame([], dtype=int)
-        self.internal_state = InternalState(
+        self.internal_state = State(
             inventory=0, cash=0, asset_price=0, book_snapshots=book_snapshots, proportion_of_episode_remaining=1.0
         )
         self.min_date = min_date
@@ -155,14 +150,15 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.max_feature_window_size = max([feature.window_size for feature in self.features])
         self.enter_spread = enter_spread
         self.info_calculator = info_calculator
-        self.price = MidPrice()
+        self.pricer = lambda orderbook: orderbook.microprice
         self._check_params()
 
     def reset(self):
         self.now_is = self._get_random_start_time() - self.max_feature_window_size
         self.simulator.reset_episode(start_date=self.now_is)
+        price = self.pricer(self.central_orderbook)
         for feature in self.features:
-            feature.reset(self.central_orderbook)
+            feature.reset(self.central_orderbook, price, self.initial_portfolio, datetime(0, 0, 0, 0))
         for step in range(int(self.max_feature_window_size / self.step_size)):
             self._forward(list())
 
@@ -373,7 +369,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
             freq=convert_timedelta_to_freq(self.step_size),
             n_levels=LEVELS_FOR_FEATURE_CALCULATION,
         )
-        self.internal_state = InternalState(
+        self.internal_state = State(
             inventory=self.initial_portfolio["inventory"],
             cash=self.initial_portfolio["cash"],
             asset_price=self.price.calculate_from_current_book(book_snapshots.iloc[-1]),

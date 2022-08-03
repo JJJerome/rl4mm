@@ -21,20 +21,15 @@ from RL4MM.orderbook.tests.mock_orders import (
     MARKET_1,
     MARKET_2,
     MARKET_3,
+    submission_1,
+    submission_2,
+    submission_4,
+    get_mock_orderbook,
+    TICKER,
+    TICK_SIZE,
 )
 
 cancellations = [CANCELLATION_1, CANCELLATION_2, CANCELLATION_3]
-TICKER = "MSFT"
-TICK_SIZE = 100
-
-submission_1 = deepcopy(LIMIT_1)
-submission_2 = deepcopy(LIMIT_2)
-submission_3 = deepcopy(LIMIT_3)
-submission_4 = deepcopy(LIMIT_4)
-submission_1.internal_id = 1
-submission_2.internal_id = 2
-submission_3.internal_id = 3
-submission_4.internal_id = 4
 
 
 class TestExchange(TestCase):
@@ -78,7 +73,7 @@ class TestExchange(TestCase):
         exchange = Exchange(TICKER)
         for order in [LIMIT_1, LIMIT_2, LIMIT_3, LIMIT_4]:
             exchange.submit_order(order)
-        expected_central = self.get_demo_orderbook()
+        expected_central = get_mock_orderbook()
         actual_central = exchange.central_orderbook
         self.assertEqual(expected_central, actual_central)
         expected_internal = Orderbook(
@@ -88,7 +83,7 @@ class TestExchange(TestCase):
         self.assertEqual(expected_internal, actual_internal)
 
     def test_execute_market_order(self):
-        orderbook = self.get_demo_orderbook()
+        orderbook = get_mock_orderbook()
         internal_book = Orderbook(
             buy=SortedDict(), sell=SortedDict({30.3 * 10000: deque([submission_4])}), ticker=TICKER, tick_size=TICK_SIZE
         )
@@ -154,7 +149,7 @@ class TestExchange(TestCase):
         self.assertEqual(expected, exchange.central_orderbook)
 
     def test_submit_limit_order_crossing_spread(self):
-        exchange = Exchange(TICKER, self.get_demo_orderbook())
+        exchange = Exchange(TICKER, get_mock_orderbook())
         submission_5 = copy(LIMIT_5)
         submission_5.internal_id = 1  # all other orders are already being tracked
         exchange.submit_order(submission_5)
@@ -167,18 +162,6 @@ class TestExchange(TestCase):
             tick_size=TICK_SIZE,
         )
         self.assertEqual(expected, exchange.central_orderbook)
-
-    @staticmethod
-    def get_demo_orderbook():
-        orderbook = Orderbook(
-            buy=SortedDict({30.1 * 10000: deque([submission_1, submission_2]), 30.2 * 10000: deque([submission_3])}),
-            sell=SortedDict({30.3 * 10000: deque([submission_4])}),
-            ticker=TICKER,
-            tick_size=TICK_SIZE,
-        )
-        return deepcopy(orderbook)
-
-    # TODO: write test for internal order executing when another internal order is present on opposing side
 
 
 if __name__ == "__main__":

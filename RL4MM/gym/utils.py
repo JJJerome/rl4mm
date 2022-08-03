@@ -28,12 +28,12 @@ from RL4MM.features.Features import (
     Feature,
     Spread,
     MicroPrice,
-    InternalState,
-    MidpriceMove,
+    State,
+    PriceMove,
     Volatility,
     Inventory,
-    TimeRemaining,
-    MidPrice,
+    EpisodeProportion,
+    Price,
     TimeOfDay,
 )
 
@@ -66,13 +66,13 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
                 min_value=-1e4 if env_config["normalisation_on"] else 0,  # If feature is a zscore
                 normalisation_on=env_config["normalisation_on"],
             ),
-            MidpriceMove(normalisation_on=env_config["normalisation_on"]),
+            PriceMove(normalisation_on=env_config["normalisation_on"]),
             Volatility(
                 min_value=-1e4 if env_config["normalisation_on"] else 0,  # If feature is a zscore
                 normalisation_on=env_config["normalisation_on"],
             ),
             Inventory(max_value=env_config["max_inventory"], normalisation_on=env_config["normalisation_on"]),
-            TimeRemaining(),
+            EpisodeProportion(),
             MicroPrice(
                 min_value=-1e4 if env_config["normalisation_on"] else 0,  # If feature is a zscore
                 normalisation_on=env_config["normalisation_on"],

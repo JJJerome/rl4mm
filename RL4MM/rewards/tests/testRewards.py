@@ -6,19 +6,49 @@ import numpy as np
 import pandas as pd
 from RL4MM.features.Features import (
     Spread,
-    MidpriceMove,
+    PriceMove,
     PriceRange,
     Volatility,
-    MicroPrice,
-    InternalState,
+    Price,
+    State,
+    Portfolio,
 )
 from RL4MM.orderbook.helpers import get_book_columns
+from RL4MM.orderbook.tests.mock_orders import get_mock_orderbook
 from RL4MM.rewards.RewardFunctions import RollingSharpe
 
-MOCK_INTERNAL_STATE_1 = InternalState(inventory=1, cash=0, asset_price=100, book_snapshots=None)
-MOCK_INTERNAL_STATE_2 = InternalState(inventory=1, cash=0, asset_price=110, book_snapshots=None)
-MOCK_INTERNAL_STATE_3 = InternalState(inventory=1, cash=0, asset_price=100, book_snapshots=None)
-MOCK_INTERNAL_STATE_4 = InternalState(inventory=1, cash=0, asset_price=0, book_snapshots=None)
+MOCK_PORTFOLIO = Portfolio(inventory=1, cash=0)
+MOCK_ORDERBOOK = get_mock_orderbook()
+
+
+MOCK_INTERNAL_STATE_1 = State(
+    filled_orders=([], []),
+    orderbook=MOCK_ORDERBOOK,
+    price=100,
+    portfolio=MOCK_PORTFOLIO,
+    now_is=datetime(2022, 1, 1, 10, 1),
+)
+MOCK_INTERNAL_STATE_2 = State(
+    filled_orders=([], []),
+    orderbook=MOCK_ORDERBOOK,
+    price=110,
+    portfolio=MOCK_PORTFOLIO,
+    now_is=datetime(2022, 1, 1, 10, 2),
+)
+MOCK_INTERNAL_STATE_3 = State(
+    filled_orders=([], []),
+    orderbook=MOCK_ORDERBOOK,
+    price=100,
+    portfolio=MOCK_PORTFOLIO,
+    now_is=datetime(2022, 1, 1, 10, 3),
+)
+MOCK_INTERNAL_STATE_4 = State(
+    filled_orders=([], []),
+    orderbook=MOCK_ORDERBOOK,
+    price=0,
+    portfolio=MOCK_PORTFOLIO,
+    now_is=datetime(2022, 1, 1, 10, 4),
+)
 
 
 class TestRollingSharpe(TestCase):

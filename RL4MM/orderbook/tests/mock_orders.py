@@ -1,6 +1,10 @@
+from collections import deque
+from copy import deepcopy
 from datetime import datetime
 
-from RL4MM.orderbook.models import LimitOrder, Cancellation, Deletion, MarketOrder
+from sortedcontainers import SortedDict
+
+from RL4MM.orderbook.models import LimitOrder, Cancellation, Deletion, MarketOrder, Orderbook
 
 LIMIT_1 = LimitOrder(
     timestamp=datetime(2012, 6, 21, 12, 0),
@@ -139,3 +143,29 @@ MARKET_3 = MarketOrder(
     internal_id=None,
     is_external=True,
 )
+submission_1 = deepcopy(LIMIT_1)
+submission_2 = deepcopy(LIMIT_2)
+submission_3 = deepcopy(LIMIT_3)
+submission_4 = deepcopy(LIMIT_4)
+submission_1.internal_id = 1
+submission_2.internal_id = 2
+submission_3.internal_id = 3
+submission_4.internal_id = 4
+
+
+TICKER = "MSFT"
+TICK_SIZE = 100
+
+
+def get_mock_orderbook():
+    orderbook = Orderbook(
+        buy=SortedDict(
+            {int(30.1 * 10000): deque([submission_1, submission_2]), int(30.2 * 10000): deque([submission_3])}
+        ),
+        sell=SortedDict({int(30.3 * 10000): deque([submission_4])}),
+        ticker=TICKER,
+        tick_size=TICK_SIZE,
+    )
+    return deepcopy(orderbook)
+
+    # TODO: write test for internal order executing when another internal order is present on opposing side

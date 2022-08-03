@@ -91,6 +91,10 @@ class Orderbook:
     def microprice(self):
         return (1 + self.imbalance) / 2 * self.best_sell_price + (1 - self.imbalance) / 2 * self.best_buy_price
 
+    @property
+    def spread(self):
+        return self.best_sell_price - self.best_buy_price
+
 
 class OrderDict(TypedDict):
     timestamp: datetime
