@@ -75,9 +75,9 @@ class Exchange:
             orderbooks_to_update.append(self.internal_orderbook)
         for orderbook in orderbooks_to_update:
             try:
-                getattr(orderbook,order.direction)[order.price].append(order)
+                getattr(orderbook, order.direction)[order.price].append(order)
             except KeyError:
-                getattr(orderbook,order.direction)[order.price] = deque([order])
+                getattr(orderbook, order.direction)[order.price] = deque([order])
         return None
 
     def execute_order(self, order: FillableOrder) -> FilledOrderTuple:
@@ -125,7 +125,7 @@ class Exchange:
             queue_position = self._find_queue_position(order, orderbook)
             if queue_position is None:
                 try:
-                    best_order_id = getattr(orderbook,order.direction)[order.price][0].internal_id
+                    best_order_id = getattr(orderbook, order.direction)[order.price][0].internal_id
                 except KeyError:
                     continue
                 if best_order_id == -1:  # Initial orders remain in book
@@ -136,11 +136,11 @@ class Exchange:
                 else:  # trying to remove order that has already been filled
                     continue
             elif isinstance(order, Deletion) and order.volume is None:
-                order.volume = getattr(orderbook,order.direction)[order.price][queue_position].volume
+                order.volume = getattr(orderbook, order.direction)[order.price][queue_position].volume
             try:
                 self._reduce_order_with_queue_position(order, queue_position, order.volume, orderbook)
             except CancellationVolumeExceededError:
-                volume_to_remove = getattr(orderbook,order.direction)[order.price][queue_position].volume
+                volume_to_remove = getattr(orderbook, order.direction)[order.price][queue_position].volume
                 self._reduce_order_with_queue_position(order, queue_position, volume_to_remove, orderbook)
         return None
 
@@ -172,14 +172,14 @@ class Exchange:
         orderbook = self.get_empty_orderbook()
         for order in orders:
             assert order.is_external, "Initial orders must all be external."
-            getattr(orderbook,order.direction)[order.price] = deque([order])
+            getattr(orderbook, order.direction)[order.price] = deque([order])
         return orderbook
 
     def _get_highest_priority_matching_order(self, order: FillableOrder) -> LimitOrder:
         opposite_direction = "sell" if order.direction == "buy" else "buy"
         best_price = self.best_sell_price if opposite_direction == "sell" else self.best_buy_price
         try:
-            return getattr(self.central_orderbook,opposite_direction)[best_price][0]  # type: ignore
+            return getattr(self.central_orderbook, opposite_direction)[best_price][0]  # type: ignore
         except KeyError:
             raise EmptyOrderbookError(f"Trying take liquidity from empty {opposite_direction} side of the book.")
 
@@ -197,10 +197,10 @@ class Exchange:
         internal_id = order.internal_id or self.order_id_convertor.get_internal_order_id(order)
         if internal_id is None and order.is_external:  # This is due to the external order being submitted before start
             return None
-        if order.price not in getattr(orderbook,order.direction):
+        if order.price not in getattr(orderbook, order.direction):
             warnings.warn(f"No {order.direction} orders found at level {order.price}")
             return None
-        book_level = getattr(orderbook,order.direction)[order.price]
+        book_level = getattr(orderbook, order.direction)[order.price]
         left, right = 0, len(book_level) - 1
         while left <= right:
             middle = (left + right) // 2
@@ -221,15 +221,15 @@ class Exchange:
         volume_to_remove: int,
         orderbook: Orderbook,
     ) -> LimitOrder:
-        order_to_partially_remove = copy(getattr(orderbook,order.direction)[order.price][queue_position])
+        order_to_partially_remove = copy(getattr(orderbook, order.direction)[order.price][queue_position])
         if volume_to_remove > order_to_partially_remove.volume:
             raise CancellationVolumeExceededError(
                 f"Attempting to remove volume {volume_to_remove} from order of size {order_to_partially_remove.volume}."
             )
-        removed_order = deepcopy(getattr(orderbook,order.direction)[order.price][queue_position])
+        removed_order = deepcopy(getattr(orderbook, order.direction)[order.price][queue_position])
         removed_order.volume = volume_to_remove
         order_to_partially_remove.volume -= volume_to_remove
-        getattr(orderbook,order.direction)[order.price][queue_position] = order_to_partially_remove
+        getattr(orderbook, order.direction)[order.price][queue_position] = order_to_partially_remove
         self._clear_empty_orders_and_prices(order.price, order.direction, queue_position, orderbook)
         return removed_order
 

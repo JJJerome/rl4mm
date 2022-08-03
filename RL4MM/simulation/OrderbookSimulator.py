@@ -99,9 +99,7 @@ class OrderbookSimulator:
         orders_to_add = self._get_initial_orders_from_book(orderbook_series, self._initial_prices_filter_function)
         for order in orders_to_add:
             book_side = getattr(self.exchange.internal_orderbook, order.direction)
-            assert (
-                order.price not in book_side.keys()
-            ), "Attempting to re-syncronise levels containing internal orders."
+            assert order.price not in book_side.keys(), "Attempting to re-syncronise levels containing internal orders."
             book_side[order.price] = deque([order])
         self.min_buy_price = min(self.min_buy_price, self.exchange.orderbook_price_range[0])
         self.max_sell_price = max(self.max_sell_price, self.exchange.orderbook_price_range[1])

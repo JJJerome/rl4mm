@@ -41,7 +41,7 @@ class TestExchange(TestCase):
     def test_post_init(self):
         exchange = Exchange(TICKER)
         self.assertEqual(exchange.name, "NASDAQ")
-        empty_orderbook = Orderbook(buy = SortedDict(), sell=SortedDict(), ticker=TICKER, tick_size=TICK_SIZE)
+        empty_orderbook = Orderbook(buy=SortedDict(), sell=SortedDict(), ticker=TICKER, tick_size=TICK_SIZE)
         self.assertEqual(exchange.central_orderbook, empty_orderbook)
 
     def test_get_initial_orderbook_from_orders(self):
