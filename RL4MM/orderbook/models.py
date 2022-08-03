@@ -17,6 +17,7 @@ from sortedcontainers.sorteddict import SortedDict
 @dataclass
 class Order:
     """Base class for Orders."""
+
     timestamp: datetime
     direction: Literal["buy", "sell"]
     ticker: str
@@ -57,7 +58,7 @@ FilledOrderTuple = Tuple[List[FillableOrder], List[FillableOrder]]
 
 @dataclass
 class Orderbook:
-    buy: SortedDict  # SortedDict does not currently support typing. Type is SortedDict[int, Deque[Order]].
+    buy: SortedDict  # SortedDict does not currently support typing. Type is SortedDict[int, Deque[LimitOrder]].
     sell: SortedDict
     ticker: str
     tick_size: int
@@ -71,8 +72,24 @@ class Orderbook:
         return next(iter(self.sell.keys()), np.infty)
 
     @property
+    def best_buy_volume(self):
+        return sum(order.volume for order in self.buy[self.best_buy_price])
+
+    @property
+    def best_sell_volume(self):
+        return sum(order.volume for order in self.sell[self.best_sell_price])
+
+    @property
     def midprice(self):
         return (self.best_sell_price + self.best_buy_price) / 2
+
+    @property
+    def imbalance(self):
+        return (self.best_buy_volume - self.best_sell_volume) / (self.best_buy_volume + self.best_sell_volume)
+
+    @property
+    def microprice(self):
+        return (1 + self.imbalance) / 2 * self.best_sell_price + (1 - self.imbalance) / 2 * self.best_buy_price
 
 
 class OrderDict(TypedDict):
@@ -84,7 +101,6 @@ class OrderDict(TypedDict):
     internal_id: Optional[int]
     external_id: Optional[int]
     is_external: bool
-
 
 
 def get_best_sell_price(orderbook: Orderbook):
