@@ -115,7 +115,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
         )
         self.max_distribution_param = max_distribution_param
         self.ticker = ticker
-        assert step_size >= timedelta(seconds=1), "Step size must be larger than one second."
         self.step_size = step_size
         self.min_quote_level = min_quote_level
         self.max_quote_level = max_quote_level
@@ -124,9 +123,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.episode_length = episode_length
         self.initial_portfolio = initial_portfolio or Portfolio(inventory=0, cash=0)
         book_snapshots = pd.DataFrame([], dtype=int)
-        self.internal_state = State(
-            inventory=0, cash=0, asset_price=0, book_snapshots=book_snapshots, proportion_of_episode_remaining=1.0
-        )
+        self.internal_state = None
         self.min_date = min_date
         self.max_date = max_date
         self.min_start_timedelta = min_start_timedelta

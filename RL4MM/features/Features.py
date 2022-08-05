@@ -48,7 +48,7 @@ class Feature(metaclass=abc.ABCMeta):
         min_value: float,
         max_value: float,
         update_frequency: timedelta,
-        min_updates: int,
+        lookback_periods: int,
         normalisation_on: bool,
         max_norm_len: int = 10000,
     ):
@@ -57,7 +57,7 @@ class Feature(metaclass=abc.ABCMeta):
         self.max_value = max_value
         assert update_frequency <= timedelta(minutes=1), "HFT update frequency must be less than 1 minute."
         self.update_frequency = update_frequency
-        self.min_updates = min_updates
+        self.lookback_periods = lookback_periods
         self.normalisation_on = normalisation_on
         self.max_norm_len = max_norm_len
         self.current_value = None
@@ -66,7 +66,7 @@ class Feature(metaclass=abc.ABCMeta):
 
     @property
     def window_size(self) -> timedelta:
-        return self.min_updates * self.update_frequency
+        return self.lookback_periods * self.update_frequency
 
     def normalise(self, value: float) -> float:
         if len(self.history) == 0:
@@ -111,7 +111,7 @@ class Spread(Feature):
         self,
         name: str = "Spread",
         min_value: float = 0,
-        max_value: float = (100 * 100),  # 100 ticks
+        max_value: float = (50 * 100),  # 100 ticks
         update_frequency: timedelta = timedelta(seconds=1),
         normalisation_on: bool = False,
         max_norm_len: int = 10000,
@@ -136,15 +136,15 @@ class PriceMove(Feature):
         min_value: float = -100 * 100,  # 100 tick downward move
         max_value: float = 100 * 100,  # 100 tick upward move
         update_frequency: timedelta = timedelta(seconds=1),
-        min_updates: int = 10,  # Calculate the move in the midprice between 10 time periods ago and now
+        lookback_periods: int = 10,  # Calculate the move in the midprice between 10 time periods ago and now
         normalisation_on: bool = False,
         max_norm_len: int = 100_000,
     ):
-        super().__init__(name, min_value, max_value, update_frequency, min_updates, normalisation_on, max_norm_len)
-        self.prices = deque(maxlen=self.min_updates + 1)
+        super().__init__(name, min_value, max_value, update_frequency, lookback_periods, normalisation_on, max_norm_len)
+        self.prices = deque(maxlen=self.lookback_periods + 1)
 
     def reset(self, state: State):
-        self.prices = deque(maxlen=self.min_updates + 1)
+        self.prices = deque(maxlen=self.lookback_periods + 1)
         super()._reset(state)
 
     def _update(self, state: State) -> None:
@@ -161,15 +161,15 @@ class PriceRange(Feature):
         min_value: float = 0,
         max_value: float = (100 * 100),  # 100 ticks
         update_frequency: timedelta = timedelta(seconds=1),
-        min_updates: int = 10,
+        lookback_periods: int = 10,
         normalisation_on: bool = False,
         max_norm_len: int = 100_000,
     ):
-        super().__init__(name, min_value, max_value, update_frequency, min_updates, normalisation_on, max_norm_len)
-        self.prices = deque(maxlen=self.min_updates + 1)
+        super().__init__(name, min_value, max_value, update_frequency, lookback_periods, normalisation_on, max_norm_len)
+        self.prices = deque(maxlen=self.lookback_periods + 1)
 
     def reset(self, state: State):
-        self.prices = deque(maxlen=self.min_updates + 1)
+        self.prices = deque(maxlen=self.lookback_periods + 1)
         super()._reset(state)
 
     def _update(self, state: State) -> None:
@@ -189,20 +189,20 @@ class Volatility(Feature):
         min_value: float = 0,
         max_value: float = ((100 * 100) ** 2),
         update_frequency: timedelta = timedelta(seconds=1),
-        min_updates: int = 10,
+        lookback_periods: int = 10,
         normalisation_on: bool = False,
         max_norm_len: int = 100_000,
     ):
-        super().__init__(name, min_value, max_value, update_frequency, min_updates, normalisation_on, max_norm_len)
-        self.prices = deque(maxlen=self.min_updates + 1)
+        super().__init__(name, min_value, max_value, update_frequency, lookback_periods, normalisation_on, max_norm_len)
+        self.prices = deque(maxlen=self.lookback_periods + 1)
 
     def reset(self, state: State):
         super()._reset(state)
-        self.prices = deque(maxlen=self.min_updates + 1)
+        self.prices = deque(maxlen=self.lookback_periods + 1)
         self._update(state)
 
     def _update(self, state: State) -> None:
-        if len(self.prices) < self.min_updates:
+        if len(self.prices) < self.lookback_periods:
             self.prices.append(state.price)
             self.current_value = 0
         elif self.current_value == 0:
@@ -210,14 +210,14 @@ class Volatility(Feature):
             pct_returns = np.diff(self.prices) / np.array(self.prices)[:1]
             self.current_value = sum(pct_returns**2) / len(pct_returns)
         else:
-            assert len(self.prices) == self.min_updates + 1
+            assert len(self.prices) == self.lookback_periods + 1
             oldest_price = self.prices.popleft()
             oldest_pct_return = (self.prices[0] - oldest_price) / oldest_price
             new_price = state.price
             new_pct_return = (new_price - self.prices[-1]) / self.prices[-1]
             self.prices.append(new_price)
-            sum_of_squares = self.current_value * self.min_updates - oldest_pct_return**2 + new_pct_return**2
-            self.current_value = sum_of_squares / self.min_updates
+            sum_of_squares = self.current_value * self.lookback_periods - oldest_pct_return ** 2 + new_pct_return ** 2
+            self.current_value = sum_of_squares / self.lookback_periods
 
 
 class Price(Feature):
@@ -246,8 +246,8 @@ class Inventory(Feature):
     def __init__(
         self,
         name: str = "Inventory",
-        min_value: float = -10000,
-        max_value: float = 10000,
+        min_value: float = -1000000,
+        max_value: float = 1000000,
         update_frequency: timedelta = timedelta(seconds=0.1),
         normalisation_on: bool = False,
         max_norm_len: int = 100_000,
@@ -288,14 +288,13 @@ class EpisodeProportion(Feature):
 class TimeOfDay(Feature):
     def __init__(
         self,
-        min_updates: int,
         name: str = "TimeOfDay",
         update_frequency: timedelta = timedelta(seconds=0.1),
         normalisation_on: bool = False,
         max_norm_len: int = 100_000,
         n_buckets: int = 10,
     ):
-        super().__init__(name, 0, n_buckets - 1, update_frequency, min_updates, normalisation_on, max_norm_len)
+        super().__init__(name, 0, n_buckets - 1, update_frequency, 1, normalisation_on, max_norm_len)
         self.n_buckets = n_buckets
         self.min_time = datetime.combine(date(1, 1, 1), MIN_TRADING_TIME)
         self.max_time = datetime.combine(date(1, 1, 1), MAX_TRADING_TIME)

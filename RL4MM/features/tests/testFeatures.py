@@ -61,8 +61,8 @@ class TestBookFeatures(TestCase):
         self.assertEqual(expected, spread.update(state=MOCK_STATE))
 
     def test_price_move_calculate(self):
-        price_move = PriceMove(min_updates=1)
-        price_move_5 = PriceMove(min_updates=5)
+        price_move = PriceMove(lookback_periods=1)
+        price_move_5 = PriceMove(lookback_periods=5)
         price_move.reset(state=MOCK_STATE)
         price_move_5.reset(state=MOCK_STATE)
         calculated_price_moves = []
@@ -78,7 +78,7 @@ class TestBookFeatures(TestCase):
         self.assertEqual(expected_price_moves_5, calculated_price_moves_5)
 
     def test_price_range(self):
-        price_range = PriceRange(min_updates=3)
+        price_range = PriceRange(lookback_periods=3)
         price_range.reset(state=MOCK_STATE)
         calculated_price_ranges = []
         for price in MIDPRICES[1:]:
@@ -89,7 +89,7 @@ class TestBookFeatures(TestCase):
         self.assertEqual(expected_price_ranges, calculated_price_ranges)
 
     def test_volatility(self):
-        volatility = Volatility(min_updates=5)
+        volatility = Volatility(lookback_periods=5)
         volatility.reset(MOCK_STATE)
         calculated_volatilities = []
         for price in MIDPRICES[1:]:
