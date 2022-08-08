@@ -166,7 +166,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         next_state = self.state
         reward = self.per_step_reward_function.calculate(current_state, next_state)
         observation = self.get_observation(action) if self.inc_prev_action_in_obs else self.get_observation()
-        if self.terminal_time - next_state.now_is < self.step_size/2:
+        if self.terminal_time - next_state.now_is < self.step_size / 2:
             reward = self.terminal_reward_function.calculate(current_state, next_state)
             done = True
         info = {}
