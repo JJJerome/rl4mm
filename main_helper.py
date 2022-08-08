@@ -72,7 +72,7 @@ def add_ray_args(parser):
 
 def add_env_args(parser):
     # -------------------- Env Args ---------------------------
-    parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=int)
+    parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=float)
     parser.add_argument("-t", "--ticker", default="IBM", help="Specify stock ticker.", type=str)
     parser.add_argument("-nl", "--n_levels", default=50, help="Number of orderbook levels.", type=int)
 
