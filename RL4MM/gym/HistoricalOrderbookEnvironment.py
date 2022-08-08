@@ -438,7 +438,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
                 lookback_periods=5 * 60,
                 normalisation_on=normalisation_on,
             ),
-            Inventory(max_value=max_inventory, update_frequency=step_size, normalisation_on=normalisation_on),
+            Inventory(update_frequency=step_size, normalisation_on=normalisation_on),
             EpisodeProportion(
                 update_frequency=step_size, episode_length=episode_length, normalisation_on=normalisation_on
             ),
