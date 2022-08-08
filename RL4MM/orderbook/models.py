@@ -4,9 +4,9 @@ import sys
 import numpy as np
 
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from typing import Optional, Literal, Union, TypedDict, Tuple, List
+    from typing import Optional, Literal, Union, TypedDict, List
 else:
-    from typing import Optional, Union
+    from typing import Optional, Union, List
     from typing_extensions import Literal, TypedDict
 
 from dataclasses import dataclass, field
