@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from copy import deepcopy, copy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import sys
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
@@ -403,7 +403,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     @staticmethod
     def get_default_features(step_size: timedelta, episode_length: timedelta, normalisation_on: bool = False):
-        trading_day_length = MAX_TRADING_TIME - MIN_TRADING_TIME
+        trading_day_length = datetime.combine(date.min, MAX_TRADING_TIME) - datetime.combine(date.min, MIN_TRADING_TIME)
         time_of_day_buckets = 10
         assert step_size < timedelta(seconds=0.1), "Default features require a minimum step size of 0.1 seconds."
         return [
