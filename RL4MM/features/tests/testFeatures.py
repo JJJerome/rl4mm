@@ -63,8 +63,8 @@ class TestBookFeatures(TestCase):
     def test_price_move_calculate(self):
         price_move = PriceMove(lookback_periods=1)
         price_move_5 = PriceMove(lookback_periods=5)
-        price_move.reset(state=MOCK_STATE)
-        price_move_5.reset(state=MOCK_STATE)
+        price_move.reset(state=MOCK_STATE, first_usage_time=first_usage_time)
+        price_move_5.reset(state=MOCK_STATE, first_usage_time=first_usage_time)
         calculated_price_moves = []
         calculated_price_moves_5 = []
         for price in MIDPRICES[1:]:
@@ -79,7 +79,7 @@ class TestBookFeatures(TestCase):
 
     def test_price_range(self):
         price_range = PriceRange(lookback_periods=3)
-        price_range.reset(state=MOCK_STATE)
+        price_range.reset(state=MOCK_STATE, first_usage_time=first_usage_time)
         calculated_price_ranges = []
         for price in MIDPRICES[1:]:
             state = deepcopy(MOCK_STATE)
@@ -90,7 +90,7 @@ class TestBookFeatures(TestCase):
 
     def test_volatility(self):
         volatility = Volatility(lookback_periods=5)
-        volatility.reset(MOCK_STATE)
+        volatility.reset(MOCK_STATE, first_usage_time)
         calculated_volatilities = []
         for price in MIDPRICES[1:]:
             state = deepcopy(MOCK_STATE)
@@ -104,12 +104,12 @@ class TestBookFeatures(TestCase):
 
     def test_price(self):
         price = Price()
-        price.reset(state=MOCK_STATE)
+        price.reset(state=MOCK_STATE, first_usage_time=first_usage_time)
         actual = price.update(state=MOCK_STATE)
         self.assertEqual(MOCK_STATE.price, actual)
 
     def test_inventory(self):
         inventory = Inventory()
-        inventory.reset(state=MOCK_STATE)
+        inventory.reset(state=MOCK_STATE, first_usage_time=first_usage_time)
         actual = inventory.update(state=MOCK_STATE)
         self.assertEqual(MOCK_STATE.portfolio.inventory, actual)

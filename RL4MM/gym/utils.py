@@ -27,7 +27,6 @@ from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL, RollingShar
 from RL4MM.features.Features import (
     Feature,
     Spread,
-    MicroPrice,
     State,
     PriceMove,
     Volatility,

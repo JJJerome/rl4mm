@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 import warnings
 
@@ -58,11 +58,11 @@ class HistoricalOrderGenerator(OrderGenerator):
             ), "Trying to step forward before initial cross-trade!"
             return messages[messages.message_type != "market_hidden"]
 
-    def store_messages(self, start_date: datetime, end_date: datetime):
-        messages = self.database.get_messages(start_date, end_date, self.ticker)
+    def preload_messages(self, min_date: datetime, max_date: datetime):
+        messages = self.database.get_messages(min_date, max_date, self.ticker)
         self.episode_messages = self._process_messages_and_add_internal(messages)
-        self.start_of_episode = start_date
-        self.end_of_episode = end_date
+        self.start_of_episode = min_date
+        self.end_of_episode = max_date
 
     @staticmethod
     def _get_mid_datetime(datetime_1: datetime, datetime_2: datetime):

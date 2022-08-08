@@ -9,7 +9,7 @@ else:
     from typing import Optional, Union
     from typing_extensions import Literal, TypedDict
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from sortedcontainers.sorteddict import SortedDict
 
@@ -53,7 +53,12 @@ class Cancellation(Deletion):
 
 
 FillableOrder = Union[MarketOrder, LimitOrder]
-FilledOrderTuple = Tuple[List[FillableOrder], List[FillableOrder]]
+
+
+@dataclass
+class FilledOrders:
+    internal: List[FillableOrder] = field(default_factory=list)
+    external: List[FillableOrder] = field(default_factory=list)
 
 
 @dataclass

@@ -12,7 +12,7 @@ TICK_SIZE = 100  # TODO: add auto adjustment for small tick stocks
 
 class InfoCalculator(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def calculate(self, filled_orders: List[FillableOrder], internal_state: State, action: np.ndarray):
+    def calculate(self, internal_state: State, action: np.ndarray):
         pass
 
 
@@ -30,14 +30,14 @@ class SimpleInfoCalculator(InfoCalculator):
         self.enter_spread = enter_spread
         self.order_distributor = order_distributor or BetaOrderDistributor(concentration=concentration)
 
-    def calculate(self, filled_orders: List[FillableOrder], internal_state: State, action: np.ndarray):
+    def calculate(self, internal_state: State, action: np.ndarray):
         spreads_and_offsets = self.calculate_agent_spreads_and_midprice_offset(internal_state, action)
         info_dict = dict(
-            asset_price=internal_state["asset_price"],
-            inventory=internal_state["inventory"],
-            cash=internal_state["cash"],
+            asset_price=internal_state.price,
+            inventory=internal_state.portfolio.inventory,
+            cash=internal_state.portfolio.cash,
             aum=self.calculate_aum(internal_state),
-            market_spread=self.calculate_market_spread(internal_state),
+            market_spread=internal_state.orderbook.spread,
             agent_spread=spreads_and_offsets[0],
             agent_weighted_spread=[1],
             midprice_offset=spreads_and_offsets[2],
@@ -76,17 +76,16 @@ class SimpleInfoCalculator(InfoCalculator):
         weighted_midprice_offset = (sell_centre_of_mass - buy_centre_of_mass) / 2
         weighted_spread = buy_centre_of_mass + sell_centre_of_mass
         if not self.enter_spread:
-            midprice_offset += self.calculate_market_spread(internal_state)
-            weighted_midprice_offset += self.calculate_market_spread(internal_state)
+            midprice_offset += internal_state.orderbook.spread
+            weighted_midprice_offset += internal_state.orderbook.spread
         return spread, weighted_spread, midprice_offset, weighted_midprice_offset
 
     def calculate_market_spread(self, internal_state: State):
-        last_snapshot = internal_state["book_snapshots"].iloc[-1]
-        return (last_snapshot.sell_price_0 - last_snapshot.buy_price_0) / TICK_SIZE
+        return internal_state.orderbook.spread
 
     def _update_market_order_count_and_volume(self, inventory: int):
         self.market_order_count += 1
         self.market_order_total_volume += self.market_order_fraction_of_inventory * abs(inventory)
 
     def calculate_aum(self, internal_state: State) -> float:
-        return internal_state["cash"] + internal_state["asset_price"] * internal_state["inventory"]
+        return internal_state.portfolio.cash + internal_state.price * internal_state.portfolio.inventory

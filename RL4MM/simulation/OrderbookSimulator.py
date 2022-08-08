@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.orderbook.models import Orderbook, Order, LimitOrder, FillableOrder
+from RL4MM.orderbook.models import Orderbook, Order, LimitOrder, FilledOrders
 from RL4MM.orderbook.Exchange import Exchange
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderGenerator import OrderGenerator
@@ -26,20 +26,22 @@ class OrderbookSimulator:
         order_generators: List[OrderGenerator] = None,
         n_levels: int = 50,
         database: HistoricalDatabase = None,
-        save_messages_locally: bool = True,
+        preload_messages: bool = True,
         episode_length: Optional[timedelta] = None,
+        warm_up: Optional[timedelta] = None,
     ) -> None:
         self.ticker = ticker
         self.exchange = exchange or Exchange(ticker)
-        order_generators = order_generators or [HistoricalOrderGenerator(ticker, database, save_messages_locally)]
+        order_generators = order_generators or [HistoricalOrderGenerator(ticker, database, preload_messages)]
         self.order_generators = {gen.name: gen for gen in order_generators}
         self.now_is: datetime = datetime(2000, 1, 1)
         self.n_levels = n_levels
         self.database = database or HistoricalDatabase()
-        self.save_messages_locally = save_messages_locally
-        if save_messages_locally:
+        self.preload_messages = preload_messages
+        if preload_messages:
             assert episode_length is not None, "When saving messages locally, episode length must be pre-specified."
         self.episode_length = episode_length
+        self.warm_up = warm_up
         # The following is for re-syncronisation with the historical data
         self.max_sell_price: int = 0
         self.min_buy_price: int = np.infty  # type:ignore
@@ -54,12 +56,14 @@ class OrderbookSimulator:
         self.exchange.reset_internal_orderbook()
         self._reset_initial_price_ranges()
         self.now_is = start_date
-        if self.save_messages_locally:
+        if self.preload_messages:
             for order_generator_name in self.order_generators.keys():
-                self.order_generators[order_generator_name].store_messages(start_date, start_date + self.episode_length)
+                self.order_generators[order_generator_name].preload_messages(
+                    start_date, start_date + self.episode_length + self.warm_up
+                )
         return start_book
 
-    def forward_step(self, until: datetime, internal_orders: Optional[List[Order]] = None) -> List[FillableOrder]:
+    def forward_step(self, until: datetime, internal_orders: Optional[List[Order]] = None) -> FilledOrders:
         assert (
             until > self.now_is
         ), f"The current time is {self.now_is.time()}, but we are trying to step forward in time until {until.time()}!"
@@ -70,14 +74,14 @@ class OrderbookSimulator:
         filled_internal_orders = []
         filled_external_orders = []
         for order in orders:
-            filled_orders = self.exchange.process_order(order)
-            if filled_orders:
-                filled_internal_orders += filled_orders[0]
-                filled_external_orders += filled_orders[1]
+            filled = self.exchange.process_order(order)
+            if filled:
+                filled_internal_orders += filled.internal
+                filled_external_orders += filled.external
         self.now_is = until
         if self._near_exiting_initial_price_range and self.now_is.microsecond == 0:
             self.update_outer_levels()
-        return filled_internal_orders, filled_external_orders
+        return FilledOrders(internal=filled_internal_orders, external=filled_external_orders)
 
     def get_historical_start_book(self, start_date: datetime) -> Orderbook:
         start_series = self.database.get_last_snapshot(start_date, ticker=self.ticker)

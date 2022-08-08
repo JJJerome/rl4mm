@@ -25,7 +25,7 @@ from RL4MM.orderbook.models import (
     Deletion,
     OrderDict,
     FillableOrder,
-    FilledOrderTuple,
+    FilledOrders,
 )
 
 
@@ -55,7 +55,7 @@ class Exchange:
     def reset_internal_orderbook(self):
         self.internal_orderbook = self.get_empty_orderbook()
 
-    def process_order(self, order: Order) -> Optional[FilledOrderTuple]:
+    def process_order(self, order: Order) -> Optional[FilledOrders]:
         if isinstance(order, LimitOrder):
             return self.submit_order(order)
         elif isinstance(order, MarketOrder):
@@ -66,7 +66,7 @@ class Exchange:
         else:
             raise NotImplementedError
 
-    def submit_order(self, order: LimitOrder) -> Optional[FilledOrderTuple]:
+    def submit_order(self, order: LimitOrder) -> Optional[FilledOrders]:
         if self._does_order_cross_spread(order):
             return self.execute_order(order)  # Execute against orders already in the book
         order = self.order_id_convertor.add_internal_id_to_order_and_track(order)
@@ -80,7 +80,7 @@ class Exchange:
                 getattr(orderbook, order.direction)[order.price] = deque([order])
         return None
 
-    def execute_order(self, order: FillableOrder) -> FilledOrderTuple:
+    def execute_order(self, order: FillableOrder) -> FilledOrders:
         executed_internal_orders: List[Union[MarketOrder, LimitOrder]] = list()
         executed_external_orders: List[Union[MarketOrder, LimitOrder]] = list()
         remaining_volume = order.volume
@@ -115,7 +115,7 @@ class Exchange:
             remaining_order = copy(order)
             remaining_order.volume = remaining_volume
             self.submit_order(remaining_order)  # submit a limit order with the remaining volume
-        return executed_internal_orders, executed_external_orders
+        return FilledOrders(internal=executed_internal_orders, external=executed_external_orders)
 
     def remove_order(self, order: Union[Cancellation, Deletion]) -> None:
         orderbooks_to_update = [self.central_orderbook]
