@@ -33,6 +33,8 @@ from RL4MM.features.Features import (
     EpisodeProportion,
     TimeOfDay,
     Portfolio,
+    MAX_TRADING_TIME,
+    MIN_TRADING_TIME,
 )
 from RL4MM.gym.action_interpretation.OrderDistributors import OrderDistributor, BetaOrderDistributor
 from RL4MM.orderbook.create_order import create_order
@@ -118,7 +120,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self._check_params()
         # Observation space is determined by the features used
         self.max_inventory = max_inventory
-        self.features = features or self._default_features
+        self.features = features or self.get_default_features(step_size, episode_length)
         self.inc_prev_action_in_obs = inc_prev_action_in_obs
         low_obs = np.array([feature.min_value for feature in self.features])
         high_obs = np.array([feature.max_value for feature in self.features])
@@ -399,19 +401,50 @@ class HistoricalOrderbookEnvironment(gym.Env):
                 "must be positive if and only if market order clearing (self.market_order_clearing} is on"
             )
 
-    @property
-    def _default_features(self):
-        trading_day_length = self.max_end_timedelta - self.min_start_timedelta
+    @staticmethod
+    def get_default_features(step_size: timedelta, episode_length: timedelta, normalisation_on: bool = False):
+        trading_day_length = MAX_TRADING_TIME - MIN_TRADING_TIME
         time_of_day_buckets = 10
-        assert self.step_size < timedelta(seconds=0.1), "Default features require a minimum step size of 0.1 seconds."
+        assert step_size < timedelta(seconds=0.1), "Default features require a minimum step size of 0.1 seconds."
         return [
-            Spread(update_frequency=self.step_size),
-            PriceMove(name="price_move_0.1_s", update_frequency=timedelta(seconds=0.1), lookback_periods=1),
-            PriceMove(name="price_move_0.1_s", update_frequency=timedelta(seconds=1), lookback_periods=10),
-            PriceMove(name="price_move_10_s", update_frequency=timedelta(seconds=1), lookback_periods=10),
-            Volatility(name="volatility_1_min", update_frequency=timedelta(seconds=0.1), lookback_periods=10 * 60),
-            Volatility(name="volatility_5_min", update_frequency=timedelta(seconds=1), lookback_periods=5 * 60),
-            Inventory(max_value=self.max_inventory, update_frequency=self.step_size),
-            EpisodeProportion(update_frequency=self.step_size, episode_length=self.episode_length),
-            TimeOfDay(update_frequency=trading_day_length / (10 * time_of_day_buckets), n_buckets=time_of_day_buckets),
+            Spread(update_frequency=step_size, normalisation_on=normalisation_on),
+            PriceMove(
+                name="price_move_0.1_s",
+                update_frequency=timedelta(seconds=0.1),
+                lookback_periods=1,
+                normalisation_on=normalisation_on,
+            ),
+            PriceMove(
+                name="price_move_0.1_s",
+                update_frequency=timedelta(seconds=1),
+                lookback_periods=10,
+                normalisation_on=normalisation_on,
+            ),
+            PriceMove(
+                name="price_move_10_s",
+                update_frequency=timedelta(seconds=1),
+                lookback_periods=10,
+                normalisation_on=normalisation_on,
+            ),
+            Volatility(
+                name="volatility_1_min",
+                update_frequency=timedelta(seconds=0.1),
+                lookback_periods=10 * 60,
+                normalisation_on=normalisation_on,
+            ),
+            Volatility(
+                name="volatility_5_min",
+                update_frequency=timedelta(seconds=1),
+                lookback_periods=5 * 60,
+                normalisation_on=normalisation_on,
+            ),
+            Inventory(max_value=max_inventory, update_frequency=step_size, normalisation_on=normalisation_on),
+            EpisodeProportion(
+                update_frequency=step_size, episode_length=episode_length, normalisation_on=normalisation_on
+            ),
+            TimeOfDay(
+                update_frequency=trading_day_length / (10 * time_of_day_buckets),
+                n_buckets=time_of_day_buckets,
+                normalisation_on=normalisation_on,
+            ),
         ]

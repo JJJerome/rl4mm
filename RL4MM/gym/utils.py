@@ -60,24 +60,11 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
     if env_config["features"] == "agent_state":
         features = [Inventory(max_value=env_config["max_inventory"], normalisation_on=env_config["normalisation_on"])]
     elif env_config["features"] == "full_state":
-        features = [
-            Spread(
-                min_value=-1e4 if env_config["normalisation_on"] else 0,  # If feature is a zscore
-                normalisation_on=env_config["normalisation_on"],
-            ),
-            PriceMove(normalisation_on=env_config["normalisation_on"]),
-            Volatility(
-                min_value=-1e4 if env_config["normalisation_on"] else 0,  # If feature is a zscore
-                normalisation_on=env_config["normalisation_on"],
-            ),
-            Inventory(max_value=env_config["max_inventory"], normalisation_on=env_config["normalisation_on"]),
-            EpisodeProportion(),
-            MicroPrice(
-                min_value=-1e4 if env_config["normalisation_on"] else 0,  # If feature is a zscore
-                normalisation_on=env_config["normalisation_on"],
-            ),
-            TimeOfDay(),
-        ]
+        features = HistoricalOrderbookEnvironment.get_default_features(
+            step_size=env_config["step_size"],
+            episode_length=env_config["episode_length"],
+            normalisation_on=env_config["normalisation_on"],
+        )
     return HistoricalOrderbookEnvironment(
         ticker=env_config["ticker"],
         episode_length=episode_length,
