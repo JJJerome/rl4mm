@@ -24,6 +24,5 @@ python main.py \
          -t $fixed_ticker \
          -psr $per_step_reward \
          -rfl $rollout_fragment_length \
-         -tb $train_batch_size \
          -min_st $min_start_time \
          -max_et $max_end_time
