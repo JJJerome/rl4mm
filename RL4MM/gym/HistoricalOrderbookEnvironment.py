@@ -403,7 +403,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     @staticmethod
     def get_default_features(step_size: timedelta, episode_length: timedelta, normalisation_on: bool = False):
-        trading_day_length = datetime.combine(date.min, MAX_TRADING_TIME) - datetime.combine(date.min, MIN_TRADING_TIME)
         time_of_day_buckets = 10
         assert step_size <= timedelta(seconds=0.1), "Default features require a minimum step size of 0.1 seconds."
         return [
@@ -443,7 +442,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
                 update_frequency=step_size, episode_length=episode_length, normalisation_on=normalisation_on
             ),
             TimeOfDay(
-                update_frequency=trading_day_length / (10 * time_of_day_buckets),
                 n_buckets=time_of_day_buckets,
                 normalisation_on=normalisation_on,
             ),

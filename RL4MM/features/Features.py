@@ -235,7 +235,7 @@ class Price(Feature):
         normalisation_on: bool = False,
         max_norm_len: int = 100_000,
     ):
-        super().__init__(name, min_value, max_value, update_frequency, 1, normalisation_on, max_norm_len)
+        super().__init__(name, min_value, max_value, update_frequency, 0, normalisation_on, max_norm_len)
 
     def reset(self, state: State, first_usage_time: Optional[datetime] = None):
         super()._reset(state, first_usage_time)
@@ -257,7 +257,7 @@ class Inventory(Feature):
         normalisation_on: bool = False,
         max_norm_len: int = 100_000,
     ):
-        super().__init__(name, min_value, max_value, update_frequency, 1, normalisation_on, max_norm_len)
+        super().__init__(name, min_value, max_value, update_frequency, 0, normalisation_on, max_norm_len)
 
     def reset(self, state: State, first_usage_time: Optional[datetime] = None):
         super()._reset(state, first_usage_time)
@@ -295,12 +295,12 @@ class TimeOfDay(Feature):
     def __init__(
         self,
         name: str = "TimeOfDay",
-        update_frequency: timedelta = timedelta(seconds=0.1),
+        update_frequency: timedelta = timedelta(minutes=1),
         normalisation_on: bool = False,
         max_norm_len: int = 100_000,
         n_buckets: int = 10,
     ):
-        super().__init__(name, 0, n_buckets - 1, update_frequency, 1, normalisation_on, max_norm_len)
+        super().__init__(name, 0, n_buckets - 1, update_frequency, 0, normalisation_on, max_norm_len)
         self.n_buckets = n_buckets
         self.min_time = datetime.combine(date(1, 1, 1), MIN_TRADING_TIME)
         self.max_time = datetime.combine(date(1, 1, 1), MAX_TRADING_TIME)
