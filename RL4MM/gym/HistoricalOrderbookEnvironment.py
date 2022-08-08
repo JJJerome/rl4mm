@@ -405,7 +405,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
     def get_default_features(step_size: timedelta, episode_length: timedelta, normalisation_on: bool = False):
         trading_day_length = datetime.combine(date.min, MAX_TRADING_TIME) - datetime.combine(date.min, MIN_TRADING_TIME)
         time_of_day_buckets = 10
-        assert step_size < timedelta(seconds=0.1), "Default features require a minimum step size of 0.1 seconds."
+        assert step_size <= timedelta(seconds=0.1), "Default features require a minimum step size of 0.1 seconds."
         return [
             Spread(update_frequency=step_size, normalisation_on=normalisation_on),
             PriceMove(
