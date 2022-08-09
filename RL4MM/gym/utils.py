@@ -56,27 +56,30 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
             normalisation_on=env_config["normalisation_on"],
         )
     env = HistoricalOrderbookEnvironment(
-            ticker=env_config["ticker"],
-            episode_length=episode_length,
-            simulator=orderbook_simulator,
-            features=features,
-            # quote_levels=10,
-            max_inventory=env_config["max_inventory"],
-            min_date=get_date_time(env_config["min_date"]),
-            max_date=get_date_time(env_config["max_date"]),
-            step_size=timedelta(seconds=env_config["step_size"]),
-            initial_portfolio=Portfolio(inventory=env_config["initial_inventory"], cash=env_config["initial_cash"]),
-            per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
-            terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
-            market_order_clearing=env_config["market_order_clearing"],
-            market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
-            concentration=env_config["concentration"],
-            min_quote_level=env_config["min_quote_level"],
-            max_quote_level=env_config["max_quote_level"],
-            enter_spread=env_config["enter_spread"],
-            info_calculator=env_config["info_calculator"],
-        )
-    env.spec = EnvSpec(max_episode_steps = episode_length / timedelta(seconds=env_config["step_size"]))
+        ticker=env_config["ticker"],
+        episode_length=episode_length,
+        simulator=orderbook_simulator,
+        features=features,
+        # quote_levels=10,
+        max_inventory=env_config["max_inventory"],
+        min_date=get_date_time(env_config["min_date"]),
+        max_date=get_date_time(env_config["max_date"]),
+        step_size=timedelta(seconds=env_config["step_size"]),
+        initial_portfolio=Portfolio(inventory=env_config["initial_inventory"], cash=env_config["initial_cash"]),
+        per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
+        terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
+        market_order_clearing=env_config["market_order_clearing"],
+        market_order_fraction_of_inventory=env_config["market_order_fraction_of_inventory"],
+        concentration=env_config["concentration"],
+        min_quote_level=env_config["min_quote_level"],
+        max_quote_level=env_config["max_quote_level"],
+        enter_spread=env_config["enter_spread"],
+        info_calculator=env_config["info_calculator"],
+    )
+    env.spec = EnvSpec(
+        id="HistoricalOrderbookEnvironment",
+        max_episode_steps=episode_length / timedelta(seconds=env_config["step_size"]),
+    )
     return env
 
 
