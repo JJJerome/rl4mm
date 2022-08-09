@@ -54,7 +54,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         features: List[Feature] = None,
         max_distribution_param: float = 10.0,  # 1000.0,
         ticker: str = "MSFT",
-        step_size: timedelta = ORDERBOOK_MIN_STEP,
+        step_size: timedelta = timedelta(seconds=0.1),
         episode_length: timedelta = timedelta(minutes=30),
         initial_portfolio: Portfolio = None,
         min_quote_level: int = 0,
