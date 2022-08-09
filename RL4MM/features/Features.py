@@ -264,7 +264,7 @@ class Inventory(Feature):
 class EpisodeProportion(Feature):
     def __init__(
         self,
-        name: str = "TimeRemaining",
+        name: str = "EpisodeProportion",
         update_frequency: timedelta = timedelta(seconds=0.1),
         episode_length: timedelta = timedelta(minutes=60),
         normalisation_on: bool = False,

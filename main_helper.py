@@ -78,7 +78,7 @@ def add_env_args(parser):
     parser.add_argument("-ii", "--initial_inventory", default=0, help="Initial inventory.", type=int)
     parser.add_argument("-el", "--episode_length", default=30, help="Episode length (minutes).", type=int)
     parser.add_argument("-mi", "--max_inventory", default=1000000, help="Maximum (absolute) inventory.", type=int)
-    parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=boolean_string)
+    parser.add_argument("-n", "--normalisation_on", default=False, help="Normalise features.", type=boolean_string)
     parser.add_argument("-c", "--concentration", default=None, help="Concentration param for beta dist.", type=float)
     parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
     parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
