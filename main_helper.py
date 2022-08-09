@@ -71,12 +71,12 @@ def add_ray_args(parser):
 
 def add_env_args(parser):
     # -------------------- Env Args ---------------------------
-    parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=float)
+    parser.add_argument("-sz", "--step_size", default=0.1, help="Step size in seconds.", type=float)
     parser.add_argument("-t", "--ticker", default="IBM", help="Specify stock ticker.", type=str)
     parser.add_argument("-nl", "--n_levels", default=50, help="Number of orderbook levels.", type=int)
     parser.add_argument("-ic", "--initial_cash", default=1e12, help="Initial portfolio.", type=float)
     parser.add_argument("-ii", "--initial_inventory", default=0, help="Initial inventory.", type=int)
-    parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
+    parser.add_argument("-el", "--episode_length", default=30, help="Episode length (minutes).", type=int)
     parser.add_argument("-mi", "--max_inventory", default=1000000, help="Maximum (absolute) inventory.", type=int)
     parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=boolean_string)
     parser.add_argument("-c", "--concentration", default=None, help="Concentration param for beta dist.", type=float)
