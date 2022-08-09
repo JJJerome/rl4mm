@@ -9,6 +9,7 @@ while read -r ticker; do
                -minde 2022-03-11\
                -maxde 2022-03-11\
                --ticker $ticker\
+               -sz 0.1 \
                -el 10\
                -psr PnL\
                -epsr PnL;
