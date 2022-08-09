@@ -204,8 +204,8 @@ class Volatility(Feature):
     def _update(self, state: State) -> None:
         if len(self.prices) < self.lookback_periods:
             self.prices.append(state.price)
-            self.current_value = 0.1
-        elif self.current_value == 0.1:
+            self.current_value = 0.0
+        elif self.current_value == 0.0:
             self.prices.append(state.price)
             pct_returns = np.diff(np.array(self.prices)) / np.array(self.prices)[:1]
             self.current_value = sum(pct_returns**2) / len(pct_returns)

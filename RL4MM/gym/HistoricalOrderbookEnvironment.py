@@ -432,13 +432,13 @@ class HistoricalOrderbookEnvironment(gym.Env):
             Volatility(
                 name="volatility_1_min",
                 update_frequency=timedelta(seconds=0.1),
-                lookback_periods=10 * 60,
+                lookback_periods=int(10 * 60),
                 normalisation_on=normalisation_on,
             ),
             Volatility(
                 name="volatility_5_min",
                 update_frequency=timedelta(seconds=1),
-                lookback_periods=5 * 60,
+                lookback_periods=int(5 * 60),
                 normalisation_on=normalisation_on,
             ),
             Inventory(update_frequency=step_size, normalisation_on=normalisation_on),
