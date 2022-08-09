@@ -4,6 +4,7 @@ from typing import Dict, List
 import gym
 import numpy as np
 import pandas as pd
+from gym.envs.registration import EnvSpec
 from gym.wrappers import TimeLimit
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -75,7 +76,7 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
             enter_spread=env_config["enter_spread"],
             info_calculator=env_config["info_calculator"],
         )
-    env.spec.max_episode_steps = episode_length / timedelta(seconds=env_config["step_size"])
+    env.spec = EnvSpec(max_episode_steps = episode_length / timedelta(seconds=env_config["step_size"]))
     return env
 
 
