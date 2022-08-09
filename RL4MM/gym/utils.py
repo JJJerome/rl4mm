@@ -54,8 +54,7 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
             episode_length=timedelta(minutes=env_config["episode_length"]),
             normalisation_on=env_config["normalisation_on"],
         )
-    return TimeLimit(
-        HistoricalOrderbookEnvironment(
+    env = HistoricalOrderbookEnvironment(
             ticker=env_config["ticker"],
             episode_length=episode_length,
             simulator=orderbook_simulator,
@@ -75,9 +74,9 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
             max_quote_level=env_config["max_quote_level"],
             enter_spread=env_config["enter_spread"],
             info_calculator=env_config["info_calculator"],
-        ),
-        max_episode_steps=episode_length / timedelta(seconds=env_config["step_size"]),
-    )
+        )
+    env.spec.max_episode_steps = episode_length / timedelta(seconds=env_config["step_size"])
+    return env
 
 
 def extract_array_from_infos(infos, key):
