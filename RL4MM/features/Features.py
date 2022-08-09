@@ -111,7 +111,7 @@ class Spread(Feature):
         self,
         name: str = "Spread",
         min_value: float = 0,
-        max_value: float = (50 * 100),  # 100 ticks
+        max_value: float = (50 * 100),  # 50 ticks
         update_frequency: timedelta = timedelta(seconds=1),
         normalisation_on: bool = False,
         max_norm_len: int = 10000,
@@ -187,7 +187,7 @@ class Volatility(Feature):
         self,
         name: str = "Volatility",
         min_value: float = 0,
-        max_value: float = ((100 * 100) ** 2),
+        max_value: float = 1.0,
         update_frequency: timedelta = timedelta(seconds=1),
         lookback_periods: int = 10,
         normalisation_on: bool = False,
@@ -302,9 +302,9 @@ class TimeOfDay(Feature):
         self.bucket_size = (self.max_time - self.min_time) / self.n_buckets
 
     def reset(self, state: State, first_usage_time: Optional[datetime] = None):
-        super()._reset(state, first_usage_time)
         self.min_time = datetime.combine(state.now_is.date(), MIN_TRADING_TIME)
         self.max_time = datetime.combine(state.now_is.date(), MAX_TRADING_TIME)
+        super()._reset(state, first_usage_time)
 
     def normalise(self, value: float) -> float:
         pass
