@@ -50,7 +50,7 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
     elif env_config["features"] == "full_state":
         features = HistoricalOrderbookEnvironment.get_default_features(
             step_size=timedelta(seconds=env_config["step_size"]),
-            episode_length=env_config["episode_length"],
+            episode_length=timedelta(minutes=env_config["episode_length"]),
             normalisation_on=env_config["normalisation_on"],
         )
     return HistoricalOrderbookEnvironment(
