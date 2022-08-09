@@ -271,7 +271,7 @@ class EpisodeProportion(Feature):
         max_norm_len: int = 100_000,
     ):
         super().__init__(name, 0.0, 1.0, update_frequency, 1, normalisation_on, max_norm_len)
-        self.current_value = 0.0
+        self.current_value: float = 0.0
         self.episode_length = episode_length
         self.step_size: float = update_frequency / episode_length
 
