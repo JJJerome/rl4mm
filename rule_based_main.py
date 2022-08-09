@@ -1,7 +1,4 @@
 import argparse
-import os
-import copy
-import numpy as np
 import importlib
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
@@ -72,7 +69,7 @@ if __name__ == "__main__":
     env_config["info_calculator"] = tmp
 
     experiment = args["experiment"]
-    module = importlib.import_module(f"experiments." + args["experiment"])
+    module = importlib.import_module("experiments." + args["experiment"])
     get_env_configs_and_agents = getattr(module, "get_env_configs_and_agents")
     env_configs, agents = get_env_configs_and_agents(env_config)
 

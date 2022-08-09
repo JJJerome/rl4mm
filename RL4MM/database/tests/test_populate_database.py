@@ -92,7 +92,7 @@ class Test_populate_database(TestCase):
             usecols=[0, 1, 2, 3, 4, 5],
             chunksize=batch_size,
         ):
-            messages = reformat_message_data(messages, self.trading_date)
+            messages = reformat_message_data(messages, self.td)
             snapshots = get_book_snapshots(
                 self.book_path, self.book_cols, messages, freq, self.n_levels, self.total_daily_messages
             )
@@ -108,7 +108,7 @@ class Test_populate_database(TestCase):
             names=message_cols,
             usecols=[0, 1, 2, 3, 4, 5],
         )
-        messages = reformat_message_data(messages, self.trading_date)
+        messages = reformat_message_data(messages, self.td)
         book_path, _ = _get_book_and_message_paths(self.path_to_test_data, self.ticker, self.td, self.n_levels)
         book_cols, _ = _get_book_and_message_columns(self.n_levels)
         books = get_book_snapshots(book_path, book_cols, messages, None, self.n_levels, self.total_daily_messages)

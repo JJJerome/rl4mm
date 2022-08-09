@@ -1,11 +1,9 @@
 import abc
-from typing import List, Optional
 
 import numpy as np
 
 from RL4MM.features.Features import State
 from RL4MM.gym.action_interpretation.OrderDistributors import BetaOrderDistributor, OrderDistributor
-from RL4MM.orderbook.models import FillableOrder
 
 TICK_SIZE = 100  # TODO: add auto adjustment for small tick stocks
 
@@ -54,8 +52,8 @@ class SimpleInfoCalculator(InfoCalculator):
 
         if len(action) == 3 or len(action) == 5:
             info_dict["market_order_action"] = (action[[-1]],)
-            if np.abs(internal_state["inventory"]) > action[-1]:
-                self._update_market_order_count_and_volume(internal_state["inventory"])
+            if np.abs(internal_state.portfolio.inventory) > action[-1]:
+                self._update_market_order_count_and_volume(internal_state.portfolio.inventory)
         info_dict["market_order_count"] = self.market_order_count
         info_dict["market_order_total_volume"] = self.market_order_total_volume
         return info_dict
@@ -63,7 +61,7 @@ class SimpleInfoCalculator(InfoCalculator):
     def calculate_agent_spreads_and_midprice_offset(self, internal_state: State, action: np.ndarray):
         orders = self.order_distributor.convert_action(action)
         total_volume = self.order_distributor.active_volume
-        n_levels = self.order_distributor.n_levels
+        n_levels = self.order_distributor.quote_levels
         level_distances = np.array(range(n_levels))
         # calculate regular spread and midprice offset
         best_buy = np.sign(orders["buy"]).argmax()
@@ -85,7 +83,7 @@ class SimpleInfoCalculator(InfoCalculator):
 
     def _update_market_order_count_and_volume(self, inventory: int):
         self.market_order_count += 1
-        self.market_order_total_volume += self.market_order_fraction_of_inventory * abs(inventory)
+        self.market_order_total_volume += np.round(np.abs(inventory) * self.market_order_fraction_of_inventory)
 
     def calculate_aum(self, internal_state: State) -> float:
         return internal_state.portfolio.cash + internal_state.price * internal_state.portfolio.inventory

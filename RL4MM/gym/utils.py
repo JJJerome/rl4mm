@@ -1,6 +1,4 @@
-import sys
 import os
-from contextlib import suppress
 from typing import Dict, List
 
 import gym
@@ -24,17 +22,7 @@ from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironm
 from RL4MM.utils.utils import get_date_time
 from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL, RollingSharpe, get_sharpe
 
-from RL4MM.features.Features import (
-    Feature,
-    Spread,
-    State,
-    PriceMove,
-    Volatility,
-    Inventory,
-    EpisodeProportion,
-    Price,
-    TimeOfDay,
-)
+from RL4MM.features.Features import Inventory
 
 
 def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
@@ -237,8 +225,8 @@ def process_parallel_results(results):
 def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
     assert len(agent_lst) == len(env_lst)
-    l = len(agent_lst)
-    print(f"In get_episode_summary_dict_PARALLEL, running for {l} iterations")
+    al_len = len(agent_lst)
+    print(f"In get_episode_summary_dict_PARALLEL, running for {al_len} iterations")
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_POOL_SIZE) as executor:
 
@@ -247,7 +235,7 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
         futures = [executor.submit(generate_trajectory, *arg) for arg in zip(agent_lst, env_lst)]
         results = []
 
-        with tqdm(total=l) as pbar:
+        with tqdm(total=al_len) as pbar:
             for future in concurrent.futures.as_completed(futures):
                 results.append(future.result())
                 pbar.update(1)
@@ -290,7 +278,10 @@ def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int 
 def get_output_prefix(
     ticker, min_date, max_date, agent_name, episode_length, min_quote_level, max_quote_level, enter_spread
 ):
-    env_str = f"{ticker}_{min_date}_{max_date}_el_{episode_length}_minq_{min_quote_level}_maxq_{max_quote_level}_es_{enter_spread}"
+    env_str = (
+        f"{ticker}_{min_date}_{max_date}_el_{episode_length}_minq_{min_quote_level}_"
+        + f"maxq_{max_quote_level}_es_{enter_spread}"
+    )
     return agent_name + "_" + env_str
 
 

@@ -9,7 +9,7 @@ import sys
 
 # from typing import Optional, List, Literal, Union
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from typing import Optional, List, Literal, Union, cast, Tuple
+    from typing import Optional, List, Literal, Union, cast
 else:
     from typing import Optional, List, Union, cast
     from typing_extensions import Literal

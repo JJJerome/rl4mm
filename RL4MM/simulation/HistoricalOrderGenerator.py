@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
-from typing import List
+from collections import deque
+from datetime import datetime
+from typing import Deque
 import warnings
 
 import pandas as pd
-import swifter
+import swifter  # noqa: F401
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.orderbook.create_order import create_order
@@ -31,7 +32,7 @@ class HistoricalOrderGenerator(OrderGenerator):
         self.use_swifter = use_swifter
         self.exchange_name = "NASDAQ"  # Here, we are# only using LOBSTER data for now
 
-    def generate_orders(self, start_date: datetime, end_date: datetime) -> List[Order]:
+    def generate_orders(self, start_date: datetime, end_date: datetime) -> Deque[Order]:
         if self.save_messages_locally:
             assert (self.start_of_episode < self._get_mid_datetime(start_date, end_date)) and (
                 self._get_mid_datetime(start_date, end_date) < self.end_of_episode
@@ -43,9 +44,9 @@ class HistoricalOrderGenerator(OrderGenerator):
             messages = self.database.get_messages(start_date, end_date, self.ticker)
             messages = self._process_messages_and_add_internal(messages)
         if len(messages) == 0:
-            return list()
+            return deque()
         else:
-            return list(messages.internal_message)
+            return deque(messages.internal_message)
 
     @staticmethod
     def _remove_hidden_executions(messages: pd.DataFrame):

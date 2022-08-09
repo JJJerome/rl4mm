@@ -7,16 +7,11 @@ from datetime import datetime, time, timedelta, date
 import numpy as np
 from scipy import stats
 import abc
-import sys
 
 from RL4MM.orderbook.models import Orderbook, FilledOrders
 
-if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from typing import TypedDict, Optional
-else:
-    from typing_extensions import TypedDict
+from typing import Optional
 
-import pandas as pd
 
 MIN_TRADING_TIME = time(10)  # We ignore the first half an hour of trading
 MAX_TRADING_TIME = time(15, 30)  # We ignore the last half an hour of trading
@@ -60,10 +55,10 @@ class Feature(metaclass=abc.ABCMeta):
         self.lookback_periods = lookback_periods
         self.normalisation_on = normalisation_on
         self.max_norm_len = max_norm_len
-        self.current_value = None
+        self.current_value = 0.0
         self.first_usage_time = datetime.min
         if self.normalisation_on:
-            self.history = deque(maxlen=max_norm_len)
+            self.history: deque = deque(maxlen=max_norm_len)
 
     @property
     def window_size(self) -> timedelta:
@@ -82,13 +77,13 @@ class Feature(metaclass=abc.ABCMeta):
     def reset(self, state: State, first_usage_time: Optional[datetime] = None):
         pass
 
-    def update(self, state: State) -> float:
+    def update(self, state: State) -> None:
         if state.now_is >= self.first_usage_time and self._now_is_multiple_of_update_freq(state.now_is):
             self._update(state)
             value = self.clamp(self.current_value, min_value=self.min_value, max_value=self.max_value)
             if value != self.current_value:
                 print(f"Clamping value of {self.name} from {self.current_value} to {value}.")
-            return self.normalise(value) if self.normalisation_on else value
+                self.current_value = value
 
     @abc.abstractmethod
     def _update(self, state: State) -> None:
@@ -146,7 +141,7 @@ class PriceMove(Feature):
         max_norm_len: int = 100_000,
     ):
         super().__init__(name, min_value, max_value, update_frequency, lookback_periods, normalisation_on, max_norm_len)
-        self.prices = deque(maxlen=self.lookback_periods + 1)
+        self.prices: deque = deque(maxlen=self.lookback_periods + 1)
 
     def reset(self, state: State, first_usage_time: Optional[datetime] = None):
         self.prices = deque(maxlen=self.lookback_periods + 1)
@@ -171,7 +166,7 @@ class PriceRange(Feature):
         max_norm_len: int = 100_000,
     ):
         super().__init__(name, min_value, max_value, update_frequency, lookback_periods, normalisation_on, max_norm_len)
-        self.prices = deque(maxlen=self.lookback_periods + 1)
+        self.prices: deque = deque(maxlen=self.lookback_periods + 1)
 
     def reset(self, state: State, first_usage_time: Optional[datetime] = None):
         self.prices = deque(maxlen=self.lookback_periods + 1)
@@ -199,7 +194,7 @@ class Volatility(Feature):
         max_norm_len: int = 100_000,
     ):
         super().__init__(name, min_value, max_value, update_frequency, lookback_periods, normalisation_on, max_norm_len)
-        self.prices = deque(maxlen=self.lookback_periods + 1)
+        self.prices: deque = deque(maxlen=self.lookback_periods + 1)
 
     def reset(self, state: State, first_usage_time: Optional[datetime] = None):
         super()._reset(state, first_usage_time)
@@ -212,7 +207,7 @@ class Volatility(Feature):
             self.current_value = 0.1
         elif self.current_value == 0.1:
             self.prices.append(state.price)
-            pct_returns = np.diff(self.prices) / np.array(self.prices)[:1]
+            pct_returns = np.diff(np.array(self.prices)) / np.array(self.prices)[:1]
             self.current_value = sum(pct_returns**2) / len(pct_returns)
         else:
             assert len(self.prices) == self.lookback_periods + 1
@@ -244,7 +239,7 @@ class Price(Feature):
         self.current_value = state.price
 
 
-################################################ Agent features ########################################################
+#                                                Agent features                                                        #
 
 
 class Inventory(Feature):

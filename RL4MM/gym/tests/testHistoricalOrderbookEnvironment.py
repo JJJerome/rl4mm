@@ -1,5 +1,6 @@
 from datetime import timedelta, datetime
 from pathlib import Path
+from typing import List, Union
 from unittest import TestCase
 
 import numpy as np
@@ -9,6 +10,7 @@ import RL4MM
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.populate_database import populate_database
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
+from RL4MM.orderbook.models import Cancellation, LimitOrder
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
@@ -60,13 +62,13 @@ class testHistoricalOrderbookEnvironment(TestCase):
 
     def test_convert_action_to_orders(self):
         self.env.reset()
-        internal_orders = self.env.convert_action_to_orders(action=ACTION_1)
+        internal_orders: List[Union[Cancellation, LimitOrder]]
+        internal_orders = self.env.convert_action_to_orders(action=ACTION_1)  # type: ignore
         total_volume = sum(order.volume for order in internal_orders)
         self.assertEqual(200, total_volume)
         for order in internal_orders:  #
             self.assertEqual(order.volume, 10)  # BetaBinom(1,1) corresponds to Uniform
-        internal_orders = self.env.convert_action_to_orders(action=ACTION_2)
-        total_volume = sum(order.volume for order in internal_orders)
+        internal_orders = self.env.convert_action_to_orders(action=ACTION_2)  # type: ignore
         expected_order_sizes = [18, 16, 15, 13, 11, 9, 7, 5, 4, 2] * 2  # Placing more orders towards the best price
         for i, order in enumerate(internal_orders):
             self.assertEqual(expected_order_sizes[i], order.volume)

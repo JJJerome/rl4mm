@@ -1,19 +1,10 @@
 from datetime import datetime
 from unittest import TestCase
 
-import copy
-import numpy as np
-import pandas as pd
 from RL4MM.features.Features import (
-    Spread,
-    PriceMove,
-    PriceRange,
-    Volatility,
-    Price,
     State,
     Portfolio,
 )
-from RL4MM.orderbook.helpers import get_book_columns
 from RL4MM.orderbook.tests.mock_orders import get_mock_orderbook
 from RL4MM.rewards.RewardFunctions import RollingSharpe
 

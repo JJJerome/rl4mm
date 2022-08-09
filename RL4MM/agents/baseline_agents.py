@@ -69,7 +69,8 @@ class TeradactylAgent(Agent):
 
         else:
 
-            clamp_to_unit_interval = lambda x: max(min(x, 1), -1)
+            def clamp_to_unit_interval(x: float):
+                return max(min(x, 1), -1)
 
             omega_bid = 0.5 * (1 + clamp_to_unit_interval(inventory / self.denom))
             omega_ask = 0.5 * (1 - clamp_to_unit_interval(inventory / self.denom))
@@ -166,7 +167,10 @@ class ContinuousTeradactyl(Agent):
         return tmp
 
     def get_name(self):
-        return f"ContinuousTeradactyl_def_omega_{self.default_omega}_def_kappa_{self.default_kappa}_max_inv_{self.max_inventory}_max_kappa_{self.max_kappa}_exponent_{self.exponent}"
+        return (
+            f"ContinuousTeradactyl_def_omega_{self.default_omega}_def_kappa_{self.default_kappa}_"
+            + f"max_inv_{self.max_inventory}_max_kappa_{self.max_kappa}_exponent_{self.exponent}"
+        )
 
     @staticmethod
     def calculate_alpha(omega, kappa):

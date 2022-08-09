@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import warnings
 from copy import deepcopy, copy
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 import sys
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.gym.order_tracking.InfoCalculators import InfoCalculator
-from RL4MM.utils.utils import convert_timedelta_to_freq, get_next_trading_dt
+from RL4MM.utils.utils import get_next_trading_dt
 
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from typing import List, Literal, Union, Optional
+    from typing import List, Literal, Optional
 else:
     from typing import List
     from typing_extensions import Literal
@@ -22,7 +22,6 @@ import pandas as pd
 from gym.spaces import Box
 from gym.utils import seeding
 
-from RL4MM.extras.orderbook_comparison import convert_to_lobster_format
 from RL4MM.features.Features import (
     Feature,
     Spread,
@@ -33,12 +32,10 @@ from RL4MM.features.Features import (
     EpisodeProportion,
     TimeOfDay,
     Portfolio,
-    MAX_TRADING_TIME,
-    MIN_TRADING_TIME,
 )
 from RL4MM.gym.action_interpretation.OrderDistributors import OrderDistributor, BetaOrderDistributor
 from RL4MM.orderbook.create_order import create_order
-from RL4MM.orderbook.models import Order, Orderbook, OrderDict, Cancellation, LimitOrder, FilledOrders
+from RL4MM.orderbook.models import Order, Orderbook, OrderDict, Cancellation, FilledOrders, MarketOrder
 from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
@@ -82,8 +79,9 @@ class HistoricalOrderbookEnvironment(gym.Env):
         super(HistoricalOrderbookEnvironment, self).__init__()
 
         # Actions are the parameters governing the distribution over levels in the orderbook
-        if concentration is not None or (order_distributor is not None and order_distributor.c is not None):
-            assert concentration >= max_distribution_param, "concentration is less than max_distribution_param"
+        if concentration is not None:
+            assert order_distributor is None, "When specifying concentration, no order distributor should be passed."
+            assert concentration >= max_distribution_param, "Concentration is less than max_distribution_param."
             self.action_space = Box(low=0.0, high=concentration, shape=(2,), dtype=np.float64)  # alpha < kappa for beta
         else:
             self.action_space = Box(low=0.0, high=max_distribution_param, shape=(4,), dtype=np.float64)
@@ -101,7 +99,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.episode_length = episode_length
         self.terminal_time = datetime.max
         self.initial_portfolio = initial_portfolio or Portfolio(inventory=0, cash=1000)
-        self.state: State = None
         self.min_date = min_date
         self.max_date = max_date
         self.min_start_timedelta = min_start_timedelta
@@ -142,6 +139,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
             episode_length=episode_length,
             warm_up=self.max_feature_window_size,
         )
+        self.state: State = self._get_default_state()
 
     def reset(self):
         episode_start = self._get_random_start_time()
@@ -163,7 +161,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         done = False
         internal_orders = self.convert_action_to_orders(action=action)
         current_state = deepcopy(self.state)
-        filled_orders = self._forward(internal_orders)
+        self._forward(internal_orders)
         self._update_features()
         next_state = self.state
         reward = self.per_step_reward_function.calculate(current_state, next_state)
@@ -202,14 +200,14 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.state.price = self.pricer(self.central_orderbook)
         self.state.now_is += self.step_size
 
-    def convert_action_to_orders(self, action: np.ndarray) -> List[Union[Cancellation, LimitOrder]]:
-        desired_volumes = self.order_distributor.convert_action(action)
-        if self.market_order_clearing and np.abs(self.state["inventory"]) > action[-1]:  # cancel all orders
-            desired_volumes = {d: np.zeros(self.max_quote_level - self.min_quote_level) for d in ["buy", "sell"]}  # type: ignore
+    def convert_action_to_orders(self, action: np.ndarray) -> List[Order]:
+        desired = self.order_distributor.convert_action(action)
+        if self.market_order_clearing and np.abs(self.state.portfolio.inventory) > action[-1]:  # cancel all orders
+            desired = {d: np.zeros(self.max_quote_level - self.min_quote_level) for d in ["buy", "sell"]}  # type:ignore
         current_volumes = self._get_current_internal_order_volumes()
-        difference_in_volumes = {d: desired_volumes[d] - current_volumes[d] for d in ["buy", "sell"]}  # type: ignore
+        difference_in_volumes = {d: desired[d] - current_volumes[d] for d in ["buy", "sell"]}  # type: ignore
         orders = self._volume_diff_to_orders(difference_in_volumes)
-        if self.market_order_clearing and np.abs(self.state["inventory"]) > action[-1]:
+        if self.market_order_clearing and np.abs(self.state.portfolio.inventory) > action[-1]:
             # place a market order to reduce inventory to zero
             orders += self._get_inventory_clearing_market_order()
         return orders
@@ -223,7 +221,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         for feature in self.features:
             feature.update(self.state)
 
-    def _volume_diff_to_orders(self, volume_diff: dict[str, np.ndarray]) -> List[Union[Cancellation, LimitOrder]]:
+    def _volume_diff_to_orders(self, volume_diff: dict[str, np.ndarray]) -> List[Order]:
         best_prices = self._get_best_prices()
         orders = list()
         for side in ["buy", "sell"]:
@@ -256,11 +254,11 @@ class HistoricalOrderbookEnvironment(gym.Env):
                     orders.append(cancellation)
         return orders
 
-    def _get_inventory_clearing_market_order(self):
-        inventory = self.state["inventory"]
+    def _get_inventory_clearing_market_order(self) -> List[MarketOrder]:
+        inventory = self.state.portfolio.inventory
         order_direction = "buy" if inventory < 0 else "sell"
         order_dict = self._get_default_order_dict(order_direction)  # type:ignore
-        order_dict["volume"] = np.abs(inventory) * self.market_order_fraction_of_inventory
+        order_dict["volume"] = np.round(np.abs(inventory) * self.market_order_fraction_of_inventory)
         market_order = create_order("market", order_dict)
         return [market_order]
 
@@ -287,14 +285,11 @@ class HistoricalOrderbookEnvironment(gym.Env):
                 self.state.portfolio.inventory += order.volume
                 self.state.portfolio.cash -= order.volume * order.price
 
-    def _update_book_snapshots_STALE(self, orderbook: Orderbook) -> None:
-        current_book_snapshots = self.state["book_snapshots"][1:]
-        new_book_dict = convert_to_lobster_format(orderbook, LEVELS_FOR_FEATURE_CALCULATION)
-        new_book_snapshot = pd.DataFrame.from_dict({self.state.now_is: new_book_dict}).T
-        self.state["book_snapshots"] = pd.concat([current_book_snapshots, new_book_snapshot])
-
-    def _update_time_remaining(self):
-        self.state["proportion_of_episode_remaining"] -= 1 / self.n_steps
+    # def _update_book_snapshots_STALE(self, orderbook: Orderbook) -> None:
+    #     current_book_snapshots = self.state["book_snapshots"][1:]
+    #     new_book_dict = convert_to_lobster_format(orderbook, LEVELS_FOR_FEATURE_CALCULATION)
+    #     new_book_snapshot = pd.DataFrame.from_dict({self.state.now_is: new_book_dict}).T
+    #     self.state["book_snapshots"] = pd.concat([current_book_snapshots, new_book_snapshot])
 
     def _get_current_internal_order_volumes(self) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         best_prices = self._get_best_prices()
@@ -326,7 +321,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         )
         return {"buy": buy_prices, "sell": sell_prices}
 
-    def _get_volumes_at_prices(self, direction: Literal["buy", "sell"], price_levels: np.ndarray, orderbook: Orderbook):
+    def _get_volumes_at_prices(self, direction: str, price_levels: np.ndarray, orderbook: Orderbook):
         volumes = list()
         for price in price_levels:
             try:
@@ -353,22 +348,22 @@ class HistoricalOrderbookEnvironment(gym.Env):
         trading_date = get_next_trading_dt(pd.to_datetime(np.random.choice(trading_dates)))
         return datetime.combine(trading_date.date(), datetime.min.time())
 
-    def _reset_internal_state_slow_STALE(self):
-        snapshot_start = self.state.now_is - self.step_size * self.max_feature_window_size
-        book_snapshots = self.simulator.database.get_book_snapshot_series(
-            start_date=snapshot_start,
-            end_date=self.state.now_is,
-            ticker=self.ticker,
-            freq=convert_timedelta_to_freq(self.step_size),
-            n_levels=LEVELS_FOR_FEATURE_CALCULATION,
-        )
-        self.state = State(
-            inventory=self.initial_portfolio["inventory"],
-            cash=self.initial_portfolio["cash"],
-            asset_price=self.price.calculate_from_current_book(book_snapshots.iloc[-1]),
-            book_snapshots=book_snapshots,
-            proportion_of_episode_remaining=1.0,
-        )
+    # def _reset_internal_state_slow_STALE(self):
+    #     snapshot_start = self.state.now_is - self.step_size * self.max_feature_window_size
+    #     book_snapshots = self.simulator.database.get_book_snapshot_series(
+    #         start_date=snapshot_start,
+    #         end_date=self.state.now_is,
+    #         ticker=self.ticker,
+    #         freq=convert_timedelta_to_freq(self.step_size),
+    #         n_levels=LEVELS_FOR_FEATURE_CALCULATION,
+    #     )
+    #     self.state = State(
+    #         inventory=self.initial_portfolio["inventory"],
+    #         cash=self.initial_portfolio["cash"],
+    #         asset_price=self.price.calculate_from_current_book(book_snapshots.iloc[-1]),
+    #         book_snapshots=book_snapshots,
+    #         proportion_of_episode_remaining=1.0,
+    #     )
 
     def _check_params(self):
         assert self.min_start_timedelta + self.episode_length <= self.max_end_timedelta, "Episode is too long"
@@ -389,7 +384,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         return self.simulator.exchange.internal_orderbook
 
     def mark_to_market_value(self):
-        return self.state["inventory"] * self.state["asset_price"] + self.state["cash"]
+        return self.state.portfolio.inventory * self.state.price + self.state.portfolio.cash
 
     def _check_market_order_clearing_well_defined(self):
         if (self.market_order_clearing and self.market_order_fraction_of_inventory <= 0.0) or (
@@ -400,6 +395,11 @@ class HistoricalOrderbookEnvironment(gym.Env):
                 f"market_order_fraction_of_inventory {self.market_order_fraction_of_inventory} "
                 "must be positive if and only if market order clearing (self.market_order_clearing} is on"
             )
+
+    def _get_default_state(self):
+        return State(
+            FilledOrders(), self.simulator.exchange.get_empty_orderbook(), 0.0, self.initial_portfolio, datetime.min
+        )
 
     @staticmethod
     def get_default_features(step_size: timedelta, episode_length: timedelta, normalisation_on: bool = False):

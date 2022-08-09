@@ -1,9 +1,7 @@
 # from ray.tune.schedulers import PopulationBasedTraining
 
-from RL4MM.utils.utils import boolean_string
 from ray.tune.registry import register_env
 from RL4MM.gym.utils import env_creator
-from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
 
 from ray import tune
 import argparse

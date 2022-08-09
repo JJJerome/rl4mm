@@ -5,7 +5,6 @@ import copy
 from RL4MM.utils.utils import boolean_string
 from RL4MM.utils.utils import get_timedelta_from_clock_time
 from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
-from RL4MM.gym.order_tracking.InfoCalculators import SimpleInfoCalculator
 
 from ray import tune
 
@@ -150,7 +149,7 @@ def add_env_args(parser):
         "--terminal_reward_function",
         default="PnL",
         choices=r_choices,
-        help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL), RollingSharpe (RS)",
+        help="Terminal reward function: symm dampened (SD), asymm d.. (AD), PnL (PnL), RollingSharpe (RS)",
         type=str,
     )
     parser.add_argument(
@@ -287,7 +286,7 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             "rollout_fragment_length": tune.choice([900, 1800, 3600]),  # args["rollout_fragment_length"],
             # "recreate_failed_workers": False, # Get an error for some reason when this is enabled.
             # "disable_env_checking": True,
-            #'seed':tune.choice(range(1000)),
+            # 'seed':tune.choice(range(1000)),
         }
 
     elif name == "tune_rule_based_agents":

@@ -23,7 +23,7 @@ def visualise_orderbook(orderbook: Orderbook, n_levels: int = 10, tick_size: flo
 def convert_orderbook_to_dataframe(orderbook: Orderbook, n_levels: int = 10):
     order_dict = {}
     for direction in ["buy", "sell"]:
-        prices = reversed(getattr(orderbook, direction)) if direction == "buy" else getattr(orderbook, direction)  # type: ignore
+        prices = reversed(getattr(orderbook, direction)) if direction == "buy" else getattr(orderbook, direction)
         for level, price in enumerate(prices):
             if level >= n_levels:
                 break
@@ -36,7 +36,7 @@ def convert_orderbook_to_dataframe(orderbook: Orderbook, n_levels: int = 10):
 def convert_orderbook_to_series(orderbook: Orderbook, n_levels: int = 10):
     order_dict = {}
     for direction in ["buy", "sell"]:
-        prices = reversed(getattr(orderbook, direction)) if direction == "buy" else getattr(orderbook, direction)  # type: ignore
+        prices = reversed(getattr(orderbook, direction)) if direction == "buy" else getattr(orderbook, direction)
         for level, price in enumerate(prices):
             if level >= n_levels:
                 break

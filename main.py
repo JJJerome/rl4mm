@@ -2,12 +2,10 @@ import argparse
 
 import ray
 from ray import tune
-from ray.tune.schedulers import PopulationBasedTraining
 from ray.tune.schedulers import ASHAScheduler
 from ray.tune.registry import register_env
-import random
 
-from RL4MM.utils.utils import save_best_checkpoint_path, get_timedelta_from_clock_time
+from RL4MM.utils.utils import save_best_checkpoint_path
 from RL4MM.gym.utils import env_creator
 
 from main_helper import add_env_args, add_ray_args, get_env_configs, get_ray_config, get_tensorboard_logdir

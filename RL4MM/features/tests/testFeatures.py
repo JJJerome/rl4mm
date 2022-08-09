@@ -4,7 +4,6 @@ from datetime import datetime
 from unittest import TestCase
 
 import numpy as np
-import pandas as pd
 from RL4MM.features.Features import (
     Spread,
     PriceMove,
@@ -15,13 +14,7 @@ from RL4MM.features.Features import (
     Portfolio,
     Inventory,
 )
-from RL4MM.orderbook.models import Orderbook
-from RL4MM.orderbook.helpers import get_book_columns
 from RL4MM.orderbook.tests.mock_orders import (
-    CANCELLATION_1,
-    CANCELLATION_2,
-    LIMIT_1,
-    LIMIT_2,
     get_mock_orderbook,
     submission_4,
 )
@@ -63,8 +56,8 @@ class TestBookFeatures(TestCase):
     def test_price_move_calculate(self):
         price_move = PriceMove(lookback_periods=1)
         price_move_5 = PriceMove(lookback_periods=5)
-        price_move.reset(state=MOCK_STATE, first_usage_time=first_usage_time)
-        price_move_5.reset(state=MOCK_STATE, first_usage_time=first_usage_time)
+        price_move.reset(state=MOCK_STATE)
+        price_move_5.reset(state=MOCK_STATE)
         calculated_price_moves = []
         calculated_price_moves_5 = []
         for price in MIDPRICES[1:]:
@@ -79,7 +72,7 @@ class TestBookFeatures(TestCase):
 
     def test_price_range(self):
         price_range = PriceRange(lookback_periods=3)
-        price_range.reset(state=MOCK_STATE, first_usage_time=first_usage_time)
+        price_range.reset(state=MOCK_STATE)
         calculated_price_ranges = []
         for price in MIDPRICES[1:]:
             state = deepcopy(MOCK_STATE)
@@ -90,7 +83,7 @@ class TestBookFeatures(TestCase):
 
     def test_volatility(self):
         volatility = Volatility(lookback_periods=5)
-        volatility.reset(MOCK_STATE, first_usage_time)
+        volatility.reset(MOCK_STATE)
         calculated_volatilities = []
         for price in MIDPRICES[1:]:
             state = deepcopy(MOCK_STATE)
@@ -104,12 +97,12 @@ class TestBookFeatures(TestCase):
 
     def test_price(self):
         price = Price()
-        price.reset(state=MOCK_STATE, first_usage_time=first_usage_time)
+        price.reset(state=MOCK_STATE)
         actual = price.update(state=MOCK_STATE)
         self.assertEqual(MOCK_STATE.price, actual)
 
     def test_inventory(self):
         inventory = Inventory()
-        inventory.reset(state=MOCK_STATE, first_usage_time=first_usage_time)
+        inventory.reset(state=MOCK_STATE)
         actual = inventory.update(state=MOCK_STATE)
         self.assertEqual(MOCK_STATE.portfolio.inventory, actual)
