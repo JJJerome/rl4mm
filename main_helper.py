@@ -37,7 +37,7 @@ def add_ray_args(parser):
     )
 
     # -------------------- Hyperparameters
-    parser.add_argument("-la", "--lambda", default=1.0, help="Lambda for PBT.", type=float)
+    parser.add_argument("-la", "--lambda", default=1.0, help="Lambda for GAE.", type=float)
     parser.add_argument("-lr", "--learning_rate", default=0.0001, help="Learning rate.", type=float)
     parser.add_argument("-df", "--discount_factor", default=0.99, help="Discount factor gamma of the MDP.", type=float)
     # Currently using tune to determine the following:
@@ -77,7 +77,7 @@ def add_env_args(parser):
     parser.add_argument("-ic", "--initial_cash", default=1e12, help="Initial portfolio.", type=float)
     parser.add_argument("-ii", "--initial_inventory", default=0, help="Initial inventory.", type=int)
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
-    parser.add_argument("-mi", "--max_inventory", default=10000, help="Maximum (absolute) inventory.", type=int)
+    parser.add_argument("-mi", "--max_inventory", default=1000000, help="Maximum (absolute) inventory.", type=int)
     parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=boolean_string)
     parser.add_argument("-c", "--concentration", default=None, help="Concentration param for beta dist.", type=float)
     parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
@@ -279,10 +279,10 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             "output": args["output"],
             "output_max_file_size": args["output_max_file_size"],
             # --------------- Tuning: ---------------------
-            "num_sgd_iter": tune.choice([10, 20, 30]),
-            "sgd_minibatch_size": tune.choice([2**7, 2**9, 2**11]),
+            "num_sgd_iter": tune.choice([10, 20, 30, 100, 500]),
+            "sgd_minibatch_size": tune.choice([2**3,2**5,2**7, 2**9, 2**11]),
             "train_batch_size": tune.choice([2**11, 2**12, 2**13, 2**14, 2**15]),
-            "rollout_fragment_length": tune.choice([900, 1800, 3600]),  # args["rollout_fragment_length"],
+            "rollout_fragment_length": tune.choice([2**8, 2**9, 2**10, 2**12, 2**13, 2**14]),  # args["rollout_fragment_length"],
             # "recreate_failed_workers": False, # Get an error for some reason when this is enabled.
             # "disable_env_checking": True,
             # 'seed':tune.choice(range(1000)),

@@ -83,7 +83,7 @@ class Feature(metaclass=abc.ABCMeta):
             value = self.clamp(self.current_value, min_value=self.min_value, max_value=self.max_value)
             if value != self.current_value:
                 print(f"Clamping value of {self.name} from {self.current_value} to {value}.")
-                self.current_value = value
+            self.current_value = self.normalise(value) if self.normalisation_on else value
 
     @abc.abstractmethod
     def _update(self, state: State) -> None:
