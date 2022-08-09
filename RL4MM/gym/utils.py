@@ -44,9 +44,6 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
 
     episode_length = timedelta(minutes=env_config["episode_length"])
 
-    orderbook_simulator = OrderbookSimulator(
-        ticker=env_config["ticker"], n_levels=env_config["n_levels"], episode_length=episode_length, database=database
-    )
     if env_config["features"] == "agent_state":
         features = [Inventory(max_value=env_config["max_inventory"], normalisation_on=env_config["normalisation_on"])]
     elif env_config["features"] == "full_state":
@@ -55,6 +52,14 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
             episode_length=timedelta(minutes=env_config["episode_length"]),
             normalisation_on=env_config["normalisation_on"],
         )
+    max_feature_window_size = max([feature.window_size for feature in features])
+    orderbook_simulator = OrderbookSimulator(
+        ticker=env_config["ticker"],
+        n_levels=env_config["n_levels"],
+        episode_length=episode_length,
+        database=database,
+        warm_up=max_feature_window_size,
+    )
     env = HistoricalOrderbookEnvironment(
         ticker=env_config["ticker"],
         episode_length=episode_length,
