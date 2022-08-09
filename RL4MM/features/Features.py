@@ -279,9 +279,6 @@ class EpisodeProportion(Feature):
         super()._reset(state, first_usage_time)
         self.current_value = 0.0
 
-    def normalise(self, value: float) -> float:
-        pass
-
     def _update(self, state: State) -> None:
         self.current_value += self.step_size
 
@@ -305,9 +302,6 @@ class TimeOfDay(Feature):
         self.min_time = datetime.combine(state.now_is.date(), MIN_TRADING_TIME)
         self.max_time = datetime.combine(state.now_is.date(), MAX_TRADING_TIME)
         super()._reset(state, first_usage_time)
-
-    def normalise(self, value: float) -> float:
-        pass
 
     def _update(self, state: State) -> None:
         self.current_value = max((state.now_is - self.min_time) // self.bucket_size, 0)  # to avoid issues with warm-up
