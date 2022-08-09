@@ -74,10 +74,8 @@ def add_env_args(parser):
     parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=float)
     parser.add_argument("-t", "--ticker", default="IBM", help="Specify stock ticker.", type=str)
     parser.add_argument("-nl", "--n_levels", default=50, help="Number of orderbook levels.", type=int)
-
     parser.add_argument("-ic", "--initial_cash", default=1e12, help="Initial portfolio.", type=float)
     parser.add_argument("-ii", "--initial_inventory", default=0, help="Initial inventory.", type=int)
-
     parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
     parser.add_argument("-mi", "--max_inventory", default=10000, help="Maximum (absolute) inventory.", type=int)
     parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=boolean_string)
@@ -222,6 +220,7 @@ def get_env_configs(args):
         "max_inventory": args["max_inventory"],
         "normalisation_on": args["normalisation_on"],
         "initial_cash": args["initial_cash"],
+        "initial_inventory": args["initial_inventory"],
         "per_step_reward_function": args["per_step_reward_function"],
         "terminal_reward_function": args["terminal_reward_function"],
         "market_order_clearing": args["market_order_clearing"],
