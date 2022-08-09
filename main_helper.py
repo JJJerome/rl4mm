@@ -345,6 +345,7 @@ def get_tensorboard_logdir(args, name):
 
     if not os.path.exists(tensorboard_logdir):
         os.makedirs(tensorboard_logdir)
+    return tensorboard_logdir
 
 
 ###############################################################################
