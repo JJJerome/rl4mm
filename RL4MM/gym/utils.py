@@ -22,7 +22,7 @@ from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironm
 from RL4MM.utils.utils import get_date_time
 from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL, RollingSharpe, get_sharpe
 
-from RL4MM.features.Features import Inventory
+from RL4MM.features.Features import Inventory, Portfolio
 
 
 def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
@@ -63,7 +63,7 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
         min_date=get_date_time(env_config["min_date"]),
         max_date=get_date_time(env_config["max_date"]),
         step_size=timedelta(seconds=env_config["step_size"]),
-        initial_portfolio=env_config["initial_portfolio"],
+        initial_portfolio=Portfolio(inventory=env_config["initial_inventory"], cash=env_config["initial_cash"]),
         per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
         terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
         market_order_clearing=env_config["market_order_clearing"],
