@@ -205,7 +205,7 @@ class Volatility(Feature):
         if len(self.prices) < self.lookback_periods:
             self.prices.append(state.price)
             self.current_value = 0.0
-        elif self.current_value == 0.0:
+        elif len(self.prices) == self.lookback_periods:
             self.prices.append(state.price)
             pct_returns = np.diff(np.array(self.prices)) / np.array(self.prices)[:1]
             self.current_value = sum(pct_returns**2) / len(pct_returns)
