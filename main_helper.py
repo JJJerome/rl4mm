@@ -18,7 +18,7 @@ from RL4MM.agents.baseline_agent_wrappers import (
 def add_ray_args(parser):
 
     # -------------------- Workers, GPUs, CPUs ----------------------
-    parser.add_argument("-g", "--num_gpus", default=0.2, help="Number of GPUs to use during training.", type=int)
+    parser.add_argument("-g", "--num_gpus", default=1, help="Number of GPUs to use during training.", type=int)
     parser.add_argument("-nw", "--num_workers", default=5, help="Number of workers to use during training.", type=int)
     parser.add_argument("-nepw", "--num_envs_per_worker", default=1, help="Number of envs per worker.", type=int)
     parser.add_argument(
