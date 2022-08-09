@@ -77,7 +77,7 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
         info_calculator=env_config["info_calculator"],
     )
     env.spec = EnvSpec(
-        id="HistoricalOrderbookEnvironment",
+        id="HistoricalOrderbookEnvironment-v0",
         max_episode_steps=episode_length / timedelta(seconds=env_config["step_size"]),
     )
     return env
