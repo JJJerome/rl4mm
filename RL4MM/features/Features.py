@@ -273,7 +273,7 @@ class EpisodeProportion(Feature):
         super().__init__(name, 0.0, 1.0, update_frequency, 1, normalisation_on, max_norm_len)
         self.current_value = 0.0
         self.episode_length = episode_length
-        self.step_size = update_frequency / episode_length
+        self.step_size: float = update_frequency / episode_length
 
     def reset(self, state: State, first_usage_time: Optional[datetime] = None):
         super()._reset(state, first_usage_time)
