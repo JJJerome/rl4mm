@@ -398,7 +398,11 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def _get_default_state(self):
         return State(
-            FilledOrders(), self.simulator.exchange.get_empty_orderbook(), 0.0, self.initial_portfolio, datetime.min
+            filled_orders=FilledOrders(),
+            orderbook=self.simulator.exchange.get_empty_orderbook(),
+            price=0.0,
+            portfolio=self.initial_portfolio,
+            now_is=datetime.min,
         )
 
     @staticmethod
