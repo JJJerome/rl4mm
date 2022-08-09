@@ -310,4 +310,4 @@ class TimeOfDay(Feature):
         pass
 
     def _update(self, state: State) -> None:
-        self.current_value = (state.now_is - self.min_time) // self.bucket_size
+        self.current_value = max((state.now_is - self.min_time) // self.bucket_size, 0)  # to avoid issues with warm-up
