@@ -20,6 +20,7 @@ def add_ray_args(parser):
     # -------------------- Workers, GPUs, CPUs ----------------------
     parser.add_argument("-g", "--num_gpus", default=0.2, help="Number of GPUs to use during training.", type=int)
     parser.add_argument("-nw", "--num_workers", default=5, help="Number of workers to use during training.", type=int)
+    parser.add_argument("-nepw", "--num_envs_per_worker", default=1, help="Number of envs per worker.", type=int)
     parser.add_argument(
         "-nwe", "--num_workers_eval", default=1, help="Number of workers used during evaluation.", type=int
     )
@@ -258,6 +259,7 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             "num_gpus": args["num_gpus"],
             "framework": args["framework"],
             "num_workers": args["num_workers"],
+            "num_envs_per_worker": args["num_envs_per_worker"],
             # --- Env ---
             "env_config": env_config,
             "evaluation_duration": "auto",
