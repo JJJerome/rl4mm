@@ -30,11 +30,9 @@ def main(args):
     # import ray.rllib.agents.ppo as ppo
     # trainer = ppo.PPOTrainer(config=config)
     # print(trainer.train())
-
     callbacks = (
-        [WandbLoggerCallback(api_key_file=ray_config["wandb_api_key_dir"], project="RL4MM")] if args["wandb"] else None
+        [WandbLoggerCallback(api_key_file=args["wandb_api_key_dir"], project="RL4MM")] if args["wandb"] else None
     )
-
     analysis = tune.run(
         "PPO",
         num_samples=8,
