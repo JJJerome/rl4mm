@@ -301,7 +301,6 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
         if args["wandb"]:
             ray_config["wandb"] = {"project": "RL4MM", "api_key_file": args["wandb_api_key_dir"], "log_config": True}
 
-
     elif name == "tune_rule_based_agents":
 
         ray_config = {

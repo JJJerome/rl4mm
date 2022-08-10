@@ -2,8 +2,7 @@ import argparse
 
 import ray
 from ray import tune
-from ray.tune.logger import DEFAULT_LOGGERS
-from ray.tune.integration.wandb import WandbLogger
+from ray.tune.integration.wandb import WandbLoggerCallback
 from ray.tune.schedulers import ASHAScheduler
 from ray.tune.registry import register_env
 
@@ -32,9 +31,11 @@ def main(args):
     # trainer = ppo.PPOTrainer(config=config)
     # print(trainer.train())
 
-    loggers = DEFAULT_LOGGERS
-    if "wandb" in ray_config.keys():
-        loggers += (WandbLogger,)
+    callbacks = (
+        [WandbLoggerCallback(api_key_file=ray_config["wandb_api_key_dir"], project="RL4MM")]
+        if ray_config["wandb"] is not None
+        else None
+    )
 
     analysis = tune.run(
         "PPO",
@@ -44,7 +45,7 @@ def main(args):
         local_dir=tensorboard_logdir,
         stop={"training_iteration": args["iterations"]},
         scheduler=ASHAScheduler(metric="episode_reward_mean", mode="max"),
-        loggers=loggers
+        callbacks=callbacks,
     )
 
     best_checkpoint = analysis.get_trial_checkpoints_paths(
