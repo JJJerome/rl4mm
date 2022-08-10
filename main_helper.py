@@ -36,7 +36,14 @@ def add_ray_args(parser):
         help="Directory to save tensorboard logs to.",
         type=str,
     )
-
+    parser.add_argument("-wb", "--wandb", default=False, help="Track on Weights and biases.", type=boolean_string)
+    parser.add_argument(
+        "-wbd",
+        "--wandb_api_key_dir",
+        default="/home/ray/.netrc",
+        help="Path to weights and bias api key",
+        type=str,
+    )
     # -------------------- Hyperparameters
     parser.add_argument("-la", "--lambda", default=1.0, help="Lambda for GAE.", type=float)
     parser.add_argument("-lr", "--learning_rate", default=0.0001, help="Learning rate.", type=float)
@@ -291,6 +298,9 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             # "disable_env_checking": True,
             # 'seed':tune.choice(range(1000)),
         }
+        if args["wandb"]:
+            ray_config["wandb"] = {"project": "RL4MM", "api_key_file": args["wandb_api_key_dir"], "log_config": True}
+
 
     elif name == "tune_rule_based_agents":
 
