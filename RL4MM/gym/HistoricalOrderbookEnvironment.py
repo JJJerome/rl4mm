@@ -108,7 +108,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
         )
         self.market_order_clearing = market_order_clearing
         self.market_order_fraction_of_inventory = market_order_fraction_of_inventory
-        self._check_market_order_clearing_well_defined()
         self.per_step_reward_function = per_step_reward_function
         self.terminal_reward_function = terminal_reward_function
         self.enter_spread = enter_spread
@@ -237,14 +236,14 @@ class HistoricalOrderbookEnvironment(gym.Env):
                     current_orders = deepcopy(getattr(self.internal_orderbook, side)[price])
                     while order_volume < 0:
                         worst_order = current_orders[-1]
-                        volume_to_remove = min(worst_order.volume, order_volume)
+                        volume_to_remove = min(worst_order.volume, abs(order_volume))
                         order_dict["volume"] = volume_to_remove
                         order_dict["internal_id"] = worst_order.internal_id
                         cancellation = create_order("cancellation", order_dict)
                         orders.append(cancellation)
-                        order_volume -= volume_to_remove
+                        order_volume += volume_to_remove
                         current_orders.pop()
-            for price in set(getattr(self.internal_orderbook, side).keys()) - set(best_prices):
+            for price in set(getattr(self.internal_orderbook, side).keys()) - set(best_prices[side]):
                 try:
                     wide_orders = list(getattr(self.internal_orderbook, side)[price])
                 except KeyError:
@@ -365,9 +364,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
     #         proportion_of_episode_remaining=1.0,
     #     )
 
-    def _check_params(self):
-        assert self.min_start_timedelta + self.episode_length <= self.max_end_timedelta, "Episode is too long"
-
     def render(self, mode="human"):
         pass
 
@@ -385,6 +381,11 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def mark_to_market_value(self):
         return self.state.portfolio.inventory * self.state.price + self.state.portfolio.cash
+
+    def _check_params(self):
+        assert self.min_start_timedelta + self.episode_length <= self.max_end_timedelta, "Episode is too long"
+        assert self.max_quote_level - self.min_quote_level == self.order_distributor.quote_levels
+        self._check_market_order_clearing_well_defined()
 
     def _check_market_order_clearing_well_defined(self):
         if (self.market_order_clearing and self.market_order_fraction_of_inventory <= 0.0) or (

@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 import RL4MM
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.populate_database import populate_database
+from RL4MM.features.Features import Inventory
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.orderbook.models import Cancellation, LimitOrder
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
@@ -36,8 +37,10 @@ class testHistoricalOrderbookEnvironment(TestCase):
         max_date=datetime(2012, 6, 21),
         min_start_timedelta=timedelta(hours=10, seconds=1),
         max_end_timedelta=timedelta(hours=10, seconds=2),
+        max_quote_level=10,
         simulator=simulator,
         preload_messages=False,
+        features=[Inventory()],
     )
 
     @classmethod
@@ -62,13 +65,26 @@ class testHistoricalOrderbookEnvironment(TestCase):
 
     def test_convert_action_to_orders(self):
         self.env.reset()
-        internal_orders: List[Union[Cancellation, LimitOrder]]
-        internal_orders = self.env.convert_action_to_orders(action=ACTION_1)  # type: ignore
-        total_volume = sum(order.volume for order in internal_orders)
+        # Testing order placement in empty book
+        internal_orders_1: List[Union[Cancellation, LimitOrder]]
+        internal_orders_1 = self.env.convert_action_to_orders(action=ACTION_1)  # type: ignore
+        total_volume = sum(order.volume for order in internal_orders_1)
         self.assertEqual(200, total_volume)
-        for order in internal_orders:  #
+        for order in internal_orders_1:
             self.assertEqual(order.volume, 10)  # BetaBinom(1,1) corresponds to Uniform
-        internal_orders = self.env.convert_action_to_orders(action=ACTION_2)  # type: ignore
-        expected_order_sizes = [18, 16, 15, 13, 11, 9, 7, 5, 4, 2] * 2  # Placing more orders towards the best price
-        for i, order in enumerate(internal_orders):
+        internal_orders_2 = self.env.convert_action_to_orders(action=ACTION_2)  # type: ignore
+        expected_order_sizes = [19, 17, 15, 13, 11, 9, 7, 5, 3, 1] * 2  # Placing more orders towards the best price
+        for i, order in enumerate(internal_orders_2):
             self.assertEqual(expected_order_sizes[i], order.volume)
+        # Testing update
+        for order in internal_orders_1:
+            self.env.simulator.exchange.process_order(order)  # Add orders to the orderbooks
+        internal_orders_3 = self.env.convert_action_to_orders(action=ACTION_2)  # type: ignore
+        expected_order_sizes = [19 - 10, 17 - 10, 15 - 10, 13 - 10, 11 - 10, 9 - 10, 7 - 10, 5 - 10, 3 - 10, 1 - 10] * 2
+        for i, order in enumerate(internal_orders_3):
+            if expected_order_sizes[i] > 0:
+                self.assertIsInstance(order, LimitOrder)
+                self.assertEqual(order.volume, expected_order_sizes[i])
+            elif expected_order_sizes[i] < 0:
+                self.assertIsInstance(order, Cancellation)
+                self.assertEqual(order.volume, abs(expected_order_sizes[i]))
