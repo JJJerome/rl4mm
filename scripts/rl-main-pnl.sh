@@ -13,6 +13,7 @@ while read -r ticker; do
                -el 10 \
                -psr PnL \
                -nepw 6 \
-               -epsr PnL;
+               -epsr PnL \
+               -wb True;
 
 done < scripts/$TICKERS_FILE # assumes it is run from root of repo
