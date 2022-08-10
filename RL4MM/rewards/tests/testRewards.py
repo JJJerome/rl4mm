@@ -1,27 +1,48 @@
 from datetime import datetime
 from unittest import TestCase
 
-import copy
-import numpy as np
-import pandas as pd
 from RL4MM.features.Features import (
-    Spread,
-    MidpriceMove,
-    PriceRange,
-    Volatility,
-    MicroPrice,
-    InternalState,
+    State,
+    Portfolio,
 )
-from RL4MM.orderbook.helpers import get_book_columns
+from RL4MM.orderbook.tests.mock_orders import get_mock_orderbook
 from RL4MM.rewards.RewardFunctions import RollingSharpe
 
-MOCK_INTERNAL_STATE_1 = InternalState(inventory=1, cash=0, asset_price=100, book_snapshots=None)
-MOCK_INTERNAL_STATE_2 = InternalState(inventory=1, cash=0, asset_price=110, book_snapshots=None)
-MOCK_INTERNAL_STATE_3 = InternalState(inventory=1, cash=0, asset_price=100, book_snapshots=None)
-MOCK_INTERNAL_STATE_4 = InternalState(inventory=1, cash=0, asset_price=0, book_snapshots=None)
+MOCK_PORTFOLIO = Portfolio(inventory=1, cash=0)
+MOCK_ORDERBOOK = get_mock_orderbook()
+
+
+MOCK_INTERNAL_STATE_1 = State(
+    filled_orders=([], []),
+    orderbook=MOCK_ORDERBOOK,
+    price=100,
+    portfolio=MOCK_PORTFOLIO,
+    now_is=datetime(2022, 1, 1, 10, 1),
+)
+MOCK_INTERNAL_STATE_2 = State(
+    filled_orders=([], []),
+    orderbook=MOCK_ORDERBOOK,
+    price=110,
+    portfolio=MOCK_PORTFOLIO,
+    now_is=datetime(2022, 1, 1, 10, 2),
+)
+MOCK_INTERNAL_STATE_3 = State(
+    filled_orders=([], []),
+    orderbook=MOCK_ORDERBOOK,
+    price=100,
+    portfolio=MOCK_PORTFOLIO,
+    now_is=datetime(2022, 1, 1, 10, 3),
+)
+MOCK_INTERNAL_STATE_4 = State(
+    filled_orders=([], []),
+    orderbook=MOCK_ORDERBOOK,
+    price=0,
+    portfolio=MOCK_PORTFOLIO,
+    now_is=datetime(2022, 1, 1, 10, 4),
+)
+
 
 class TestRollingSharpe(TestCase):
-
     def test_calculate(self):
 
         rs = RollingSharpe(max_window_size=3, min_window_size=3)
@@ -36,7 +57,7 @@ class TestRollingSharpe(TestCase):
 
         # now 3 entries so we get a proper Sharpe calculation
         sharpe3 = rs.calculate(MOCK_INTERNAL_STATE_2, MOCK_INTERNAL_STATE_3)
-        # produces aum array [100,110,100] by sharp3 giving via 
+        # produces aum array [100,110,100] by sharp3 giving via
         # separate calculation in R:
         # > rets <- c(110/100,100/110) - 1
         # > mean(rets)/sd(rets)
@@ -45,7 +66,7 @@ class TestRollingSharpe(TestCase):
         self.assertAlmostEqual(expected, sharpe3)
 
         with self.assertRaises(Exception):
-            # now we get a 0 aum value 
+            # now we get a 0 aum value
             rs.calculate(MOCK_INTERNAL_STATE_3, MOCK_INTERNAL_STATE_4)
 
         rs.reset()
@@ -53,5 +74,5 @@ class TestRollingSharpe(TestCase):
         sharpe1 = rs.calculate(MOCK_INTERNAL_STATE_1, MOCK_INTERNAL_STATE_1)
         sharpe2 = rs.calculate(MOCK_INTERNAL_STATE_1, MOCK_INTERNAL_STATE_1)
         sharpe3 = rs.calculate(MOCK_INTERNAL_STATE_1, MOCK_INTERNAL_STATE_1)
-        
+
         self.assertEqual(0, sharpe3)

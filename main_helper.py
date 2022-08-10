@@ -5,7 +5,6 @@ import copy
 from RL4MM.utils.utils import boolean_string
 from RL4MM.utils.utils import get_timedelta_from_clock_time
 from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
-from RL4MM.gym.order_tracking.InfoCalculators import SimpleInfoCalculator
 
 from ray import tune
 
@@ -19,8 +18,9 @@ from RL4MM.agents.baseline_agent_wrappers import (
 def add_ray_args(parser):
 
     # -------------------- Workers, GPUs, CPUs ----------------------
-    parser.add_argument("-g", "--num_gpus", default=0.2, help="Number of GPUs to use during training.", type=int)
+    parser.add_argument("-g", "--num_gpus", default=1, help="Number of GPUs to use during training.", type=int)
     parser.add_argument("-nw", "--num_workers", default=5, help="Number of workers to use during training.", type=int)
+    parser.add_argument("-nepw", "--num_envs_per_worker", default=1, help="Number of envs per worker.", type=int)
     parser.add_argument(
         "-nwe", "--num_workers_eval", default=1, help="Number of workers used during evaluation.", type=int
     )
@@ -38,7 +38,7 @@ def add_ray_args(parser):
     )
 
     # -------------------- Hyperparameters
-    parser.add_argument("-la", "--lambda", default=1.0, help="Lambda for PBT.", type=float)
+    parser.add_argument("-la", "--lambda", default=1.0, help="Lambda for GAE.", type=float)
     parser.add_argument("-lr", "--learning_rate", default=0.0001, help="Learning rate.", type=float)
     parser.add_argument("-df", "--discount_factor", default=0.99, help="Discount factor gamma of the MDP.", type=float)
     # Currently using tune to determine the following:
@@ -72,16 +72,14 @@ def add_ray_args(parser):
 
 def add_env_args(parser):
     # -------------------- Env Args ---------------------------
-    parser.add_argument("-sz", "--step_size", default=5, help="Step size in seconds.", type=int)
+    parser.add_argument("-sz", "--step_size", default=0.1, help="Step size in seconds.", type=float)
     parser.add_argument("-t", "--ticker", default="IBM", help="Specify stock ticker.", type=str)
     parser.add_argument("-nl", "--n_levels", default=50, help="Number of orderbook levels.", type=int)
-
-    default_ip = dict(inventory=0, cash=1e12)
-    parser.add_argument("-ip", "--initial_portfolio", default=default_ip, help="Initial portfolio.", type=dict)
-
-    parser.add_argument("-el", "--episode_length", default=60, help="Episode length (minutes).", type=int)
-    parser.add_argument("-mi", "--max_inventory", default=10000, help="Maximum (absolute) inventory.", type=int)
-    parser.add_argument("-n", "--normalisation_on", default=True, help="Normalise features.", type=boolean_string)
+    parser.add_argument("-ic", "--initial_cash", default=1e12, help="Initial portfolio.", type=float)
+    parser.add_argument("-ii", "--initial_inventory", default=0, help="Initial inventory.", type=int)
+    parser.add_argument("-el", "--episode_length", default=30, help="Episode length (minutes).", type=int)
+    parser.add_argument("-mi", "--max_inventory", default=1000000, help="Maximum (absolute) inventory.", type=int)
+    parser.add_argument("-n", "--normalisation_on", default=False, help="Normalise features.", type=boolean_string)
     parser.add_argument("-c", "--concentration", default=None, help="Concentration param for beta dist.", type=float)
     parser.add_argument("-minq", "--min_quote_level", default=0, help="minimum quote level from best price.", type=int)
     parser.add_argument("-maxq", "--max_quote_level", default=10, help="maximum quote level from best price.", type=int)
@@ -150,7 +148,7 @@ def add_env_args(parser):
         "--terminal_reward_function",
         default="PnL",
         choices=r_choices,
-        help="Terminal reward function: asymmetrically dampened (SD), asymmetrically dampened (AD), PnL (PnL), RollingSharpe (RS)",
+        help="Terminal reward function: symm dampened (SD), asymm d.. (AD), PnL (PnL), RollingSharpe (RS)",
         type=str,
     )
     parser.add_argument(
@@ -196,7 +194,7 @@ def add_env_args(parser):
         default=0.0,
         help="Market order fraction of inventory.",
         type=float,
-    )    
+    )
 
     ###########################################################################
     # ---------------------- END OF ENV ARGS ----------------------------------
@@ -207,6 +205,7 @@ def add_env_args(parser):
 ###############################################################################
 ###############################################################################
 ###############################################################################
+
 
 def get_env_configs(args):
     env_config = {
@@ -221,7 +220,8 @@ def get_env_configs(args):
         "features": args["features"],
         "max_inventory": args["max_inventory"],
         "normalisation_on": args["normalisation_on"],
-        "initial_portfolio": args["initial_portfolio"],
+        "initial_cash": args["initial_cash"],
+        "initial_inventory": args["initial_inventory"],
         "per_step_reward_function": args["per_step_reward_function"],
         "terminal_reward_function": args["terminal_reward_function"],
         "market_order_clearing": args["market_order_clearing"],
@@ -242,14 +242,16 @@ def get_env_configs(args):
 
     return env_config, eval_env_config
 
+
 ###############################################################################
 ###############################################################################
 ###############################################################################
 ###############################################################################
+
 
 def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
 
-    if name == 'main':
+    if name == "main":
 
         ray_config = {
             # ---  CPUs, GPUs, Workers ---
@@ -257,6 +259,7 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             "num_gpus": args["num_gpus"],
             "framework": args["framework"],
             "num_workers": args["num_workers"],
+            "num_envs_per_worker": args["num_envs_per_worker"],
             # --- Env ---
             "env_config": env_config,
             "evaluation_duration": "auto",
@@ -278,16 +281,18 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             "output": args["output"],
             "output_max_file_size": args["output_max_file_size"],
             # --------------- Tuning: ---------------------
-            "num_sgd_iter": tune.choice([10, 20, 30]),
-            "sgd_minibatch_size": tune.choice([2**7, 2**9, 2**11]),
+            "num_sgd_iter": tune.choice([10, 20, 30, 100, 500]),
+            "sgd_minibatch_size": tune.choice([2**3, 2**5, 2**7, 2**9, 2**11]),
             "train_batch_size": tune.choice([2**11, 2**12, 2**13, 2**14, 2**15]),
-            "rollout_fragment_length": tune.choice([900, 1800, 3600]),  # args["rollout_fragment_length"],
+            "rollout_fragment_length": tune.choice(
+                [2**8, 2**9, 2**10, 2**12, 2**13, 2**14]
+            ),  # args["rollout_fragment_length"],
             # "recreate_failed_workers": False, # Get an error for some reason when this is enabled.
             # "disable_env_checking": True,
-            #'seed':tune.choice(range(1000)),
+            # 'seed':tune.choice(range(1000)),
         }
 
-    elif name == 'tune_rule_based_agents':
+    elif name == "tune_rule_based_agents":
 
         ray_config = {
             "env": "HistoricalOrderbookEnvironment",
@@ -301,7 +306,7 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             # -----------------
             "framework": args["framework"],
             "num_cpus_per_worker": 1,
-            "model": {"custom_model_config": cmc}, # DIFFERENT
+            "model": {"custom_model_config": cmc},  # DIFFERENT
             "env_config": env_config,
             "evaluation_interval": 1,
             "evaluation_num_workers": args["num_workers_eval"],
@@ -312,14 +317,16 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
 
     return ray_config
 
+
 ###############################################################################
 ###############################################################################
 ###############################################################################
 ###############################################################################
+
 
 def get_tensorboard_logdir(args, name):
 
-    if name == 'main':
+    if name == "main":
         tensorboard_logdir = (
             args["tensorboard_logdir"]
             + f"{args['ticker']}/"
@@ -329,7 +336,7 @@ def get_tensorboard_logdir(args, name):
             + f"normalisation_on_{args['normalisation_on']}/"
             + f"moc_{args['market_order_clearing']}/"
         )
-    elif name == 'tune_rule_based_agents' :
+    elif name == "tune_rule_based_agents":
         tensorboard_logdir = (
             args["tensorboard_logdir"]
             + f"{args['ticker']}/"
@@ -342,11 +349,14 @@ def get_tensorboard_logdir(args, name):
 
     if not os.path.exists(tensorboard_logdir):
         os.makedirs(tensorboard_logdir)
+    return tensorboard_logdir
+
 
 ###############################################################################
 ###############################################################################
 ###############################################################################
 ###############################################################################
+
 
 def get_rule_based_agent_and_custom_model_config(args):
 

@@ -24,7 +24,7 @@ class TestHistoricalOrderGenerator(TestCase):
     test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
     test_db = HistoricalDatabase(engine=test_engine)
     generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
-    simulator = OrderbookSimulator(ticker, Exchange(ticker), [generator], 50, test_db, save_messages_locally=False)
+    simulator = OrderbookSimulator(ticker, Exchange(ticker), [generator], 50, test_db, preload_messages=False)
 
     @classmethod
     def setUpClass(cls) -> None:

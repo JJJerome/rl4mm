@@ -1,5 +1,6 @@
 from datetime import timedelta, datetime
 from pathlib import Path
+from typing import List, Union
 from unittest import TestCase
 
 import numpy as np
@@ -8,7 +9,9 @@ from sqlalchemy import create_engine
 import RL4MM
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.populate_database import populate_database
+from RL4MM.features.Features import Inventory
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
+from RL4MM.orderbook.models import Cancellation, LimitOrder
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
@@ -25,7 +28,7 @@ class testHistoricalOrderbookEnvironment(TestCase):
     test_db = HistoricalDatabase(engine=test_engine)
     generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
     simulator = OrderbookSimulator(
-        ticker=ticker, order_generators=[generator], n_levels=200, database=test_db, save_messages_locally=False
+        ticker=ticker, order_generators=[generator], n_levels=200, database=test_db, preload_messages=False
     )
     env = HistoricalOrderbookEnvironment(
         step_size=timedelta(milliseconds=100),
@@ -34,9 +37,10 @@ class testHistoricalOrderbookEnvironment(TestCase):
         max_date=datetime(2012, 6, 21),
         min_start_timedelta=timedelta(hours=10, seconds=1),
         max_end_timedelta=timedelta(hours=10, seconds=2),
+        max_quote_level=10,
         simulator=simulator,
-        feature_window_size=3,
-        save_messages_locally=False,
+        preload_messages=False,
+        features=[Inventory()],
     )
 
     @classmethod
@@ -61,13 +65,29 @@ class testHistoricalOrderbookEnvironment(TestCase):
 
     def test_convert_action_to_orders(self):
         self.env.reset()
-        internal_orders = self.env.convert_action_to_orders(action=ACTION_1)
-        total_volume = sum(order.volume for order in internal_orders)
+        # to avoid typing errors
+        internal_orders_1: List[Union[Cancellation, LimitOrder]]
+        internal_orders_2: List[Union[Cancellation, LimitOrder]]
+        internal_orders_3: List[Union[Cancellation, LimitOrder]]
+        # Testing order placement in empty book
+        internal_orders_1 = self.env.convert_action_to_orders(action=ACTION_1)  # type: ignore
+        total_volume = sum(order.volume for order in internal_orders_1)
         self.assertEqual(200, total_volume)
-        for order in internal_orders:  #
+        for order in internal_orders_1:
             self.assertEqual(order.volume, 10)  # BetaBinom(1,1) corresponds to Uniform
-        internal_orders = self.env.convert_action_to_orders(action=ACTION_2)
-        total_volume = sum(order.volume for order in internal_orders)
-        expected_order_sizes = [18, 16, 15, 13, 11, 9, 7, 5, 4, 2] * 2  # Placing more orders towards the best price
-        for i, order in enumerate(internal_orders):
+        internal_orders_2 = self.env.convert_action_to_orders(action=ACTION_2)  # type: ignore
+        expected_order_sizes = [19, 17, 15, 13, 11, 9, 7, 5, 3, 1] * 2  # Placing more orders towards the best price
+        for i, order in enumerate(internal_orders_2):
             self.assertEqual(expected_order_sizes[i], order.volume)
+        # Testing update
+        for order in internal_orders_1:
+            self.env.simulator.exchange.process_order(order)  # Add orders to the orderbooks
+        internal_orders_3 = self.env.convert_action_to_orders(action=ACTION_2)  # type: ignore
+        expected_order_sizes = [19 - 10, 17 - 10, 15 - 10, 13 - 10, 11 - 10, 9 - 10, 7 - 10, 5 - 10, 3 - 10, 1 - 10] * 2
+        for i, order in enumerate(internal_orders_3):
+            if expected_order_sizes[i] > 0:
+                self.assertIsInstance(order, LimitOrder)
+                self.assertEqual(order.volume, expected_order_sizes[i])
+            elif expected_order_sizes[i] < 0:
+                self.assertIsInstance(order, Cancellation)
+                self.assertEqual(order.volume, abs(expected_order_sizes[i]))

@@ -2,9 +2,10 @@ import sys
 import abc
 import numpy as np
 
-from RL4MM.features.Features import InternalState
+from RL4MM.features.Features import State
 
 ###############################################################################
+
 
 def get_sharpe(aum_array):
 
@@ -16,23 +17,26 @@ def get_sharpe(aum_array):
 
     # ddof = 1 to get divisor n-1 in std
     # add sys.float_info.min to avoid e.g. 0/0 = inf
-    sharpe = np.mean(simple_returns)/(np.std(simple_returns, ddof=1) + sys.float_info.min)
+    sharpe = np.mean(simple_returns) / (np.std(simple_returns, ddof=1) + sys.float_info.min)
 
     return sharpe
 
+
 ###############################################################################
+
 
 class RewardFunction(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def calculate(self, current_state: InternalState, next_state: InternalState) -> float:
+    def calculate(self, current_state: State, next_state: State) -> float:
         pass
-    
+
     @abc.abstractmethod
     def reset(self):
         pass
 
+
 class RollingSharpe(RewardFunction):
-    def __init__(self, max_window_size: int=120, min_window_size: int=60):
+    def __init__(self, max_window_size: int = 120, min_window_size: int = 60):
 
         assert max_window_size >= min_window_size, "Error with window sizes"
 
@@ -45,7 +49,7 @@ class RollingSharpe(RewardFunction):
 
     def reset(self):
         # counter for how many elements of window have been filled
-        # used to ensure we never compute Sharpes on tiny windows  
+        # used to ensure we never compute Sharpes on tiny windows
         # maxes out at self.max_window_size
         self.n_filled = 0
 
@@ -54,16 +58,16 @@ class RollingSharpe(RewardFunction):
         # when the array is first filling up
         self.aum_array = np.full(self.max_window_size, np.nan)
 
-    def calculate_aum(self, internal_state:InternalState) -> float:
-        return internal_state["cash"] + internal_state["asset_price"] * internal_state["inventory"]
+    def calculate_aum(self, internal_state: State) -> float:
+        return internal_state.portfolio.cash + internal_state.price * internal_state.portfolio.inventory
 
-    def update_aum_array(self, current_state: InternalState, next_state: InternalState):
+    def update_aum_array(self, current_state: State, next_state: State):
         """
         current_state not currently used
         Don't need it? Or use it but only use in first period?
-        """       
+        """
         # calculate new aum
-        new_aum = self.calculate_aum(next_state) 
+        new_aum = self.calculate_aum(next_state)
 
         # self.aum array has the oldest aum in idx 0, newest in -1
         # first overwrite oldest
@@ -72,9 +76,9 @@ class RollingSharpe(RewardFunction):
         self.aum_array = np.roll(self.aum_array, -1)
 
         # update self.n_filled, maxing out at self.max_window_size
-        self.n_filled = min(self.n_filled+1, self.max_window_size)
+        self.n_filled = min(self.n_filled + 1, self.max_window_size)
 
-    def calculate(self, current_state: InternalState, next_state: InternalState) -> float:
+    def calculate(self, current_state: State, next_state: State) -> float:
 
         # first update self.aum_array
         # self.update_aum_array(next_state)
@@ -89,10 +93,11 @@ class RollingSharpe(RewardFunction):
         else:
             return get_sharpe(self.aum_array)
 
+
 class PnL(RewardFunction):
-    def calculate(self, current_state: InternalState, next_state: InternalState) -> float:
-        current_value = current_state["cash"] + current_state["inventory"] * current_state["asset_price"]
-        next_value = next_state["cash"] + next_state["inventory"] * next_state["asset_price"]
+    def calculate(self, current_state: State, next_state: State) -> float:
+        current_value = current_state.portfolio.cash + current_state.portfolio.inventory * current_state.price
+        next_value = next_state.portfolio.cash + next_state.portfolio.inventory * next_state.price
         return next_value - current_value
 
     def reset(self):
@@ -105,9 +110,9 @@ class InventoryAdjustedPnL(RewardFunction):
         self.pnl = PnL()
         self.asymmetrically_dampened = asymmetrically_dampened
 
-    def calculate(self, current_state: InternalState, next_state: InternalState) -> float:
-        delta_midprice = next_state["asset_price"] - current_state["asset_price"]
-        dampened_inventory_term = self.inventory_aversion * next_state["inventory"] * delta_midprice
+    def calculate(self, current_state: State, next_state: State) -> float:
+        delta_midprice = next_state.price - current_state.price
+        dampened_inventory_term = self.inventory_aversion * next_state.portfolio.inventory * delta_midprice
         if self.asymmetrically_dampened:
             dampened_inventory_term = max(0, dampened_inventory_term)
         return self.pnl.calculate(current_state, next_state) - dampened_inventory_term

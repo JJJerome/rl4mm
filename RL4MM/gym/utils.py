@@ -1,11 +1,10 @@
-import sys
 import os
-from contextlib import suppress
 from typing import Dict, List
 
 import gym
 import numpy as np
 import pandas as pd
+from gym.envs.registration import EnvSpec
 from matplotlib import pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
@@ -24,17 +23,7 @@ from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironm
 from RL4MM.utils.utils import get_date_time
 from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL, RollingSharpe, get_sharpe
 
-from RL4MM.features.Features import (
-    Feature,
-    Spread,
-    MicroPrice,
-    InternalState,
-    MidpriceMove,
-    Volatility,
-    Inventory,
-    TimeRemaining,
-    MidPrice,
-)
+from RL4MM.features.Features import Inventory, Portfolio
 
 
 def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
@@ -44,7 +33,7 @@ def get_reward_function(reward_function: str, inventory_aversion: float = 0.1):
         return InventoryAdjustedPnL(inventory_aversion=inventory_aversion, asymmetrically_dampened=False)
     elif reward_function == "PnL":
         return PnL()
-    elif reward_function == "RS": # RollingSharpe
+    elif reward_function == "RS":  # RollingSharpe
         return RollingSharpe()
     else:
         raise NotImplementedError("You must specify one of 'AS', 'SD', 'PnL', or 'RS'")
@@ -54,40 +43,33 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
 
     episode_length = timedelta(minutes=env_config["episode_length"])
 
-    orderbook_simulator = OrderbookSimulator(
-        ticker=env_config["ticker"], n_levels=env_config["n_levels"], episode_length=episode_length, database=database
-    )
     if env_config["features"] == "agent_state":
         features = [Inventory(max_value=env_config["max_inventory"], normalisation_on=env_config["normalisation_on"])]
     elif env_config["features"] == "full_state":
-        features = [
-            Spread(
-                min_value=-1e4 if env_config["normalisation_on"] else 0,  # If feature is a zscore
-                normalisation_on=env_config["normalisation_on"],
-            ),
-            MidpriceMove(normalisation_on=env_config["normalisation_on"]),
-            Volatility(
-                min_value=-1e4 if env_config["normalisation_on"] else 0,  # If feature is a zscore
-                normalisation_on=env_config["normalisation_on"],
-            ),
-            Inventory(max_value=env_config["max_inventory"], normalisation_on=env_config["normalisation_on"]),
-            TimeRemaining(),
-            MicroPrice(
-                min_value=-1e4 if env_config["normalisation_on"] else 0,  # If feature is a zscore
-                normalisation_on=env_config["normalisation_on"],
-            ),
-        ]
-    return HistoricalOrderbookEnvironment(
+        features = HistoricalOrderbookEnvironment.get_default_features(
+            step_size=timedelta(seconds=env_config["step_size"]),
+            episode_length=timedelta(minutes=env_config["episode_length"]),
+            normalisation_on=env_config["normalisation_on"],
+        )
+    max_feature_window_size = max([feature.window_size for feature in features])
+    orderbook_simulator = OrderbookSimulator(
+        ticker=env_config["ticker"],
+        n_levels=env_config["n_levels"],
+        episode_length=episode_length,
+        database=database,
+        warm_up=max_feature_window_size,
+    )
+    env = HistoricalOrderbookEnvironment(
         ticker=env_config["ticker"],
         episode_length=episode_length,
         simulator=orderbook_simulator,
         features=features,
         # quote_levels=10,
         max_inventory=env_config["max_inventory"],
-        min_date=get_date_time(env_config["min_date"]), 
+        min_date=get_date_time(env_config["min_date"]),
         max_date=get_date_time(env_config["max_date"]),
         step_size=timedelta(seconds=env_config["step_size"]),
-        initial_portfolio=env_config["initial_portfolio"],  
+        initial_portfolio=Portfolio(inventory=env_config["initial_inventory"], cash=env_config["initial_cash"]),
         per_step_reward_function=get_reward_function(env_config["per_step_reward_function"]),
         terminal_reward_function=get_reward_function(env_config["terminal_reward_function"]),
         market_order_clearing=env_config["market_order_clearing"],
@@ -98,6 +80,11 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
         enter_spread=env_config["enter_spread"],
         info_calculator=env_config["info_calculator"],
     )
+    env.spec = EnvSpec(
+        id="HistoricalOrderbookEnvironment-v0",
+        max_episode_steps=episode_length / timedelta(seconds=env_config["step_size"]),
+    )
+    return env
 
 
 def extract_array_from_infos(infos, key):
@@ -170,7 +157,7 @@ def append_to_episode_summary_dict(esd, d):
     """
     d is a dictionary as returned by get_trajectory
     """
-    print(d['infos'][0])
+    print(d["infos"][0])
 
     # aum series, i.e., the equity curve
     aum_array = extract_array_from_infos(d["infos"], "aum")
@@ -249,8 +236,8 @@ def process_parallel_results(results):
 def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
     assert len(agent_lst) == len(env_lst)
-    l = len(agent_lst)
-    print(f"In get_episode_summary_dict_PARALLEL, running for {l} iterations")
+    al_len = len(agent_lst)
+    print(f"In get_episode_summary_dict_PARALLEL, running for {al_len} iterations")
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_POOL_SIZE) as executor:
 
@@ -259,7 +246,7 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
         futures = [executor.submit(generate_trajectory, *arg) for arg in zip(agent_lst, env_lst)]
         results = []
 
-        with tqdm(total=l) as pbar:
+        with tqdm(total=al_len) as pbar:
             for future in concurrent.futures.as_completed(futures):
                 results.append(future.result())
                 pbar.update(1)
@@ -271,6 +258,7 @@ def get_episode_summary_dict_PARALLEL(agent_lst, env_lst):
 
 
 ###############################################################################
+
 
 def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int = 100):
     sns.set()
@@ -301,7 +289,10 @@ def plot_reward_distributions_OLD(agent: Agent, env: gym.Env, n_iterations: int 
 def get_output_prefix(
     ticker, min_date, max_date, agent_name, episode_length, min_quote_level, max_quote_level, enter_spread
 ):
-    env_str = f"{ticker}_{min_date}_{max_date}_el_{episode_length}_minq_{min_quote_level}_maxq_{max_quote_level}_es_{enter_spread}"
+    env_str = (
+        f"{ticker}_{min_date}_{max_date}_el_{episode_length}_minq_{min_quote_level}_"
+        + f"maxq_{max_quote_level}_es_{enter_spread}"
+    )
     return agent_name + "_" + env_str
 
 

@@ -1,9 +1,10 @@
+from collections import deque
 from datetime import datetime
-from typing import List
+from typing import Deque
 import warnings
 
 import pandas as pd
-import swifter
+import swifter  # noqa: F401
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.orderbook.create_order import create_order
@@ -31,7 +32,7 @@ class HistoricalOrderGenerator(OrderGenerator):
         self.use_swifter = use_swifter
         self.exchange_name = "NASDAQ"  # Here, we are# only using LOBSTER data for now
 
-    def generate_orders(self, start_date: datetime, end_date: datetime) -> List[Order]:
+    def generate_orders(self, start_date: datetime, end_date: datetime) -> Deque[Order]:
         if self.save_messages_locally:
             assert (self.start_of_episode < self._get_mid_datetime(start_date, end_date)) and (
                 self._get_mid_datetime(start_date, end_date) < self.end_of_episode
@@ -42,7 +43,10 @@ class HistoricalOrderGenerator(OrderGenerator):
         else:
             messages = self.database.get_messages(start_date, end_date, self.ticker)
             messages = self._process_messages_and_add_internal(messages)
-        return list(messages.internal_message)
+        if len(messages) == 0:
+            return deque()
+        else:
+            return deque(messages.internal_message)
 
     @staticmethod
     def _remove_hidden_executions(messages: pd.DataFrame):
@@ -55,11 +59,11 @@ class HistoricalOrderGenerator(OrderGenerator):
             ), "Trying to step forward before initial cross-trade!"
             return messages[messages.message_type != "market_hidden"]
 
-    def store_messages(self, start_date: datetime, end_date: datetime):
-        messages = self.database.get_messages(start_date, end_date, self.ticker)
+    def preload_messages(self, min_date: datetime, max_date: datetime):
+        messages = self.database.get_messages(min_date, max_date, self.ticker)
         self.episode_messages = self._process_messages_and_add_internal(messages)
-        self.start_of_episode = start_date
-        self.end_of_episode = end_date
+        self.start_of_episode = min_date
+        self.end_of_episode = max_date
 
     @staticmethod
     def _get_mid_datetime(datetime_1: datetime, datetime_2: datetime):
@@ -73,7 +77,9 @@ class HistoricalOrderGenerator(OrderGenerator):
             )
         else:
             internal_messages = messages.apply(get_order_from_external_message, axis=1).values
-        return messages.assign(internal_message=internal_messages)
+        if len(internal_messages) > 0:
+            messages = messages.assign(internal_message=internal_messages)
+        return messages
 
 
 def get_order_from_external_message(message: pd.Series):

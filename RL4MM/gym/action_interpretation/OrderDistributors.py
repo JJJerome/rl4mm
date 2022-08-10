@@ -2,7 +2,6 @@ from __future__ import annotations
 import abc
 import sys
 import warnings
-from contextlib import suppress
 
 if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
     from typing import Literal
@@ -16,6 +15,11 @@ EPS = 0.000001
 
 
 class OrderDistributor(metaclass=abc.ABCMeta):
+    def __init__(self, quote_levels: int = 10, active_volume: int = 100):
+        self.quote_levels = quote_levels
+        self.tick_range = range(0, self.quote_levels)
+        self.active_volume = active_volume
+
     def convert_action(self, action: np.ndarray) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         action = np.array(action, dtype=float) + EPS  # for strict positivity
         return self._convert_action(action)
@@ -27,12 +31,10 @@ class OrderDistributor(metaclass=abc.ABCMeta):
 
 class BetaOrderDistributor(OrderDistributor):
     def __init__(self, quote_levels: int = 10, active_volume: int = 100, concentration: float = None):
-        self.n_levels = quote_levels
+        super().__init__(quote_levels=quote_levels, active_volume=active_volume)
         self.distribution = beta
-        self.tick_range = range(0, self.n_levels)
-        self.active_volume = active_volume
         self.c = concentration
-        self.midpoints = 1 / self.n_levels * np.array([i + 0.5 for i in range(self.n_levels)])
+        self.midpoints = 1 / self.quote_levels * np.array([i + 0.5 for i in range(self.quote_levels)])
 
     def _convert_action(self, action: np.ndarray) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         assert all(action) > 0, "Action must be positive"

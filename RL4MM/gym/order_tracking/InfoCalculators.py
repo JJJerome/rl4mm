@@ -1,18 +1,16 @@
 import abc
-from typing import List, Optional
 
 import numpy as np
 
-from RL4MM.features.Features import InternalState
+from RL4MM.features.Features import State
 from RL4MM.gym.action_interpretation.OrderDistributors import BetaOrderDistributor, OrderDistributor
-from RL4MM.orderbook.models import FillableOrder
 
 TICK_SIZE = 100  # TODO: add auto adjustment for small tick stocks
 
 
 class InfoCalculator(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def calculate(self, filled_orders: List[FillableOrder], internal_state: InternalState, action: np.ndarray):
+    def calculate(self, internal_state: State, action: np.ndarray):
         pass
 
 
@@ -30,14 +28,14 @@ class SimpleInfoCalculator(InfoCalculator):
         self.enter_spread = enter_spread
         self.order_distributor = order_distributor or BetaOrderDistributor(concentration=concentration)
 
-    def calculate(self, filled_orders: List[FillableOrder], internal_state: InternalState, action: np.ndarray):
+    def calculate(self, internal_state: State, action: np.ndarray):
         spreads_and_offsets = self.calculate_agent_spreads_and_midprice_offset(internal_state, action)
         info_dict = dict(
-            asset_price=internal_state["asset_price"],
-            inventory=internal_state["inventory"],
-            cash=internal_state["cash"],
+            asset_price=internal_state.price,
+            inventory=internal_state.portfolio.inventory,
+            cash=internal_state.portfolio.cash,
             aum=self.calculate_aum(internal_state),
-            market_spread=self.calculate_market_spread(internal_state),
+            market_spread=internal_state.orderbook.spread,
             agent_spread=spreads_and_offsets[0],
             agent_weighted_spread=[1],
             midprice_offset=spreads_and_offsets[2],
@@ -54,16 +52,16 @@ class SimpleInfoCalculator(InfoCalculator):
 
         if len(action) == 3 or len(action) == 5:
             info_dict["market_order_action"] = (action[[-1]],)
-            if np.abs(internal_state["inventory"]) > action[-1]:
-                self._update_market_order_count_and_volume(internal_state["inventory"])
+            if np.abs(internal_state.portfolio.inventory) > action[-1]:
+                self._update_market_order_count_and_volume(internal_state.portfolio.inventory)
         info_dict["market_order_count"] = self.market_order_count
         info_dict["market_order_total_volume"] = self.market_order_total_volume
         return info_dict
 
-    def calculate_agent_spreads_and_midprice_offset(self, internal_state: InternalState, action: np.ndarray):
+    def calculate_agent_spreads_and_midprice_offset(self, internal_state: State, action: np.ndarray):
         orders = self.order_distributor.convert_action(action)
         total_volume = self.order_distributor.active_volume
-        n_levels = self.order_distributor.n_levels
+        n_levels = self.order_distributor.quote_levels
         level_distances = np.array(range(n_levels))
         # calculate regular spread and midprice offset
         best_buy = np.sign(orders["buy"]).argmax()
@@ -76,17 +74,16 @@ class SimpleInfoCalculator(InfoCalculator):
         weighted_midprice_offset = (sell_centre_of_mass - buy_centre_of_mass) / 2
         weighted_spread = buy_centre_of_mass + sell_centre_of_mass
         if not self.enter_spread:
-            midprice_offset += self.calculate_market_spread(internal_state)
-            weighted_midprice_offset += self.calculate_market_spread(internal_state)
+            midprice_offset += internal_state.orderbook.spread
+            weighted_midprice_offset += internal_state.orderbook.spread
         return spread, weighted_spread, midprice_offset, weighted_midprice_offset
 
-    def calculate_market_spread(self, internal_state: InternalState):
-        last_snapshot = internal_state["book_snapshots"].iloc[-1]
-        return (last_snapshot.sell_price_0 - last_snapshot.buy_price_0) / TICK_SIZE
+    def calculate_market_spread(self, internal_state: State):
+        return internal_state.orderbook.spread
 
     def _update_market_order_count_and_volume(self, inventory: int):
         self.market_order_count += 1
-        self.market_order_total_volume += self.market_order_fraction_of_inventory * abs(inventory)
+        self.market_order_total_volume += np.round(np.abs(inventory) * self.market_order_fraction_of_inventory)
 
-    def calculate_aum(self, internal_state: InternalState) -> float:
-        return internal_state["cash"] + internal_state["asset_price"] * internal_state["inventory"]
+    def calculate_aum(self, internal_state: State) -> float:
+        return internal_state.portfolio.cash + internal_state.price * internal_state.portfolio.inventory

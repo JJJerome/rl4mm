@@ -25,6 +25,7 @@ from RL4MM.orderbook.models import (
     Deletion,
     OrderDict,
     FillableOrder,
+    FilledOrders,
 )
 
 
@@ -46,15 +47,17 @@ class Exchange:
     def __post_init__(self):
         self.central_orderbook = self.central_orderbook or self.get_empty_orderbook()
         self.internal_orderbook = self.internal_orderbook or self.get_empty_orderbook()
-        assert self.central_orderbook["ticker"] == self.ticker, "Orderbook ticker must agree with the exchange ticker."
-        assert self.internal_orderbook["ticker"] == self.ticker, "Orderbook ticker must agree with the exchange ticker."
+        for orderbook in [self.central_orderbook, self.internal_orderbook]:
+            assert orderbook.ticker == self.ticker, "Orderbook ticker must agree with the exchange ticker."
         self.order_id_convertor = OrderIdConvertor()
         self.name = "NASDAQ"
 
     def reset_internal_orderbook(self):
         self.internal_orderbook = self.get_empty_orderbook()
 
-    def process_order(self, order: Order) -> Optional[List[Union[MarketOrder, LimitOrder]]]:
+    def process_order(self, order: Order) -> Optional[FilledOrders]:
+        if hasattr(order, "volume"):
+            assert order.volume > 0, f"Order volume must be positive. Instead, order.volume = {order.volume}."
         if isinstance(order, LimitOrder):
             return self.submit_order(order)
         elif isinstance(order, MarketOrder):
@@ -63,9 +66,9 @@ class Exchange:
             self.remove_order(order)
             return None
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"Cannot process order of type {type(order)}.")
 
-    def submit_order(self, order: LimitOrder) -> Optional[List[Union[MarketOrder, LimitOrder]]]:
+    def submit_order(self, order: LimitOrder) -> Optional[FilledOrders]:
         if self._does_order_cross_spread(order):
             return self.execute_order(order)  # Execute against orders already in the book
         order = self.order_id_convertor.add_internal_id_to_order_and_track(order)
@@ -74,13 +77,14 @@ class Exchange:
             orderbooks_to_update.append(self.internal_orderbook)
         for orderbook in orderbooks_to_update:
             try:
-                orderbook[order.direction][order.price].append(order)
+                getattr(orderbook, order.direction)[order.price].append(order)
             except KeyError:
-                orderbook[order.direction][order.price] = deque([order])
+                getattr(orderbook, order.direction)[order.price] = deque([order])
         return None
 
-    def execute_order(self, order: FillableOrder) -> List[FillableOrder]:
+    def execute_order(self, order: FillableOrder) -> FilledOrders:
         executed_internal_orders: List[Union[MarketOrder, LimitOrder]] = list()
+        executed_external_orders: List[Union[MarketOrder, LimitOrder]] = list()
         remaining_volume = order.volume
         while remaining_volume > 0 and self._does_order_cross_spread(order):
             best_limit_order = self._get_highest_priority_matching_order(order)
@@ -91,7 +95,7 @@ class Exchange:
             volume_to_execute = min(remaining_volume, best_limit_order.volume)
             orderbooks_to_update = [self.central_orderbook]
             if not best_limit_order.is_external:
-                orderbooks_to_update.append(self.internal_orderbook)
+                orderbooks_to_update = [self.internal_orderbook, self.central_orderbook]
             for orderbook in orderbooks_to_update:
                 executed_order = self._reduce_order_with_queue_position(
                     best_limit_order,
@@ -99,7 +103,9 @@ class Exchange:
                     volume_to_remove=volume_to_execute,
                     orderbook=orderbook,
                 )
-            if not executed_order.is_external:
+            if executed_order.is_external:
+                executed_external_orders.append(executed_order)
+            else:
                 executed_internal_orders.append(executed_order)
             remaining_volume -= volume_to_execute
             if not order.is_external:
@@ -111,7 +117,7 @@ class Exchange:
             remaining_order = copy(order)
             remaining_order.volume = remaining_volume
             self.submit_order(remaining_order)  # submit a limit order with the remaining volume
-        return executed_internal_orders
+        return FilledOrders(internal=executed_internal_orders, external=executed_external_orders)
 
     def remove_order(self, order: Union[Cancellation, Deletion]) -> None:
         orderbooks_to_update = [self.central_orderbook]
@@ -121,7 +127,7 @@ class Exchange:
             queue_position = self._find_queue_position(order, orderbook)
             if queue_position is None:
                 try:
-                    best_order_id = orderbook[order.direction][order.price][0].internal_id
+                    best_order_id = getattr(orderbook, order.direction)[order.price][0].internal_id
                 except KeyError:
                     continue
                 if best_order_id == -1:  # Initial orders remain in book
@@ -132,11 +138,11 @@ class Exchange:
                 else:  # trying to remove order that has already been filled
                     continue
             elif isinstance(order, Deletion) and order.volume is None:
-                order.volume = orderbook[order.direction][order.price][queue_position].volume
+                order.volume = getattr(orderbook, order.direction)[order.price][queue_position].volume
             try:
                 self._reduce_order_with_queue_position(order, queue_position, order.volume, orderbook)
             except CancellationVolumeExceededError:
-                volume_to_remove = orderbook[order.direction][order.price][queue_position].volume
+                volume_to_remove = getattr(orderbook, order.direction)[order.price][queue_position].volume
                 self._reduce_order_with_queue_position(order, queue_position, volume_to_remove, orderbook)
         return None
 
@@ -145,19 +151,19 @@ class Exchange:
 
     @property
     def best_sell_price(self):
-        return next(iter(self.central_orderbook["sell"].keys()), np.infty)
+        return next(iter(self.central_orderbook.sell.keys()), np.infty)
 
     @property
     def best_buy_price(self):
-        return next(reversed(self.central_orderbook["buy"]), 0)
+        return next(reversed(self.central_orderbook.buy), 0)
 
     @property
     def orderbook_price_range(self):
-        sell_prices = reversed(self.central_orderbook["sell"])
+        sell_prices = reversed(self.central_orderbook.sell)
         worst_sell = 9999999999
         while worst_sell >= 9999999999:
             worst_sell = next(sell_prices)
-        buy_prices = iter(self.central_orderbook["buy"].keys())
+        buy_prices = iter(self.central_orderbook.buy.keys())
         worst_buy = 0
         while worst_buy <= 0:
             worst_buy = next(buy_prices)
@@ -168,14 +174,14 @@ class Exchange:
         orderbook = self.get_empty_orderbook()
         for order in orders:
             assert order.is_external, "Initial orders must all be external."
-            orderbook[order.direction][order.price] = deque([order])
+            getattr(orderbook, order.direction)[order.price] = deque([order])
         return orderbook
 
     def _get_highest_priority_matching_order(self, order: FillableOrder) -> LimitOrder:
         opposite_direction = "sell" if order.direction == "buy" else "buy"
         best_price = self.best_sell_price if opposite_direction == "sell" else self.best_buy_price
         try:
-            return self.central_orderbook[opposite_direction][best_price][0]  # type: ignore
+            return getattr(self.central_orderbook, opposite_direction)[best_price][0]  # type: ignore
         except KeyError:
             raise EmptyOrderbookError(f"Trying take liquidity from empty {opposite_direction} side of the book.")
 
@@ -193,10 +199,10 @@ class Exchange:
         internal_id = order.internal_id or self.order_id_convertor.get_internal_order_id(order)
         if internal_id is None and order.is_external:  # This is due to the external order being submitted before start
             return None
-        if order.price not in orderbook[order.direction]:
+        if order.price not in getattr(orderbook, order.direction):
             warnings.warn(f"No {order.direction} orders found at level {order.price}")
             return None
-        book_level = orderbook[order.direction][order.price]
+        book_level = getattr(orderbook, order.direction)[order.price]
         left, right = 0, len(book_level) - 1
         while left <= right:
             middle = (left + right) // 2
@@ -217,25 +223,25 @@ class Exchange:
         volume_to_remove: int,
         orderbook: Orderbook,
     ) -> LimitOrder:
-        order_to_partially_remove = copy(orderbook[order.direction][order.price][queue_position])
+        order_to_partially_remove = copy(getattr(orderbook, order.direction)[order.price][queue_position])
         if volume_to_remove > order_to_partially_remove.volume:
             raise CancellationVolumeExceededError(
                 f"Attempting to remove volume {volume_to_remove} from order of size {order_to_partially_remove.volume}."
             )
-        removed_order = deepcopy(orderbook[order.direction][order.price][queue_position])
+        removed_order = deepcopy(getattr(orderbook, order.direction)[order.price][queue_position])
         removed_order.volume = volume_to_remove
         order_to_partially_remove.volume -= volume_to_remove
-        orderbook[order.direction][order.price][queue_position] = order_to_partially_remove
+        getattr(orderbook, order.direction)[order.price][queue_position] = order_to_partially_remove
         self._clear_empty_orders_and_prices(order.price, order.direction, queue_position, orderbook)
         return removed_order
 
     def _clear_empty_orders_and_prices(
         self, price: int, direction: Literal["buy", "sell"], queue_position: int, orderbook: Orderbook
     ):
-        if orderbook[direction][price][queue_position].volume == 0:
-            order_to_remove = orderbook[direction][price][queue_position]
+        if getattr(orderbook, direction)[price][queue_position].volume == 0:
+            order_to_remove = getattr(orderbook, direction)[price][queue_position]
             if order_to_remove.is_external:
                 self.order_id_convertor.remove_external_order_id(order_to_remove.external_id)  # Stop tracking order_id
-            del orderbook[direction][price][queue_position]
-        if len(orderbook[direction][price]) == 0:
-            orderbook[direction].pop(price)
+            del getattr(orderbook, direction)[price][queue_position]
+        if len(getattr(orderbook, direction)[price]) == 0:
+            getattr(orderbook, direction).pop(price)
