@@ -56,6 +56,8 @@ class Exchange:
         self.internal_orderbook = self.get_empty_orderbook()
 
     def process_order(self, order: Order) -> Optional[FilledOrders]:
+        if hasattr(order, "volume"):
+            assert order.volume > 0, f"Order volume must be positive. Instead, order.volume = {order.volume}."
         if isinstance(order, LimitOrder):
             return self.submit_order(order)
         elif isinstance(order, MarketOrder):
@@ -64,7 +66,7 @@ class Exchange:
             self.remove_order(order)
             return None
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"Cannot process order of type {type(order)}.")
 
     def submit_order(self, order: LimitOrder) -> Optional[FilledOrders]:
         if self._does_order_cross_spread(order):
