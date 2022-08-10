@@ -53,9 +53,7 @@ def main(args):
     )
     algo = ConcurrencyLimiter(algo, max_concurrent=10)
     scheduler = AsyncHyperBandScheduler()
-    callbacks = (
-        [WandbLoggerCallback(api_key_file=args["wandb_api_key_dir"], project="RL4MM")] if args["wandb"] else None
-    )
+    callbacks = [WandbLoggerCallback(project="RL4MM")] if args["wandb"] else None
     analysis = tune.run(
         rba,
         name=args["ticker"],

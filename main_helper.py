@@ -37,13 +37,6 @@ def add_ray_args(parser):
         type=str,
     )
     parser.add_argument("-wb", "--wandb", default=False, help="Track on Weights and biases.", type=boolean_string)
-    parser.add_argument(
-        "-wbd",
-        "--wandb_api_key_dir",
-        default="/home/ray/.netrc",
-        help="Path to weights and bias api key",
-        type=str,
-    )
     # -------------------- Hyperparameters
     parser.add_argument("-la", "--lambda", default=1.0, help="Lambda for GAE.", type=float)
     parser.add_argument("-lr", "--learning_rate", default=0.0001, help="Learning rate.", type=float)
