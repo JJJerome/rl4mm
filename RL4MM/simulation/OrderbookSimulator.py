@@ -47,7 +47,7 @@ class OrderbookSimulator:
         self.min_buy_price: int = np.infty  # type:ignore
         self.initial_buy_price_range: int = np.infty  # type:ignore
         self.initial_sell_price_range: int = np.infty  # type:ignore
-        self.outer_levels: float = 20 / self.n_levels
+        self.outer_levels: float = 25 / self.n_levels
 
     def reset_episode(self, start_date: datetime, start_book: Optional[Orderbook] = None):
         if not start_book:
