@@ -32,9 +32,7 @@ def main(args):
     # print(trainer.train())
 
     callbacks = (
-        [WandbLoggerCallback(api_key_file=ray_config["wandb_api_key_dir"], project="RL4MM")]
-        if ray_config["wandb"] is not None
-        else None
+        [WandbLoggerCallback(api_key_file=ray_config["wandb_api_key_dir"], project="RL4MM")] if args["wandb"] else None
     )
 
     analysis = tune.run(
