@@ -65,8 +65,11 @@ class testHistoricalOrderbookEnvironment(TestCase):
 
     def test_convert_action_to_orders(self):
         self.env.reset()
-        # Testing order placement in empty book
+        # to avoid typing errors
         internal_orders_1: List[Union[Cancellation, LimitOrder]]
+        internal_orders_2: List[Union[Cancellation, LimitOrder]]
+        internal_orders_3: List[Union[Cancellation, LimitOrder]]
+        # Testing order placement in empty book
         internal_orders_1 = self.env.convert_action_to_orders(action=ACTION_1)  # type: ignore
         total_volume = sum(order.volume for order in internal_orders_1)
         self.assertEqual(200, total_volume)

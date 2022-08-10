@@ -5,7 +5,6 @@ import gym
 import numpy as np
 import pandas as pd
 from gym.envs.registration import EnvSpec
-from gym.wrappers import TimeLimit
 from matplotlib import pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
