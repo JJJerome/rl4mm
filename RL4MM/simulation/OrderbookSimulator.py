@@ -31,6 +31,7 @@ class OrderbookSimulator:
         preload_messages: bool = True,
         episode_length: timedelta = timedelta(minutes=30),
         warm_up: timedelta = timedelta(seconds=0),
+        outer_levels: int = 20,
     ) -> None:
         self.ticker = ticker
         self.exchange = exchange or Exchange(ticker)
@@ -44,12 +45,12 @@ class OrderbookSimulator:
             assert episode_length is not None, "When saving messages locally, episode length must be pre-specified."
         self.episode_length = episode_length
         self.warm_up = warm_up
+        self.outer_levels = outer_levels
         # The following is for re-syncronisation with the historical data
         self.max_sell_price: int = 0
         self.min_buy_price: int = np.infty  # type:ignore
         self.initial_buy_price_range: int = np.infty  # type:ignore
         self.initial_sell_price_range: int = np.infty  # type:ignore
-        self.outer_levels: float = 20 / self.n_levels
 
     def reset_episode(self, start_date: datetime, start_book: Optional[Orderbook] = None):
         if not start_book:
@@ -57,6 +58,7 @@ class OrderbookSimulator:
         self.exchange.central_orderbook = start_book
         self.exchange.reset_internal_orderbook()
         self._reset_initial_price_ranges()
+        assert start_date.microsecond == 0, "Episodes must be started on the second."
         self.now_is = start_date
         if self.preload_messages:
             for order_generator_name in self.order_generators.keys():
@@ -110,6 +112,7 @@ class OrderbookSimulator:
         internal_orders_to_replace = list()
         for order in orders_to_add:
             internal_book_side = getattr(self.exchange.internal_orderbook, order.direction)
+            internal_orders_to_cancel = list()
             if order.price in internal_book_side.keys():
                 print(
                     "Resynchronising levels containing internal orders. These internal orders will be cancelled and"
@@ -120,8 +123,10 @@ class OrderbookSimulator:
                     order_dict["timestamp"] = self.now_is
                     cancellation = create_order("cancellation", order_dict)
                     limit = create_order("limit", order_dict)
-                    self.exchange.process_order(cancellation)
+                    internal_orders_to_cancel.append(cancellation)
                     internal_orders_to_replace.append(limit)
+            for cancellation in internal_orders_to_cancel:
+                self.exchange.process_order(cancellation)
             getattr(self.exchange.central_orderbook, order.direction)[order.price] = deque([order])
             assert order.price not in internal_book_side.keys(), "Orders remaining in internal book when updating!"
         for order in internal_orders_to_replace:
@@ -171,9 +176,10 @@ class OrderbookSimulator:
 
     @property
     def _near_exiting_initial_price_range(self) -> bool:
+        outer_proportion = self.outer_levels / self.n_levels
         return (
-            self.exchange.best_buy_price < self.min_buy_price + self.outer_levels * self.initial_buy_price_range
-            or self.exchange.best_sell_price > self.max_sell_price - self.outer_levels * self.initial_sell_price_range
+            self.exchange.best_buy_price < self.min_buy_price + outer_proportion * self.initial_buy_price_range
+            or self.exchange.best_sell_price > self.max_sell_price - outer_proportion * self.initial_sell_price_range
         )
 
     def _reset_initial_price_ranges(self):

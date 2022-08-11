@@ -28,7 +28,7 @@ class testHistoricalOrderbookEnvironment(TestCase):
     test_db = HistoricalDatabase(engine=test_engine)
     generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
     simulator = OrderbookSimulator(
-        ticker=ticker, order_generators=[generator], n_levels=200, database=test_db, preload_messages=False
+        ticker=ticker, order_generators=[generator], n_levels=50, database=test_db, preload_messages=False
     )
     env = HistoricalOrderbookEnvironment(
         step_size=timedelta(milliseconds=100),
