@@ -45,13 +45,15 @@ class TestBookFeatures(TestCase):
         big_spread_state = deepcopy(MOCK_STATE)
         big_spread_state.orderbook = big_spread_book
         expected = 1000
-        actual = spread.update(big_spread_state)
+        spread.update(big_spread_state)
+        actual = spread.current_value
         self.assertEqual(expected, actual)
 
     def test_spread(self):
         spread = Spread()
         expected = int(30.3 * 10000) - int(30.2 * 10000)
-        self.assertEqual(expected, spread.update(state=MOCK_STATE))
+        spread.update(state=MOCK_STATE)
+        self.assertEqual(expected, spread.current_value)
 
     def test_price_move_calculate(self):
         price_move = PriceMove(lookback_periods=1)
@@ -63,8 +65,10 @@ class TestBookFeatures(TestCase):
         for price in MIDPRICES[1:]:
             state = deepcopy(MOCK_STATE)
             state.price = price
-            calculated_price_moves.append(price_move.update(state))
-            calculated_price_moves_5.append(price_move_5.update(state))
+            price_move.update(state)
+            price_move_5.update(state)
+            calculated_price_moves.append(price_move.current_value)
+            calculated_price_moves_5.append(price_move_5.current_value)
         expected_price_moves = [1000.0, -2500.0, 500.0, -2500.0, 3500.0, -1500.0, 500.0, 500.0, -2000.0]
         expected_price_moves_5 = [1000.0, -1500.0, -1000.0, -3500.0, 0.0, -2500.0, 500.0, 500.0, 1000.0]
         self.assertEqual(expected_price_moves, calculated_price_moves)
@@ -77,7 +81,8 @@ class TestBookFeatures(TestCase):
         for price in MIDPRICES[1:]:
             state = deepcopy(MOCK_STATE)
             state.price = price
-            calculated_price_ranges.append(price_range.update(state))
+            price_range.update(state)
+            calculated_price_ranges.append(price_range.current_value)
         expected_price_ranges = [1000.0, 2500.0, 2500.0, 4500.0, 3500.0, 3500.0, 3500.0, 1500.0, 2000.0]
         self.assertEqual(expected_price_ranges, calculated_price_ranges)
 
@@ -88,7 +93,8 @@ class TestBookFeatures(TestCase):
         for price in MIDPRICES[1:]:
             state = deepcopy(MOCK_STATE)
             state.price = price
-            calculated_volatilities.append(volatility.update(state))
+            volatility.update(state)
+            calculated_volatilities.append(volatility.current_value)
         expected_pre_min_updates = [0 for _ in range(4)]
         expected_post_min_updates = [sum(PCT_RETURNS[[i - 4, i - 3, i - 2, i - 1, i]] ** 2) / 5 for i in range(4, 9)]
         expected_volatilities = expected_pre_min_updates + expected_post_min_updates
@@ -98,11 +104,13 @@ class TestBookFeatures(TestCase):
     def test_price(self):
         price = Price()
         price.reset(state=MOCK_STATE)
-        actual = price.update(state=MOCK_STATE)
+        price.update(state=MOCK_STATE)
+        actual = price.current_value
         self.assertEqual(MOCK_STATE.price, actual)
 
     def test_inventory(self):
         inventory = Inventory()
         inventory.reset(state=MOCK_STATE)
-        actual = inventory.update(state=MOCK_STATE)
+        inventory.update(state=MOCK_STATE)
+        actual = inventory.current_value
         self.assertEqual(MOCK_STATE.portfolio.inventory, actual)
