@@ -74,6 +74,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         concentration: Optional[float] = None,
         market_order_fraction_of_inventory: float = 0.0,
         enter_spread: bool = False,
+        n_levels: int = 50,
         preload_messages: bool = True,
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
@@ -111,6 +112,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.per_step_reward_function = per_step_reward_function
         self.terminal_reward_function = terminal_reward_function
         self.enter_spread = enter_spread
+        self.n_levels = n_levels
         self.info_calculator = info_calculator
         self.pricer = lambda orderbook: orderbook.microprice  # Can change this to midprice or any other notion of price
         self._check_params()
@@ -133,7 +135,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.simulator = simulator or OrderbookSimulator(
             ticker=ticker,
             order_generators=[HistoricalOrderGenerator(ticker, HistoricalDatabase(), preload_messages)],
-            n_levels=200,
+            n_levels=self.n_levels,
             preload_messages=preload_messages,
             episode_length=episode_length,
             warm_up=self.max_feature_window_size,

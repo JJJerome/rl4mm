@@ -30,7 +30,16 @@ def main(args):
     # import ray.rllib.agents.ppo as ppo
     # trainer = ppo.PPOTrainer(config=config)
     # print(trainer.train())
-    callbacks = [WandbLoggerCallback(project="RL4MM")] if args["wandb"] else None
+    callbacks = (
+        [
+            WandbLoggerCallback(
+                project=f"RL4MM-{env_config['min_date']}-{env_config['max_date']}-"
+                + f"{env_config['per_step_reward_function']}"
+            )
+        ]
+        if args["wandb"]
+        else None
+    )
     analysis = tune.run(
         "PPO",
         num_samples=8,

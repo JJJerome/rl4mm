@@ -15,7 +15,7 @@ from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
 
-class TestHistoricalOrderGenerator(TestCase):
+class TestOrderbookSimulator(TestCase):
     path_to_test_data = str(Path(RL4MM.__file__).parent.parent) + "/test_data/"
     ticker = "MSFT"
     trading_date = datetime(2012, 6, 21)

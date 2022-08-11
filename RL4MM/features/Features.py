@@ -411,6 +411,7 @@ class EpisodeProportion(Feature):
 
     def _update(self, state: State) -> None:
         self.current_value += self.step_size
+        self.current_value = np.round(self.current_value, 3)  # To avoid always clamping due to floating point summation
 
 
 class TimeOfDay(Feature):
