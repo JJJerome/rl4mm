@@ -339,7 +339,9 @@ class HistoricalOrderbookEnvironment(gym.Env):
             random_offset_steps = np.random.randint(low=0, high=max_offset_steps)
         except ValueError:
             random_offset_steps = 0
-        return self.min_start_timedelta + random_offset_steps * self.step_size
+        random_offset_timestamp = self.min_start_timedelta + random_offset_steps * self.step_size
+        random_offset_timestamp -= timedelta(microseconds=random_offset_timestamp.microseconds)  # Start episode on sec
+        return random_offset_timestamp
 
     def _random_offset_days(self):
         return np.random.randint(int((self.max_date.date() - self.min_date.date()) / timedelta(days=1)) + 1)
