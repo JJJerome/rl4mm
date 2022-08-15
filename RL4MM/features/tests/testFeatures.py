@@ -154,7 +154,6 @@ class TestBookFeatures(TestCase):
         start_of_trading_day = datetime(2012, 6, 21, 9, 30)
         start_of_episode = self.test_db.get_next_snapshot(start_of_trading_day, self.ticker).name
         start_of_episode += timedelta(microseconds=10**6 - start_of_episode.microsecond)
-        end_of_episode = start_of_episode + timedelta(seconds=2)
         self.simulator.reset_episode(start_of_episode)
         trade_dir_imbalance = TradeDirectionImbalance(lookback_periods=10, update_frequency=timedelta(seconds=0.1))
         trade_vol_imbalance = TradeVolumeImbalance(

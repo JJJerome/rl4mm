@@ -10,6 +10,10 @@ while read -r ticker; do
                -minde 2022-03-11 \
                -maxde 2022-03-11 \
                --ticker $ticker \
+               -sgdi 30 \
+               -sgdb 4096 \
+               -rfl 1024 \
+               -tbs 32768 \
                -sz 0.1 \
                -el 10 \
                -psr PnL \
