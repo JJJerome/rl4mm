@@ -1,3 +1,4 @@
+experiment_name="overfit"
 mind="2022-03-02"
 maxd="2022-03-02"
 minde="2022-03-02"
@@ -12,6 +13,7 @@ max_end_time="1100"
 
 
 python main.py \
+         -en $experiment_name \
          -mind $mind \
          -maxd $maxd \
          -minde $minde \

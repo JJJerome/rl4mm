@@ -107,7 +107,6 @@ class TestOrderbookSimulator(TestCase):
         self.assertEqual(external_level[0].volume, 200)
         self.assertEqual(external_level[1].volume, 100)
 
-
     def test_compare_order_dict(self):
         order_dict = {"gen_1": deque([LIMIT_1, CANCELLATION_1]), "gen_2": deque([LIMIT_2, CANCELLATION_2])}
         orders = self.simulator._compress_order_dict(order_dict)
