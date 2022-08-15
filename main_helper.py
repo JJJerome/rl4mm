@@ -62,6 +62,7 @@ def add_ray_args(parser):
         help="Max size of json file that transitions are saved to.",
         type=int,
     )
+    parser.add_argument("-o", "--output", default="/home/data/", help="Directory to save episode data to.", type=str)
 
 
 ###############################################################################
@@ -105,10 +106,10 @@ def add_env_args(parser):
 
     ##############################
 
-    parser.add_argument("-o", "--output", default="/home/data/", help="Directory to save episode data to.", type=str)
+    parser.add_argument("-en", "--experiment_name", default="rl4mm", help="Experiment name", type=str)
     parser.add_argument(
         "-md", "--multiple_databases", action="store_true", default=False, help="Run using multiple databases."
-    )
+    )  # TODO: this is not used
 
     ###########################################################################
     # ---------------------- Date and Time ------------------------------------
@@ -232,6 +233,7 @@ def get_env_configs(args):
         "concentration": args["concentration"],
         "info_calculator": None,
         "inc_prev_action_in_obs": args["inc_prev_action_in_obs"],
+        "experiment_name": args["experiment_name"],
     }
 
     eval_env_config = copy.deepcopy(env_config)
