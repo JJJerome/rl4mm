@@ -33,8 +33,7 @@ def main(args):
     callbacks = (
         [
             WandbLoggerCallback(
-                project=f"RL4MM-{env_config['min_date']}-{env_config['max_date']}-"
-                + f"{env_config['per_step_reward_function']}"
+                project=f"RL4MM-{env_config['experiment_name']}-{env_config['min_date']}-{env_config['max_date']}"
             )
         ]
         if args["wandb"]
@@ -52,7 +51,7 @@ def main(args):
     )
 
     best_checkpoint = analysis.get_trial_checkpoints_paths(
-        trial=analysis.get_best_trial("episode_reward_mean"), metric="episode_reward_mean", mode="max"
+        trial=analysis.get_best_trial("episode_reward_mean", mode="max"), metric="episode_reward_mean"
     )
     print(best_checkpoint)
     path_to_save_dir = args["output"] or "/home/ray"
