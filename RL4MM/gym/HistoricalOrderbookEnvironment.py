@@ -32,6 +32,8 @@ from RL4MM.features.Features import (
     EpisodeProportion,
     TimeOfDay,
     Portfolio,
+    TradeDirectionImbalance,
+    TradeVolumeImbalance,
 )
 from RL4MM.gym.action_interpretation.OrderDistributors import OrderDistributor, BetaOrderDistributor
 from RL4MM.orderbook.create_order import create_order
@@ -423,12 +425,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
                 normalisation_on=normalisation_on,
             ),
             PriceMove(
-                name="price_move_0.1_s",
-                update_frequency=timedelta(seconds=1),
-                lookback_periods=10,
-                normalisation_on=normalisation_on,
-            ),
-            PriceMove(
                 name="price_move_10_s",
                 update_frequency=timedelta(seconds=1),
                 lookback_periods=10,
@@ -450,8 +446,15 @@ class HistoricalOrderbookEnvironment(gym.Env):
             EpisodeProportion(
                 update_frequency=step_size, episode_length=episode_length, normalisation_on=normalisation_on
             ),
-            TimeOfDay(
-                n_buckets=time_of_day_buckets,
+            TimeOfDay(n_buckets=time_of_day_buckets, normalisation_on=normalisation_on),
+            TradeDirectionImbalance(
+                update_frequency=timedelta(seconds=0.1),
+                lookback_periods=int(60 * 10),
+                normalisation_on=normalisation_on,
+            ),
+            TradeVolumeImbalance(
+                update_frequency=timedelta(seconds=0.1),
+                lookback_periods=int(60 * 10),
                 normalisation_on=normalisation_on,
             ),
         ]
