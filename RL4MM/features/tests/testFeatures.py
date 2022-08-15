@@ -1,9 +1,15 @@
 from collections import deque
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta
+from pathlib import Path
 from unittest import TestCase
 
 import numpy as np
+from sqlalchemy import create_engine
+
+import RL4MM
+from RL4MM.database.HistoricalDatabase import HistoricalDatabase
+from RL4MM.database.populate_database import populate_database
 from RL4MM.features.Features import (
     Spread,
     PriceMove,
@@ -13,11 +19,17 @@ from RL4MM.features.Features import (
     State,
     Portfolio,
     Inventory,
+    TradeDirectionImbalance,
+    TradeVolumeImbalance,
 )
+from RL4MM.orderbook.Exchange import Exchange
+from RL4MM.orderbook.models import FilledOrders
 from RL4MM.orderbook.tests.mock_orders import (
     get_mock_orderbook,
     submission_4,
 )
+from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
+from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
 MIDPRICES = np.array([30.1, 30.2, 29.95, 30.0, 29.75, 30.1, 29.95, 30.0, 30.05, 29.85]) * 10000
 PCT_RETURNS = (MIDPRICES[1:] - MIDPRICES[:-1]) / MIDPRICES[:1]
@@ -26,7 +38,7 @@ MOCK_PORTFOLIO = Portfolio(inventory=100, cash=-20)
 MOCK_ORDERBOOK = get_mock_orderbook()
 
 MOCK_STATE = State(
-    filled_orders=([], []),
+    filled_orders=FilledOrders(internal=list(), external=list()),
     orderbook=MOCK_ORDERBOOK,
     price=MIDPRICES[0],
     portfolio=MOCK_PORTFOLIO,
@@ -35,6 +47,30 @@ MOCK_STATE = State(
 
 
 class TestBookFeatures(TestCase):
+    path_to_test_data = str(Path(RL4MM.__file__).parent.parent) + "/test_data/"
+    ticker = "MSFT"
+    trading_date = datetime(2012, 6, 21)
+    n_levels = 50
+    exchange_name = "NASDAQ"
+    test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
+    test_db = HistoricalDatabase(engine=test_engine)
+    generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
+    simulator = OrderbookSimulator(
+        ticker, Exchange(ticker), [generator], 50, test_db, preload_messages=False
+    )
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        populate_database(
+            (cls.ticker,),
+            (cls.trading_date,),
+            database=cls.test_db,
+            path_to_lobster_data=cls.path_to_test_data,
+            book_snapshot_freq=None,
+            max_rows=1000,
+            batch_size=1000,
+        )
+
     def test_spread_clamp(self):
         spread = Spread(max_value=1000)
         big_spread_book = deepcopy(MOCK_ORDERBOOK)
@@ -114,3 +150,37 @@ class TestBookFeatures(TestCase):
         inventory.update(state=MOCK_STATE)
         actual = inventory.current_value
         self.assertEqual(MOCK_STATE.portfolio.inventory, actual)
+
+    def test_order_direction_and_volume_imbalance(self):
+        # To test order flow, we use actual historical data - testOrderbookSimulator needs to pass for this to work.
+        start_of_trading_day = datetime(2012, 6, 21, 9, 30)
+        start_of_episode = self.test_db.get_next_snapshot(start_of_trading_day, self.ticker).name
+        start_of_episode += timedelta(microseconds=10**6 - start_of_episode.microsecond)
+        end_of_episode = start_of_episode + timedelta(seconds=2)
+        self.simulator.reset_episode(start_of_episode)
+        trade_dir_imbalance = TradeDirectionImbalance(lookback_periods=10, update_frequency=timedelta(seconds=0.1))
+        trade_vol_imbalance = TradeVolumeImbalance(
+            lookback_periods=10, update_frequency=timedelta(seconds=0.1), track_internal=True
+        )
+        trade_dir_imbalance.reset(MOCK_STATE)
+        trade_vol_imbalance.reset(MOCK_STATE)
+        now_is = start_of_episode
+
+        def trade_imbalance_update_step(now_is: datetime):
+            filled = self.simulator.forward_step(now_is)
+            state = deepcopy(MOCK_STATE)
+            state.filled_orders = filled
+            trade_dir_imbalance.update(state)
+            trade_vol_imbalance.update(state)
+        for _ in range(10-1):
+            now_is += timedelta(seconds=0.1)
+            trade_imbalance_update_step(now_is)
+            self.assertEqual(trade_dir_imbalance.current_value, 0)
+            self.assertEqual(trade_vol_imbalance.current_value, 0)
+        expected_dir_imbalances = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 6/36, 13/43, 9/39, 6/36]
+        expected_volume_imbalances = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -988/14642, -188/15442, -638/14992, -778/14852]
+        for i in range(0, 9):
+            now_is += timedelta(seconds=0.1)
+            trade_imbalance_update_step(now_is)
+            self.assertAlmostEqual(trade_dir_imbalance.current_value, expected_dir_imbalances[i])
+            self.assertAlmostEqual(trade_vol_imbalance.current_value, expected_volume_imbalances[i])
