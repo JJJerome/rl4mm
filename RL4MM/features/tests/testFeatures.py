@@ -55,9 +55,7 @@ class TestBookFeatures(TestCase):
     test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
     test_db = HistoricalDatabase(engine=test_engine)
     generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
-    simulator = OrderbookSimulator(
-        ticker, Exchange(ticker), [generator], 50, test_db, preload_messages=False
-    )
+    simulator = OrderbookSimulator(ticker, Exchange(ticker), [generator], 50, test_db, preload_messages=False)
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -172,13 +170,26 @@ class TestBookFeatures(TestCase):
             state.filled_orders = filled
             trade_dir_imbalance.update(state)
             trade_vol_imbalance.update(state)
-        for _ in range(10-1):
+
+        for _ in range(10 - 1):
             now_is += timedelta(seconds=0.1)
             trade_imbalance_update_step(now_is)
             self.assertEqual(trade_dir_imbalance.current_value, 0)
             self.assertEqual(trade_vol_imbalance.current_value, 0)
-        expected_dir_imbalances = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 6/36, 13/43, 9/39, 6/36]
-        expected_volume_imbalances = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -988/14642, -188/15442, -638/14992, -778/14852]
+        expected_dir_imbalances = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 6 / 36, 13 / 43, 9 / 39, 6 / 36]
+        expected_volume_imbalances = [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            -988 / 14642,
+            -188 / 15442,
+            -638 / 14992,
+            -778 / 14852,
+        ]
         for i in range(0, 9):
             now_is += timedelta(seconds=0.1)
             trade_imbalance_update_step(now_is)
