@@ -292,7 +292,7 @@ class TradeVolumeImbalance(Feature):
         if self.track_internal:
             buy_volume += sum(order.volume for order in state.filled_orders.internal if order.direction == "buy")
             sell_volume += sum(order.volume for order in state.filled_orders.internal if order.direction == "sell")
-        if len(self.volumes) <= self.lookback_periods:
+        if len(self.volumes["buy"]) <= self.lookback_periods:
             self._update_volumes(buy_volume, sell_volume)
             self.current_value = 0.0
         elif self.total_volume == 0:
@@ -345,7 +345,7 @@ class TradeDirectionImbalance(Feature):
         if self.track_internal:
             num_buys += sum(1 for order in state.filled_orders.internal if order.direction == "buy")
             num_sells += sum(1 for order in state.filled_orders.internal if order.direction == "sell")
-        if len(self.trades) <= self.lookback_periods:
+        if len(self.trades["buy"]) <= self.lookback_periods:
             self._update_trades(num_buys, num_sells)
             self.current_value = 0.0
         elif self.total_trades == 0:
