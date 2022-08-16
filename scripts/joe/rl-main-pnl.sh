@@ -19,7 +19,6 @@ while read -r ticker; do
                -psr PnL \
                -nepw 6 \
                -epsr PnL \
-               -mp "/home/data/best_model/checkpoint_000100/checkpoint-100" \
-               -wb True;
+               -wb True; # -mp "/home/data/best_model/checkpoint_000100/checkpoint-100" \
 
 done < scripts/$TICKERS_FILE # assumes it is run from root of repo
