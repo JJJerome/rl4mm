@@ -10,8 +10,8 @@ while read -r ticker; do
                -minde 2022-03-11 \
                -maxde 2022-03-11 \
                --ticker $ticker \
-               -sgdi 30 \
-               -sgdb 4096 \
+               -sgdi 20 \
+               -sgdb 2048 \
                -rfl 1024 \
                -tbs 32768 \
                -sz 0.1 \
@@ -19,6 +19,7 @@ while read -r ticker; do
                -psr PnL \
                -nepw 6 \
                -epsr PnL \
+               -mp "/home/data/best_model/checkpoint_000100"
                -wb True;
 
 done < scripts/$TICKERS_FILE # assumes it is run from root of repo
