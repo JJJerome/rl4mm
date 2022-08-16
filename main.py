@@ -42,6 +42,7 @@ def main(args):
     analysis = tune.run(
         "PPO",
         num_samples=8,
+        restore=args["model_path"],
         config=ray_config,
         checkpoint_at_end=True,
         local_dir=tensorboard_logdir,
