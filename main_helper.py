@@ -289,8 +289,8 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             "output": args["output"],
             "output_max_file_size": args["output_max_file_size"],
             # --------------- Tuning: ---------------------
-            "num_sgd_iter": tune.choice([10, 20, 30, 100, 500]),
-            "sgd_minibatch_size": tune.choice([2**3, 2**5, 2**7, 2**9, 2**11]),
+            "num_sgd_iter": tune.choice([10, 20, 30, 100, 500]),  # TODO: Should these be log_rand_int for example?
+            "sgd_minibatch_size": tune.choice([2**3, 2**5, 2**7, 2**9, 2**11]),  # TODO: as above
             "train_batch_size": tune.choice([2**11, 2**12, 2**13, 2**14, 2**15]),
             "rollout_fragment_length": tune.choice(
                 [2**8, 2**9, 2**10, 2**12, 2**13, 2**14]
