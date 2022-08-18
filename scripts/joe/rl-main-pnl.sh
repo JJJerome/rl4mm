@@ -19,7 +19,6 @@ while read -r ticker; do
 		             -psr PnL \
 		             -nepw 6 \
 		             -epsr PnL \
-		             -wb True \
-		             -mp "/home/RL4MM/ray_results/tensorboard/JPM/PnL/concentration_None/full_state/normalisation_on_False/moc_False/PPO/PPO_HistoricalOrderbookEnvironment_e6821_00007_7_lr=0.0001_2022-08-17_21-05-41/checkpoint_000004"; # -mp "/home/data/best_model/checkpoint_000100/checkpoint-100" \
+		             -wb True; # \		             -mp "/home/RL4MM/ray_results/tensorboard/JPM/PnL/concentration_None/full_state/normalisation_on_False/moc_False/PPO/PPO_HistoricalOrderbookEnvironment_e6821_00007_7_lr=0.0001_2022-08-17_21-05-41/checkpoint_000004"; # -mp "/home/data/best_model/checkpoint_000100/checkpoint-100" \
 
 done < scripts/$TICKERS_FILE # assumes it is run from root of repo
