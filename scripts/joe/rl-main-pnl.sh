@@ -10,7 +10,7 @@ while read -r ticker; do
 		             -minde 2022-03-11 \
 		             -maxde 2022-03-11 \
 		             --ticker $ticker \
-		             -mp /home/RL4MM/ray_results/tensorboard/JPM/PnL/concentration_None/full_state/normalisation_on_False/moc_False/PPO/PPO_HistoricalOrderbookEnvironment_e6821_00007_7_lr=0.0001_2022-08-17_21-05-41/checkpoint_000004 \
+		             -mp "/home/RL4MM/ray_results/tensorboard/JPM/PnL/concentration_None/full_state/normalisation_on_False/moc_False/PPO/PPO_HistoricalOrderbookEnvironment_e6821_00007_7_lr=0.0001_2022-08-17_21-05-41/checkpoint_000004" \
 		             -sgdi 20 \
 		             -sgdb 2048 \
 		             -rfl 1024 \
