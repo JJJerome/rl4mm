@@ -4,7 +4,7 @@ echo "Using tickers file: $TICKERS_FILE"
 
 while read -r ticker; do
 	echo "Processing $ticker";
-	python main.py -en rl-main-pnl\
+	python main.py -en pnl-small-learning-rates\
 	             -mind 2022-03-01\
                -maxd 2022-03-10 \
                -minde 2022-03-11 \

@@ -276,8 +276,9 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             "lr": tune.choice(
                 [
                     0.00001,
-                    0.0001,
-                    0.001,
+                    0.000001,
+                    0.0000001,
+                    0.00000001,
                 ]
             ),
             "gamma": args["discount_factor"],
