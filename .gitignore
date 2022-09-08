@@ -6,7 +6,7 @@
 *.pyc
 *.xml
 *.iml
-/notebooks/
+/examples/
 /.idea/
 /data/
 *.ipynb\_checkpoints*
