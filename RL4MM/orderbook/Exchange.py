@@ -56,7 +56,7 @@ class Exchange:
         self.internal_orderbook = self.get_empty_orderbook()
 
     def process_order(self, order: Order) -> Optional[FilledOrders]:
-        if hasattr(order, "volume"):
+        if hasattr(order, "volume") and order.volume is not None:
             assert order.volume > 0, f"Order volume must be positive. Instead, order.volume = {order.volume}."
         if isinstance(order, LimitOrder):
             return self.submit_order(order)
