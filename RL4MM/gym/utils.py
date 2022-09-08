@@ -18,7 +18,7 @@ from numpyencoder import NumpyEncoder
 from RL4MM.agents.Agent import Agent
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.PostgresEngine import MAX_POOL_SIZE
-from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
+from RL4MM.simulation.TimeDrivenOrderbookSimulator import TimeDrivenOrderbookSimulator
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.utils.utils import get_date_time
 from RL4MM.rewards.RewardFunctions import InventoryAdjustedPnL, PnL, RollingSharpe, get_sharpe
@@ -52,7 +52,7 @@ def env_creator(env_config, database: HistoricalDatabase = HistoricalDatabase())
             normalisation_on=env_config["normalisation_on"],
         )
     max_feature_window_size = max([feature.window_size for feature in features])
-    orderbook_simulator = OrderbookSimulator(
+    orderbook_simulator = TimeDrivenOrderbookSimulator(
         ticker=env_config["ticker"],
         n_levels=env_config["n_levels"],
         episode_length=episode_length,
