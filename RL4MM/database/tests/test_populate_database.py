@@ -11,8 +11,13 @@ from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.populate_database import (
     populate_database,
 )
-from RL4MM.database.database_population_helpers import get_book_snapshots, get_book_and_message_columns, \
-    get_book_and_message_paths, reformat_message_data, get_interval_series
+from RL4MM.database.database_population_helpers import (
+    get_book_snapshots,
+    get_book_and_message_columns,
+    get_book_and_message_paths,
+    reformat_message_data,
+    get_interval_series,
+)
 from datetime import datetime
 
 print(Path(RL4MM.__file__).parent)

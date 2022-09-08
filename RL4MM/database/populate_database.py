@@ -15,9 +15,17 @@ from sqlalchemy.exc import IntegrityError
 from tqdm import tqdm
 
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
-from RL4MM.database.database_population_helpers import make_temporary_data_path, download_lobster_sample_data, \
-    create_tables, get_book_snapshots, get_file_len, convert_messages_and_books_to_dicts, \
-    get_book_and_message_columns, get_book_and_message_paths, reformat_message_data
+from RL4MM.database.database_population_helpers import (
+    make_temporary_data_path,
+    download_lobster_sample_data,
+    create_tables,
+    get_book_snapshots,
+    get_file_len,
+    convert_messages_and_books_to_dicts,
+    get_book_and_message_columns,
+    get_book_and_message_paths,
+    reformat_message_data,
+)
 from RL4MM.utils.utils import get_next_trading_dt, get_last_trading_dt, daterange_in_db
 
 logging.basicConfig(
@@ -85,5 +93,3 @@ def populate_database(
             if is_sample_data:
                 with suppress(FileNotFoundError):
                     shutil.rmtree(path_to_lobster_data)
-
-
