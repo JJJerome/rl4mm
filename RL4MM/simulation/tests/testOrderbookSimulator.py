@@ -15,7 +15,7 @@ from RL4MM.orderbook.create_order import create_order
 from RL4MM.orderbook.models import OrderDict
 from RL4MM.orderbook.tests.mock_orders import CANCELLATION_1, CANCELLATION_2, LIMIT_1, LIMIT_2
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
-from RL4MM.simulation.TimeDrivenOrderbookSimulator import TimeDrivenOrderbookSimulator
+from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
 
 class TestOrderbookSimulator(TestCase):
@@ -27,7 +27,7 @@ class TestOrderbookSimulator(TestCase):
     test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
     test_db = HistoricalDatabase(engine=test_engine)
     generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
-    simulator = TimeDrivenOrderbookSimulator(
+    simulator = OrderbookSimulator(
         ticker, Exchange(ticker), [generator], 50, test_db, preload_messages=False, outer_levels=48
     )
 

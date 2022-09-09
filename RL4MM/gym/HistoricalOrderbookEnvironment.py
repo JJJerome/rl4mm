@@ -40,7 +40,7 @@ from RL4MM.orderbook.create_order import create_order
 from RL4MM.orderbook.models import Order, Orderbook, OrderDict, Cancellation, FilledOrders, MarketOrder
 from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
-from RL4MM.simulation.TimeDrivenOrderbookSimulator import TimeDrivenOrderbookSimulator
+from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
 ORDERBOOK_FREQ = "1S"
 ORDERBOOK_MIN_STEP = pd.to_timedelta(ORDERBOOK_FREQ)
@@ -65,7 +65,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         max_date: datetime = datetime(2019, 1, 2),
         min_start_timedelta: timedelta = timedelta(hours=10),  # Ignore the first half an hour of trading
         max_end_timedelta: timedelta = timedelta(hours=15, minutes=30),  # Same for the last half an hour
-        simulator: TimeDrivenOrderbookSimulator = None,
+        simulator: OrderbookSimulator = None,
         market_order_clearing: bool = False,
         inc_prev_action_in_obs: bool = False,
         max_inventory: int = 100000,
@@ -134,7 +134,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
             dtype=np.float64,
         )
         self.max_feature_window_size = max([feature.window_size for feature in self.features])
-        self.simulator = simulator or TimeDrivenOrderbookSimulator(
+        self.simulator = simulator or OrderbookSimulator(
             ticker=ticker,
             order_generators=[HistoricalOrderGenerator(ticker, HistoricalDatabase(), preload_messages)],
             n_levels=self.n_levels,

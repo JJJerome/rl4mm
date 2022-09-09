@@ -29,7 +29,7 @@ from RL4MM.orderbook.tests.mock_orders import (
     submission_4,
 )
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
-from RL4MM.simulation.TimeDrivenOrderbookSimulator import TimeDrivenOrderbookSimulator
+from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
 MIDPRICES = np.array([30.1, 30.2, 29.95, 30.0, 29.75, 30.1, 29.95, 30.0, 30.05, 29.85]) * 10000
 PCT_RETURNS = (MIDPRICES[1:] - MIDPRICES[:-1]) / MIDPRICES[:1]
@@ -55,7 +55,7 @@ class TestBookFeatures(TestCase):
     test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
     test_db = HistoricalDatabase(engine=test_engine)
     generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
-    simulator = TimeDrivenOrderbookSimulator(ticker, Exchange(ticker), [generator], 50, test_db, preload_messages=False)
+    simulator = OrderbookSimulator(ticker, Exchange(ticker), [generator], 50, test_db, preload_messages=False)
 
     @classmethod
     def setUpClass(cls) -> None:

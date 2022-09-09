@@ -13,7 +13,7 @@ from RL4MM.features.Features import Inventory, PriceMove, Spread, PriceRange
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.orderbook.models import Cancellation, LimitOrder
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
-from RL4MM.simulation.TimeDrivenOrderbookSimulator import TimeDrivenOrderbookSimulator
+from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
 
 ACTION_1 = np.array([1, 1, 1, 1])
 ACTION_2 = np.array([1, 2, 1, 2])
@@ -27,7 +27,7 @@ class testHistoricalOrderbookEnvironment(TestCase):
     test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
     test_db = HistoricalDatabase(engine=test_engine)
     generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
-    simulator = TimeDrivenOrderbookSimulator(
+    simulator = OrderbookSimulator(
         ticker=ticker, order_generators=[generator], n_levels=50, database=test_db, preload_messages=False
     )
     env = HistoricalOrderbookEnvironment(

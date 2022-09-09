@@ -20,12 +20,12 @@ from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
 from RL4MM.simulation.OrderGenerator import OrderGenerator
 
 
-class EventDrivenOrderbookSimulator:
+class OrderbookSimulator:
     def __init__(
         self,
         ticker: str = "MSFT",
         exchange: Exchange = None,
-        order_generator: OrderGenerator = None,
+        order_generators: List[OrderGenerator] = None,
         n_levels: int = 50,
         database: HistoricalDatabase = None,
         preload_messages: bool = True,
@@ -35,7 +35,8 @@ class EventDrivenOrderbookSimulator:
     ) -> None:
         self.ticker = ticker
         self.exchange = exchange or Exchange(ticker)
-        self.order_generators = order_generator or HistoricalOrderGenerator(ticker, database, preload_messages)
+        order_generators = order_generators or [HistoricalOrderGenerator(ticker, database, preload_messages)]
+        self.order_generators = {gen.name: gen for gen in order_generators}
         self.now_is: datetime = datetime(2000, 1, 1)
         self.n_levels = n_levels
         self.database = database or HistoricalDatabase()
