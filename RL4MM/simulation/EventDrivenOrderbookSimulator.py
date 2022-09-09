@@ -35,8 +35,7 @@ class EventDrivenOrderbookSimulator:
     ) -> None:
         self.ticker = ticker
         self.exchange = exchange or Exchange(ticker)
-        order_generator = order_generator or HistoricalOrderGenerator(ticker, database, preload_messages)
-        self.order_generators = {gen.name: gen for gen in order_generators}
+        self.order_generators = order_generator or HistoricalOrderGenerator(ticker, database, preload_messages)
         self.now_is: datetime = datetime(2000, 1, 1)
         self.n_levels = n_levels
         self.database = database or HistoricalDatabase()
