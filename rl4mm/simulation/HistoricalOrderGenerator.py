@@ -4,7 +4,6 @@ from typing import Deque
 import warnings
 
 import pandas as pd
-import swifter  # noqa: F401
 
 from rl4mm.database.HistoricalDatabase import HistoricalDatabase
 from rl4mm.orderbook.create_order import create_order
@@ -20,7 +19,6 @@ class HistoricalOrderGenerator(OrderGenerator):
         ticker: str = "MSFT",
         database: HistoricalDatabase = None,
         save_messages_locally: bool = True,
-        use_swifter: bool = False,
     ):
         self.ticker = ticker
         self.database = database or HistoricalDatabase()
@@ -29,7 +27,6 @@ class HistoricalOrderGenerator(OrderGenerator):
             self.episode_messages = pd.DataFrame([])
             self.start_of_episode = datetime.max
             self.end_of_episode = datetime.min
-        self.use_swifter = use_swifter
         self.exchange_name = "NASDAQ"  # Here, we are only using LOBSTER data for now
 
     def generate_orders(self, start_date: datetime, end_date: datetime) -> Deque[Order]:
@@ -71,12 +68,7 @@ class HistoricalOrderGenerator(OrderGenerator):
 
     def _process_messages_and_add_internal(self, messages: pd.DataFrame):
         messages = self._remove_hidden_executions(messages)  #
-        if self.use_swifter:
-            internal_messages = (
-                messages.swifter.progress_bar(False).apply(get_order_from_external_message, axis=1).values
-            )
-        else:
-            internal_messages = messages.apply(get_order_from_external_message, axis=1).values
+        internal_messages = messages.apply(get_order_from_external_message, axis=1).values
         if len(internal_messages) > 0:
             messages = messages.assign(internal_message=internal_messages)
         return messages
