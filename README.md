@@ -33,7 +33,8 @@ Run the start container script (mounting ../, therefore mounting RL4MM), and spe
 sh start_container.sh 8877 /PATH/TO/LOBSTER/DATA/
 ```
 
-(Note: you may need to remove ```--gpus device=0``` from ```start_container.sh``` if you do not have any gpus available.)
+(Note: if you wish to add gpus to container, just add ```--gpus device=0``` to ```start_container.sh``` to use one gpu 
+or ```--gpus all``` to add all gpus available.)
 
 To work in the container via shell:
 
@@ -45,11 +46,11 @@ At this point you will be attached to the container. PSQL will be running, but
 the database will be empty.
 
 ### Populating the database
-You can populate the database by running something like
+You can populate the database by running (from `RL4MM/RL4MM/database/`) something like
 ```
-python3 run_populate_database.py -mintd "2018-02-20" -maxtd "2018-04-15" --path_to_lobster_data /home/data/SPY --book_snapshot_freq "S" --max_rows 100000000 --ticker SPY
+python3 populate_database.py -mintd "2018-02-20" -maxtd "2018-04-15" --path_to_lobster_data /home/data/SPY --book_snapshot_freq "S" --max_rows 100000000 --ticker SPY
 ```
-(from `RL4MM/RL4MM/database/`). Or to avoid ever uncompressing all the .7z files:
+Or to avoid ever uncompressing all the .7z files:
 ```
 python3 run_populate_database_from_zipped.py --path_to_lobster_data /home/data/7z --book_snapshot_freq "S"
 ```

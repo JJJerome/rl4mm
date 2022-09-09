@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 
-from RL4MM.agents.baseline_agents import FixedActionAgent, ContinuousTeradactyl
+from rl4mm.agents.baseline_agents import FixedActionAgent, ContinuousTeradactyl
 
 a_range = [1.01,2,5]
 b_range = [1.01,2,5]

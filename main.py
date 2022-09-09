@@ -7,8 +7,8 @@ from ray.tune.schedulers import ASHAScheduler
 from ray.tune.registry import register_env
 
 
-from RL4MM.utils.utils import save_best_checkpoint_path
-from RL4MM.gym.utils import env_creator
+from rl4mm.utils.utils import save_best_checkpoint_path
+from rl4mm.gym.utils import env_creator
 
 from main_helper import add_env_args, add_ray_args, get_env_configs, get_ray_config, get_tensorboard_logdir
 
@@ -33,7 +33,7 @@ def main(args):
     callbacks = (
         [
             WandbLoggerCallback(
-                project=f"RL4MM-{env_config['experiment_name']}-{env_config['min_date']}-{env_config['max_date']}"
+                project=f"rl4mm-{env_config['experiment_name']}-{env_config['min_date']}-{env_config['max_date']}"
             )
         ]
         if args["wandb"]

@@ -1,13 +1,13 @@
 import argparse
 import importlib
 
-from RL4MM.database.HistoricalDatabase import HistoricalDatabase
+from rl4mm.database.HistoricalDatabase import HistoricalDatabase
 
-from RL4MM.gym.utils import plot_reward_distributions, get_episode_summary_dict
+from rl4mm.gym.utils import plot_reward_distributions, get_episode_summary_dict
 
 from main_helper import add_env_args, get_env_configs
 
-from RL4MM.gym.order_tracking.InfoCalculators import SimpleInfoCalculator
+from rl4mm.gym.order_tracking.InfoCalculators import SimpleInfoCalculator
 
 experiment_list = [
     "ladder_sweep",

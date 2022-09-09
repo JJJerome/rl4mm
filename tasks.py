@@ -1,12 +1,12 @@
 from invoke import task
 
 
-MODULES_TO_CHECK = ["RL4MM", "*.py"]
+MODULES_TO_CHECK = ["rl4mm", "*.py"]
 MODULES_TO_CHECK_STR = " ".join(MODULES_TO_CHECK)
 BLACK_PATHS_TO_IGNORE = []
 BLACK_PATHS_TO_IGNORE_STR = " ".join(BLACK_PATHS_TO_IGNORE)
-MYPY_PATHS_TO_IGNORE = ["RL4MM/simulation/OrderbookSimulator", "RL4MM/features/"]
-FLAKE8_PATHS_TO_IGNORE = ["RL4MM/gym/example_env.py"]
+MYPY_PATHS_TO_IGNORE = ["rl4mm/simulation/OrderbookSimulator", "rl4mm/features/"]
+FLAKE8_PATHS_TO_IGNORE = ["rl4mm/gym/example_env.py"]
 MYPY_EXCLUSION_STR = ""
 FLAKE8_EXCLUSION_STR = ""
 for path in MYPY_PATHS_TO_IGNORE:

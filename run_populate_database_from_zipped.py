@@ -4,7 +4,7 @@ from subprocess import run
 import glob
 import os
 
-from RL4MM.utils.utils import (
+from rl4mm.utils.utils import (
     get_date_time,
     get_next_trading_dt,
     get_last_trading_dt,
@@ -12,7 +12,7 @@ from RL4MM.utils.utils import (
     daterange_in_db,
 )
 
-from RL4MM.database.populate_database import populate_database
+from rl4mm.database.populate_database import populate_database
 
 parser = argparse.ArgumentParser(description="Populate a postgres database with LOBSTER data")
 parser.add_argument(

@@ -6,7 +6,7 @@ default_kappa = 7.494
 max_kappa = 63.879
 exponent = 3.927
 
-from RL4MM.agents.baseline_agents import ContinuousTeradactyl
+from rl4mm.agents.baseline_agents import ContinuousTeradactyl
 
 max_inv = 1000
 #max_kappa = 20

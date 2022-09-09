@@ -4,7 +4,7 @@ max_inv_range = [500]  # [1000]
 default_omega_range = [0.1,0.2,0.3]
 default_kappa_range = [5, 10]
 
-from RL4MM.agents.baseline_agents import ContinuousTeradactyl
+from rl4mm.agents.baseline_agents import ContinuousTeradactyl
 
 max_inv = 500
 max_kappa = 20

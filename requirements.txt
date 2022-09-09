@@ -26,4 +26,3 @@ stable-baselines3
 stochastic~=0.6.0
 swifter
 tqdm~=4.62.3
-tensorboard

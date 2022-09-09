@@ -2,7 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from RL4MM.agents.baseline_agents import FixedActionAgent
+from rl4mm.agents.baseline_agents import FixedActionAgent
 
 INNER_QUOTES = [6,7] #  [-2, -1, 0, 1, 2, 3]
 N_LEVELS = 10

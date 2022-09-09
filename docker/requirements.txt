@@ -19,12 +19,11 @@ stable-baselines3
 stochastic~=0.6.0
 tqdm~=4.62.3
 py7zr
-pandas_market_calendars
 tensorboard
-numpyencoder-0.3.0
-swifter-1.1.4
+#numpyencoder-0.3.0
+#swifter-1.1.4
 #gym~=0.21.0
 #pfrl
 #jupyter
 bayesian-optimization
-
+pandas_market_calendars

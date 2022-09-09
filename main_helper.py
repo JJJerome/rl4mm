@@ -2,13 +2,13 @@ import os
 import sys
 import copy
 
-from RL4MM.utils.utils import boolean_string
-from RL4MM.utils.utils import get_timedelta_from_clock_time
-from RL4MM.utils.custom_metrics_callback import Custom_Callbacks
+from rl4mm.utils.utils import boolean_string
+from rl4mm.utils.utils import get_timedelta_from_clock_time
+from rl4mm.utils.custom_metrics_callback import Custom_Callbacks
 
 from ray import tune
 
-from RL4MM.agents.baseline_agent_wrappers import (
+from rl4mm.agents.baseline_agent_wrappers import (
     FixedActionAgentWrapper,
     TeradactylAgentWrapper,
     ContinuousTeradactylWrapper,

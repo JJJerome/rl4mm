@@ -1,7 +1,7 @@
 # from ray.tune.schedulers import PopulationBasedTraining
 from ray.tune.integration.wandb import WandbLoggerCallback
 from ray.tune.registry import register_env
-from RL4MM.gym.utils import env_creator
+from rl4mm.gym.utils import env_creator
 
 from ray import tune
 import argparse
@@ -53,7 +53,7 @@ def main(args):
     )
     algo = ConcurrencyLimiter(algo, max_concurrent=10)
     scheduler = AsyncHyperBandScheduler()
-    callbacks = [WandbLoggerCallback(project="RL4MM")] if args["wandb"] else None
+    callbacks = [WandbLoggerCallback(project="rl4mm")] if args["wandb"] else None
     analysis = tune.run(
         rba,
         name=args["ticker"],

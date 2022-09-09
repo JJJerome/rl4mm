@@ -1,4 +1,4 @@
-from RL4MM.agents.baseline_agents import ContinuousTeradactyl
+from rl4mm.agents.baseline_agents import ContinuousTeradactyl
 
 min_quote_range = [0]  # [1, 0, -1]
 max_quote_range = [10]  # [10, 15, 20]

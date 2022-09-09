@@ -1,6 +1,6 @@
 import numpy as np
 
-from RL4MM.agents.baseline_agents import FixedActionAgent
+from rl4mm.agents.baseline_agents import FixedActionAgent
 
 ##############################################################################
 # NEW TEST SWEEP
