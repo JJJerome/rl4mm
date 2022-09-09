@@ -92,4 +92,4 @@ We use [unittest](https://docs.python.org/2/library/unittest.html) for unit test
 
 - Code will be automatically reformatted with: `invoke black-reformat`
 - Styling and type checking tests can be run locally with: `invoke check-python`
-- Unit tests can be run with: `nosetests`
+- Unit tests can be run by calling `nose2` from the root directory.
