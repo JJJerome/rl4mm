@@ -42,15 +42,15 @@ sh exec_rl4mm.sh
 ```
 
 At this point you will be attached to the container. PSQL will be running, but
-the database will be empty. You can then populate it by running something like
+the database will be empty.
 
+### Populating the database
+You can populate the database by running something like
 ```
 python3 run_populate_database.py -mintd "2018-02-20" -maxtd "2018-04-15" --path_to_lobster_data /home/data/SPY --book_snapshot_freq "S" --max_rows 100000000 --ticker SPY
-``
-
-or to avoid ever uncompressing all the .7z files:
-
-`
+```
+(from `RL4MM/RL4MM/database/`). Or to avoid ever uncompressing all the .7z files:
+```
 python3 run_populate_database_from_zipped.py --path_to_lobster_data /home/data/7z --book_snapshot_freq "S"
 ```
 
@@ -69,16 +69,22 @@ To use Weights and Biases to log experiments:
 4. Run, for example, `main.py` with the flag `-wandb True`.
 
 
-### Config
-#### Configure environment variables:
-Make a file called `.env` in the project root. This is where we store information about the postgres database.
-```
-POSTGRES_HOST=localhost
-POSTGRES_PORT=<port>
-POSTGRES_DB=rl4mm
-POSTGRES_USER=<username>
-POSTGRES_PASSWORD=<password>
-```
+### Setting up a database outside of a docker container
+If not running the RL4MM from within a docker container outlined above it is necessary to set up a postgres database 
+locally using the following steps:
+1. [Download and install docker](https://docs.docker.com/engine/install/ubuntu/)
+2. Create a docker container running postgres (with username {USER} and password {PASSWORD}) by running:
+
+    ```sudo docker run --name lobster -e POSTGRES_PASSWORD={PASSWORD} -e POSTGRES_USER={USER} -e POSTGRES_DB=lobster -p {LOCAL_PORT}:5432 --restart unless-stopped -d postgres -c shared_buffers=1GB```
+3. Check it is running with command: `docker ps -a`
+4. Create a text file named .env in the root of RL4MM directory with the following contents:
+    ```
+   POSTGRES_HOST=localhost
+   POSTGRES_PORT=<port>
+   POSTGRES_DB=rl4mm
+   POSTGRES_USER=<username>
+   POSTGRES_PASSWORD=<password>
+   ```
 
 ### Running tests locally
 We use [unittest](https://docs.python.org/2/library/unittest.html) for unit testing, [mypy](https://flake8.pycqa.org/en/latest/) as a static type checker, [Flake8](https://flake8.pycqa.org/en/latest/) to enforce PEP8 and [Black](https://black.readthedocs.io/en/stable/) to enforce consistent styling.
