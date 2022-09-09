@@ -11,5 +11,5 @@
 /data/
 *.ipynb\_checkpoints*
 ray_results
-process_output
+experiments/helpers/process_output
 *.json
