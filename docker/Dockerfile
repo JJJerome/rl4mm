@@ -54,4 +54,5 @@ RUN chmod +x launcher.sh
 #For the A100 cards to work:
 FROM RL4MM AS RL4MM_A100 
 RUN pip3 install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
+RUN python3 setup.py install
 
