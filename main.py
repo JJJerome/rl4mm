@@ -2,8 +2,10 @@ import argparse
 
 import ray
 from ray import tune
+from ray.tune.integration.wandb import WandbLoggerCallback
 from ray.tune.schedulers import ASHAScheduler
 from ray.tune.registry import register_env
+
 
 from RL4MM.utils.utils import save_best_checkpoint_path
 from RL4MM.gym.utils import env_creator
@@ -28,19 +30,29 @@ def main(args):
     # import ray.rllib.agents.ppo as ppo
     # trainer = ppo.PPOTrainer(config=config)
     # print(trainer.train())
-
+    callbacks = (
+        [
+            WandbLoggerCallback(
+                project=f"RL4MM-{env_config['experiment_name']}-{env_config['min_date']}-{env_config['max_date']}"
+            )
+        ]
+        if args["wandb"]
+        else None
+    )
     analysis = tune.run(
         "PPO",
         num_samples=8,
+        restore=args["model_path"],
         config=ray_config,
         checkpoint_at_end=True,
         local_dir=tensorboard_logdir,
         stop={"training_iteration": args["iterations"]},
         scheduler=ASHAScheduler(metric="episode_reward_mean", mode="max"),
+        callbacks=callbacks,
     )
 
     best_checkpoint = analysis.get_trial_checkpoints_paths(
-        trial=analysis.get_best_trial("episode_reward_mean"), metric="episode_reward_mean", mode="max"
+        trial=analysis.get_best_trial("episode_reward_mean", mode="max"), metric="episode_reward_mean"
     )
     print(best_checkpoint)
     path_to_save_dir = args["output"] or "/home/ray"

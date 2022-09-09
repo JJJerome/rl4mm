@@ -25,4 +25,5 @@ python main.py \
          -psr $per_step_reward \
          -min_st $min_start_time \
          -max_et $max_end_time \
+         -wb True\
          -g 0

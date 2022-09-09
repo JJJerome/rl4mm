@@ -9,11 +9,11 @@ from sqlalchemy import create_engine
 import RL4MM
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.populate_database import populate_database
-from RL4MM.features.Features import Inventory
+from RL4MM.features.Features import Inventory, PriceMove, Spread, PriceRange
 from RL4MM.gym.HistoricalOrderbookEnvironment import HistoricalOrderbookEnvironment
 from RL4MM.orderbook.models import Cancellation, LimitOrder
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
-from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
+from RL4MM.simulation.TimeDrivenOrderbookSimulator import TimeDrivenOrderbookSimulator
 
 ACTION_1 = np.array([1, 1, 1, 1])
 ACTION_2 = np.array([1, 2, 1, 2])
@@ -27,8 +27,8 @@ class testHistoricalOrderbookEnvironment(TestCase):
     test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
     test_db = HistoricalDatabase(engine=test_engine)
     generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
-    simulator = OrderbookSimulator(
-        ticker=ticker, order_generators=[generator], n_levels=200, database=test_db, preload_messages=False
+    simulator = TimeDrivenOrderbookSimulator(
+        ticker=ticker, order_generators=[generator], n_levels=50, database=test_db, preload_messages=False
     )
     env = HistoricalOrderbookEnvironment(
         step_size=timedelta(milliseconds=100),
@@ -40,7 +40,7 @@ class testHistoricalOrderbookEnvironment(TestCase):
         max_quote_level=10,
         simulator=simulator,
         preload_messages=False,
-        features=[Inventory()],
+        features=[Inventory(), Spread(), PriceMove(lookback_periods=1), PriceRange(lookback_periods=1)],
     )
 
     @classmethod
@@ -58,10 +58,10 @@ class testHistoricalOrderbookEnvironment(TestCase):
 
     def test_reset(self):
         self.env.reset()
-        expected = np.array([100, 0, 833.33, 0, 1, 308531.11])
+        expected = np.array([0, 100, -343.1, 343.1])
         actual = self.env.reset()
         for i in range(len(expected)):
-            self.assertAlmostEqual(actual[i], expected[i], places=2)
+            self.assertAlmostEqual(actual[i], expected[i], places=1)
 
     def test_convert_action_to_orders(self):
         self.env.reset()

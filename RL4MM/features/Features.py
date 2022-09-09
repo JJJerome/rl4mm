@@ -105,24 +105,47 @@ class Feature(metaclass=abc.ABCMeta):
         )
 
 
-# Book features
+########################################################################################################################
+#                                                   Book features                                                      #
+########################################################################################################################
+
+
 class Spread(Feature):
     def __init__(
         self,
         name: str = "Spread",
         min_value: float = 0,
         max_value: float = (50 * 100),  # 50 ticks
-        update_frequency: timedelta = timedelta(seconds=1),
+        update_frequency: timedelta = timedelta(seconds=0.1),
         normalisation_on: bool = False,
         max_norm_len: int = 10000,
     ):
-        super().__init__(name, min_value, max_value, update_frequency, 1, normalisation_on, max_norm_len)
+        super().__init__(name, min_value, max_value, update_frequency, 0, normalisation_on, max_norm_len)
 
     def reset(self, state: State, first_usage_time: Optional[datetime] = None):
         super()._reset(state, first_usage_time)
 
     def _update(self, state: State) -> None:
         self.current_value = state.orderbook.spread
+
+
+class BookImbalance(Feature):
+    def __init__(
+        self,
+        update_frequency: timedelta = timedelta(seconds=0.1),
+    ):
+        super().__init__("BookImbalance", -1, 1, update_frequency, 0, False, 0)
+
+    def reset(self, state: State, first_usage_time: Optional[datetime] = None):
+        super()._reset(state, first_usage_time)
+
+    def _update(self, state: State) -> None:
+        self.current_value = state.orderbook.imbalance
+
+
+########################################################################################################################
+#                                                  Price features                                                      #
+########################################################################################################################
 
 
 class PriceMove(Feature):
@@ -197,9 +220,8 @@ class Volatility(Feature):
         self.prices: deque = deque(maxlen=self.lookback_periods + 1)
 
     def reset(self, state: State, first_usage_time: Optional[datetime] = None):
-        super()._reset(state, first_usage_time)
         self.prices = deque(maxlen=self.lookback_periods + 1)
-        self._update(state)
+        super()._reset(state, first_usage_time)
 
     def _update(self, state: State) -> None:
         if len(self.prices) < self.lookback_periods:
@@ -218,6 +240,87 @@ class Volatility(Feature):
             self.prices.append(new_price)
             sum_of_squares = self.current_value * self.lookback_periods - oldest_pct_return**2 + new_pct_return**2
             self.current_value = sum_of_squares / self.lookback_periods
+
+
+class AmihudLambda(Feature):
+    """Amihud's Lambda is a measure of illiquidity in a financial market. It is a slow feature and ideally requires that
+    trades arrive during each period for it to be accurate."""
+
+    def __init__(
+        self,
+        name: str = "AmihudLambda",
+        min_value: float = 0,
+        max_value: float = 1.0,
+        update_frequency: timedelta = timedelta(seconds=0.1),
+        lookback_periods: int = 10,
+        slowing_factor: int = 10,
+        normalisation_on: bool = False,
+        max_norm_len: int = 100_000,
+    ):
+        super().__init__(
+            name,
+            min_value,
+            max_value,
+            update_frequency,
+            (lookback_periods + 1) * slowing_factor,
+            normalisation_on,
+            max_norm_len,
+        )
+        self.true_lookback_periods = lookback_periods
+        self.slowing_factor = slowing_factor
+        self.prices: deque = deque(maxlen=self.true_lookback_periods + 1)
+        self.returns = deque(maxlen=self.true_lookback_periods)
+        self.dollar_volumes = deque(maxlen=self.true_lookback_periods)
+        self.partial_price_sum = 0
+        self.partial_dollar_volume = 0
+        self.steps_until_update = self.slowing_factor - 1
+
+    def reset(self, state: State, first_usage_time: Optional[datetime] = None):
+        self.prices = deque(maxlen=self.true_lookback_periods + 1)
+        self.dollar_volumes = deque(maxlen=self.true_lookback_periods)
+        self._reset_partial_values()
+        self.steps_until_update = self.slowing_factor - 1
+        super()._reset(state, first_usage_time)
+
+    def _update(self, state: State) -> None:
+        if self.steps_until_update > 0:
+            self.steps_until_update -= 1
+            self.partial_price_sum += state.price
+            self.partial_dollar_volume += sum(order.volume for order in state.filled_orders.external)
+        else:
+            self.steps_until_update = self.slowing_factor - 1
+            if len(self.prices) < self.true_lookback_periods:
+                self._update_prices_and_dollar_volumes()
+                self.current_value = 0.0
+            elif len(self.prices) == self.true_lookback_periods:
+                self._update_prices_and_dollar_volumes()
+                self.returns = np.diff(np.array(self.prices)) / np.array(self.prices)[:1]
+                index = np.array(self.dollar_volumes) > 0
+                self.current_value = (
+                    sum(np.abs(self.returns)[index] / np.array(self.dollar_volumes)[index]) / self.true_lookback_periods
+                )
+            else:
+                assert len(self.prices) == self.true_lookback_periods + 1
+                oldest_price = self.prices.popleft()
+                oldest_pct_return = (self.prices[0] - oldest_price) / oldest_price
+                oldest_dollar_volume = self.dollar_volumes.popleft()
+                new_price = self.partial_price_sum / self.slowing_factor
+                new_pct_return = (new_price - self.prices[-1]) / self.prices[-1]
+                new_dollar_volume = self.partial_dollar_volume
+                self._update_prices_and_dollar_volumes()
+                new_ratio = np.abs(new_pct_return) / new_dollar_volume if new_dollar_volume > 0 else 0
+                old_ratio = np.abs(oldest_pct_return) / oldest_dollar_volume if oldest_dollar_volume > 0 else 0
+                sum_of_ratio = self.current_value * self.true_lookback_periods + new_ratio - old_ratio
+                self.current_value = sum_of_ratio / self.true_lookback_periods
+            self._reset_partial_values()
+
+    def _update_prices_and_dollar_volumes(self):
+        self.prices.append(self.partial_price_sum / self.slowing_factor)
+        self.dollar_volumes.append(self.partial_dollar_volume)
+
+    def _reset_partial_values(self):
+        self.partial_price_sum = 0
+        self.partial_dollar_volume = 0
 
 
 class Price(Feature):
@@ -239,7 +342,132 @@ class Price(Feature):
         self.current_value = state.price
 
 
-#                                                Agent features                                                        #
+########################################################################################################################
+#                                                Order Flow features                                                   #
+########################################################################################################################
+
+
+class TradeDirectionImbalance(Feature):
+    """The trade direction imbalance is given by number_buy_executions - number_sell_executions / total_executions
+    over a given period."""
+
+    def __init__(
+        self,
+        name: str = "TradeImbalance",
+        update_frequency: timedelta = timedelta(seconds=0.1),
+        lookback_periods: int = 600,
+        track_internal: bool = False,
+        normalisation_on: bool = False,
+        max_norm_len: int = 100_000,
+    ):
+        super().__init__(name, -1.0, 1.0, update_frequency, lookback_periods, normalisation_on, max_norm_len)
+        self.track_internal = track_internal
+        self.trades = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
+        self.total_trades = 0
+        self.trade_diff = 0
+
+    def reset(self, state: State, first_usage_time: Optional[datetime] = None):
+        self.trades = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
+        self.total_trades = 0
+        self.trade_diff = 0
+        super()._reset(state, first_usage_time)
+
+    def _update(self, state: State) -> None:
+        num_buys = sum(1 for order in state.filled_orders.external if order.direction == "buy")
+        num_sells = sum(1 for order in state.filled_orders.external if order.direction == "sell")
+        if self.track_internal:
+            num_buys += sum(1 for order in state.filled_orders.internal if order.direction == "buy")
+            num_sells += sum(1 for order in state.filled_orders.internal if order.direction == "sell")
+        if len(self.trades["buy"]) < self.lookback_periods:
+            self._update_trades(num_buys, num_sells)
+            self.current_value = 0.0
+        elif self.total_trades == 0:
+            self._update_trades(num_buys, num_sells)
+            self.total_trades = sum(self.trades["buy"]) + sum(self.trades["sell"])
+            self.trade_diff = sum(self.trades["buy"]) - sum(self.trades["sell"])
+            self._update_current_value()
+        else:
+            oldest_trades = {side: self.trades[side].popleft() for side in ("buy", "sell")}
+            self.total_trades -= oldest_trades["buy"] + oldest_trades["sell"]
+            self.total_trades += num_buys + num_sells
+            self.trade_diff -= oldest_trades["buy"] - oldest_trades["sell"]
+            self.trade_diff += num_buys - num_sells
+            self._update_trades(num_buys, num_sells)
+            self._update_current_value()
+
+    def _update_current_value(self):
+        if self.total_trades != 0:
+            self.current_value = self.trade_diff / self.total_trades
+        else:
+            self.current_value = 1 / 2
+
+    def _update_trades(self, num_buys: int, num_sells: int):
+        self.trades["buy"].append(num_buys)
+        self.trades["sell"].append(num_sells)
+
+
+class TradeVolumeImbalance(Feature):
+    """The trade volume imbalance is given by volume_buy_executions - volume_sell_executions / total_volume_executions
+    over a given period."""
+
+    def __init__(
+        self,
+        name: str = "TradeVolumeImbalance",
+        update_frequency: timedelta = timedelta(seconds=0.1),
+        lookback_periods: int = 600,
+        track_internal: bool = False,
+        normalisation_on: bool = False,
+        max_norm_len: int = 100_000,
+    ):
+        super().__init__(name, -1.0, 1.0, update_frequency, lookback_periods, normalisation_on, max_norm_len)
+        self.track_internal = track_internal
+        self.volumes = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
+        self.total_volume = 0
+        self.volume_imbalance = 0
+
+    def reset(self, state: State, first_usage_time: Optional[datetime] = None):
+        self.volumes = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
+        self.total_volume = 0
+        self.volume_imbalance = 0
+        super()._reset(state, first_usage_time)
+
+    def _update(self, state: State) -> None:
+        buy_volume = sum(order.volume for order in state.filled_orders.external if order.direction == "buy")
+        sell_volume = sum(order.volume for order in state.filled_orders.external if order.direction == "sell")
+        if self.track_internal:
+            buy_volume += sum(order.volume for order in state.filled_orders.internal if order.direction == "buy")
+            sell_volume += sum(order.volume for order in state.filled_orders.internal if order.direction == "sell")
+        if len(self.volumes["buy"]) < self.lookback_periods:
+            self._update_volumes(buy_volume, sell_volume)
+            self.current_value = 0.0
+        elif self.total_volume == 0:
+            self._update_volumes(buy_volume, sell_volume)
+            self.total_volume = sum(self.volumes["buy"]) + sum(self.volumes["sell"])
+            self.volume_imbalance = sum(self.volumes["buy"]) - sum(self.volumes["sell"])
+            self._update_current_value()
+        else:
+            oldest_volumes = {side: self.volumes[side].popleft() for side in ("buy", "sell")}
+            self.total_volume -= oldest_volumes["buy"] + oldest_volumes["sell"]
+            self.total_volume += buy_volume + sell_volume
+            self.volume_imbalance -= oldest_volumes["buy"] - oldest_volumes["sell"]
+            self.volume_imbalance += buy_volume - sell_volume
+            self._update_volumes(buy_volume, sell_volume)
+            self._update_current_value()
+
+    def _update_current_value(self):
+        if self.total_volume != 0:
+            self.current_value = self.volume_imbalance / self.total_volume
+        else:
+            self.current_value = 1 / 2
+
+    def _update_volumes(self, buy_volume: int, sell_volume: int):
+        self.volumes["buy"].append(buy_volume)
+        self.volumes["sell"].append(sell_volume)
+
+
+########################################################################################################################
+#                                                  Agent features                                                      #
+########################################################################################################################
 
 
 class Inventory(Feature):
@@ -270,7 +498,7 @@ class EpisodeProportion(Feature):
         normalisation_on: bool = False,
         max_norm_len: int = 100_000,
     ):
-        super().__init__(name, 0.0, 1.0, update_frequency, 1, normalisation_on, max_norm_len)
+        super().__init__(name, 0.0, 1.0, update_frequency, 0, normalisation_on, max_norm_len)
         self.current_value: float = 0.0
         self.episode_length = episode_length
         self.step_size: float = update_frequency / episode_length

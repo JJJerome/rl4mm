@@ -36,22 +36,22 @@ def add_ray_args(parser):
         help="Directory to save tensorboard logs to.",
         type=str,
     )
+    parser.add_argument("-sgdi", "--num_sgd_iter", default=-1, help="SGD iterations.", type=int)
+    parser.add_argument("-sgdb", "--sgd_minibatch_size", default=-1, help="SGD minibatch size.", type=int)
+    parser.add_argument("-tbs", "--train_batch_size", default=-1, help="Training batch size.", type=int)
+    parser.add_argument(
+        "-rfl",
+        "--rollout_fragment_length",
+        default=-1,
+        help="Rollout fragment length, collected per worker..",
+        type=int,
+    )
 
+    parser.add_argument("-wb", "--wandb", default=False, help="Track on Weights and biases.", type=boolean_string)
     # -------------------- Hyperparameters
     parser.add_argument("-la", "--lambda", default=1.0, help="Lambda for GAE.", type=float)
-    parser.add_argument("-lr", "--learning_rate", default=0.0001, help="Learning rate.", type=float)
+    parser.add_argument("-lr", "--learning_rate", default=-1.0, help="Learning rate.", type=float)
     parser.add_argument("-df", "--discount_factor", default=0.99, help="Discount factor gamma of the MDP.", type=float)
-    # Currently using tune to determine the following:
-    # parser.add_argument(
-    #    "-rfl",
-    #    "--rollout_fragment_length",
-    #    default=3600,
-    #    help="Rollout fragment length, collected per worker..",
-    #    type=int,
-    # )
-    # parser.add_argument(
-    #    "-tb", "--train_batch_size", default=20000, help="The size of the training batch used for updates.", type=int
-    # )
 
     # -------------------- Generating a dataset of eval episodes
     # parser.add_argument("-o", "--output", default=None, help="Directory to save episode data to.", type=str)
@@ -62,6 +62,7 @@ def add_ray_args(parser):
         help="Max size of json file that transitions are saved to.",
         type=int,
     )
+    parser.add_argument("-o", "--output", default="/home/data/", help="Directory to save episode data to.", type=str)
 
 
 ###############################################################################
@@ -105,10 +106,10 @@ def add_env_args(parser):
 
     ##############################
 
-    parser.add_argument("-o", "--output", default="/home/data/", help="Directory to save episode data to.", type=str)
+    parser.add_argument("-en", "--experiment_name", default="rl4mm", help="Experiment name", type=str)
     parser.add_argument(
         "-md", "--multiple_databases", action="store_true", default=False, help="Run using multiple databases."
-    )
+    )  # TODO: this is not used
 
     ###########################################################################
     # ---------------------- Date and Time ------------------------------------
@@ -232,6 +233,7 @@ def get_env_configs(args):
         "concentration": args["concentration"],
         "info_calculator": None,
         "inc_prev_action_in_obs": args["inc_prev_action_in_obs"],
+        "experiment_name": args["experiment_name"],
     }
 
     eval_env_config = copy.deepcopy(env_config)
@@ -271,7 +273,14 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             "evaluation_interval": 1,  # Run one evaluation step every n `Trainer.train()` calls.
             # --- Hyperparams ---
             "lambda": args["lambda"],
-            "lr": args["learning_rate"],
+            "lr": tune.choice(
+                [
+                    0.00001,
+                    0.000001,
+                    0.0000001,
+                    0.00000001,
+                ]
+            ),
             "gamma": args["discount_factor"],
             "model": {
                 "fcnet_activation": "tanh",
@@ -281,8 +290,8 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             "output": args["output"],
             "output_max_file_size": args["output_max_file_size"],
             # --------------- Tuning: ---------------------
-            "num_sgd_iter": tune.choice([10, 20, 30, 100, 500]),
-            "sgd_minibatch_size": tune.choice([2**3, 2**5, 2**7, 2**9, 2**11]),
+            "num_sgd_iter": tune.choice([10, 20, 30, 100, 500]),  # TODO: Should these be log_rand_int for example?
+            "sgd_minibatch_size": tune.choice([2**3, 2**5, 2**7, 2**9, 2**11]),  # TODO: as above
             "train_batch_size": tune.choice([2**11, 2**12, 2**13, 2**14, 2**15]),
             "rollout_fragment_length": tune.choice(
                 [2**8, 2**9, 2**10, 2**12, 2**13, 2**14]
@@ -291,6 +300,16 @@ def get_ray_config(args, env_config, eval_env_config, name, cmc=None):
             # "disable_env_checking": True,
             # 'seed':tune.choice(range(1000)),
         }
+        if args["num_sgd_iter"] > 0:
+            ray_config["num_sgd_iter"] = args["num_sgd_iter"]
+        if args["sgd_minibatch_size"] > 0:
+            ray_config["sgd_minibatch_size"] = args["sgd_minibatch_size"]
+        if args["train_batch_size"] > 0:
+            ray_config["train_batch_size"] = args["train_batch_size"]
+        if args["rollout_fragment_length"] > 0:
+            ray_config["rollout_fragment_length"] = args["rollout_fragment_length"]
+        if args["learning_rate"] > 0:
+            ray_config["lr"] = args["learning_rate"]
 
     elif name == "tune_rule_based_agents":
 

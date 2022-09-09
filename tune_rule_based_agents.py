@@ -1,5 +1,5 @@
 # from ray.tune.schedulers import PopulationBasedTraining
-
+from ray.tune.integration.wandb import WandbLoggerCallback
 from ray.tune.registry import register_env
 from RL4MM.gym.utils import env_creator
 
@@ -53,6 +53,7 @@ def main(args):
     )
     algo = ConcurrencyLimiter(algo, max_concurrent=10)
     scheduler = AsyncHyperBandScheduler()
+    callbacks = [WandbLoggerCallback(project="RL4MM")] if args["wandb"] else None
     analysis = tune.run(
         rba,
         name=args["ticker"],
@@ -66,6 +67,7 @@ def main(args):
         checkpoint_at_end=True,
         resume="AUTO",
         stop={"training_iteration": 60},  # args["iterations"]},
+        callbacks=callbacks,
     )
     print("Best hyperparameters found were: ", analysis.best_config)
 

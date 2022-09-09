@@ -32,13 +32,15 @@ from RL4MM.features.Features import (
     EpisodeProportion,
     TimeOfDay,
     Portfolio,
+    TradeDirectionImbalance,
+    TradeVolumeImbalance,
 )
 from RL4MM.gym.action_interpretation.OrderDistributors import OrderDistributor, BetaOrderDistributor
 from RL4MM.orderbook.create_order import create_order
 from RL4MM.orderbook.models import Order, Orderbook, OrderDict, Cancellation, FilledOrders, MarketOrder
 from RL4MM.rewards.RewardFunctions import RewardFunction, InventoryAdjustedPnL
 from RL4MM.simulation.HistoricalOrderGenerator import HistoricalOrderGenerator
-from RL4MM.simulation.OrderbookSimulator import OrderbookSimulator
+from RL4MM.simulation.TimeDrivenOrderbookSimulator import TimeDrivenOrderbookSimulator
 
 ORDERBOOK_FREQ = "1S"
 ORDERBOOK_MIN_STEP = pd.to_timedelta(ORDERBOOK_FREQ)
@@ -63,7 +65,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         max_date: datetime = datetime(2019, 1, 2),
         min_start_timedelta: timedelta = timedelta(hours=10),  # Ignore the first half an hour of trading
         max_end_timedelta: timedelta = timedelta(hours=15, minutes=30),  # Same for the last half an hour
-        simulator: OrderbookSimulator = None,
+        simulator: TimeDrivenOrderbookSimulator = None,
         market_order_clearing: bool = False,
         inc_prev_action_in_obs: bool = False,
         max_inventory: int = 100000,
@@ -74,6 +76,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         concentration: Optional[float] = None,
         market_order_fraction_of_inventory: float = 0.0,
         enter_spread: bool = False,
+        n_levels: int = 50,
         preload_messages: bool = True,
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
@@ -111,6 +114,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.per_step_reward_function = per_step_reward_function
         self.terminal_reward_function = terminal_reward_function
         self.enter_spread = enter_spread
+        self.n_levels = n_levels
         self.info_calculator = info_calculator
         self.pricer = lambda orderbook: orderbook.microprice  # Can change this to midprice or any other notion of price
         self._check_params()
@@ -130,10 +134,10 @@ class HistoricalOrderbookEnvironment(gym.Env):
             dtype=np.float64,
         )
         self.max_feature_window_size = max([feature.window_size for feature in self.features])
-        self.simulator = simulator or OrderbookSimulator(
+        self.simulator = simulator or TimeDrivenOrderbookSimulator(
             ticker=ticker,
             order_generators=[HistoricalOrderGenerator(ticker, HistoricalDatabase(), preload_messages)],
-            n_levels=200,
+            n_levels=self.n_levels,
             preload_messages=preload_messages,
             episode_length=episode_length,
             warm_up=self.max_feature_window_size,
@@ -337,7 +341,9 @@ class HistoricalOrderbookEnvironment(gym.Env):
             random_offset_steps = np.random.randint(low=0, high=max_offset_steps)
         except ValueError:
             random_offset_steps = 0
-        return self.min_start_timedelta + random_offset_steps * self.step_size
+        random_offset_timestamp = self.min_start_timedelta + random_offset_steps * self.step_size
+        random_offset_timestamp -= timedelta(microseconds=random_offset_timestamp.microseconds)  # Start episode on sec
+        return random_offset_timestamp
 
     def _random_offset_days(self):
         return np.random.randint(int((self.max_date.date() - self.min_date.date()) / timedelta(days=1)) + 1)
@@ -419,12 +425,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
                 normalisation_on=normalisation_on,
             ),
             PriceMove(
-                name="price_move_0.1_s",
-                update_frequency=timedelta(seconds=1),
-                lookback_periods=10,
-                normalisation_on=normalisation_on,
-            ),
-            PriceMove(
                 name="price_move_10_s",
                 update_frequency=timedelta(seconds=1),
                 lookback_periods=10,
@@ -446,8 +446,15 @@ class HistoricalOrderbookEnvironment(gym.Env):
             EpisodeProportion(
                 update_frequency=step_size, episode_length=episode_length, normalisation_on=normalisation_on
             ),
-            TimeOfDay(
-                n_buckets=time_of_day_buckets,
+            TimeOfDay(n_buckets=time_of_day_buckets, normalisation_on=normalisation_on),
+            TradeDirectionImbalance(
+                update_frequency=timedelta(seconds=0.1),
+                lookback_periods=int(60 * 10),
+                normalisation_on=normalisation_on,
+            ),
+            TradeVolumeImbalance(
+                update_frequency=timedelta(seconds=0.1),
+                lookback_periods=int(60 * 10),
                 normalisation_on=normalisation_on,
             ),
         ]

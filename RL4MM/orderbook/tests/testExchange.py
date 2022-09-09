@@ -163,6 +163,13 @@ class TestExchange(TestCase):
         )
         self.assertEqual(expected, exchange.central_orderbook)
 
+    def test_orderbook_price_range(self):
+        exchange = Exchange(TICKER)
+        exchange.central_orderbook = get_mock_orderbook()
+        actual = exchange.orderbook_price_range
+        expected = (int(30.1 * 10000), int(30.3 * 10000))
+        self.assertEqual(expected, actual)
+
 
 if __name__ == "__main__":
     import nose2

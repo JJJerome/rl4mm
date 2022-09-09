@@ -10,11 +10,13 @@ import RL4MM
 from RL4MM.database.HistoricalDatabase import HistoricalDatabase
 from RL4MM.database.populate_database import (
     populate_database,
-    _get_book_and_message_paths,
-    _get_book_and_message_columns,
-    _get_interval_series,
-    reformat_message_data,
+)
+from RL4MM.database.database_population_helpers import (
     get_book_snapshots,
+    get_book_and_message_columns,
+    get_book_and_message_paths,
+    reformat_message_data,
+    get_interval_series,
 )
 from datetime import datetime
 
@@ -30,11 +32,11 @@ class Test_populate_database(TestCase):
     end_of_trading = datetime(2012, 6, 21, 16)
     total_daily_messages = 1000
     td = datetime.strftime(trading_date, "%Y-%m-%d")
-    book_path, message_path = _get_book_and_message_paths(path_to_test_data, ticker, td, n_levels)
-    book_cols, message_cols = _get_book_and_message_columns(n_levels)
+    book_path, message_path = get_book_and_message_paths(path_to_test_data, ticker, td, n_levels)
+    book_cols, message_cols = get_book_and_message_columns(n_levels)
 
     def test_get_book_and_messages_paths(self):
-        book_path, message_path = _get_book_and_message_paths(
+        book_path, message_path = get_book_and_message_paths(
             self.path_to_test_data, self.ticker, self.td, self.n_levels
         )
         expected_message_path = Path(self.path_to_test_data + "MSFT_2012-06-21_34200000_37800000_message_50.csv")
@@ -44,8 +46,8 @@ class Test_populate_database(TestCase):
 
     def test_get_interval_series(self):
         messages, _ = self.get_all_messages_and_books()
-        interval_series_seconds = _get_interval_series(messages)
-        interval_series_100_ms = _get_interval_series(messages, "100ms")
+        interval_series_seconds = get_interval_series(messages)
+        interval_series_100_ms = get_interval_series(messages, "100ms")
         expected_seconds = messages.timestamp.iloc[[0, 468, 821, 999]]
         expected_100ms = messages.timestamp.iloc[[0, 1, 5, 229, 368, 386, 442, 454, 468, 625, 642, 644, 651, 665, 669]]
         self.assertDictEqual(dict(expected_seconds), dict(interval_series_seconds))
@@ -100,8 +102,8 @@ class Test_populate_database(TestCase):
         self.assert_book_snapshots_are_correct(books, all_books, batch_size)
 
     def get_all_messages_and_books(self):
-        _, message_cols = _get_book_and_message_columns(self.n_levels)
-        _, message_path = _get_book_and_message_paths(self.path_to_test_data, self.ticker, self.td, self.n_levels)
+        _, message_cols = get_book_and_message_columns(self.n_levels)
+        _, message_path = get_book_and_message_paths(self.path_to_test_data, self.ticker, self.td, self.n_levels)
         messages = pd.read_csv(
             message_path,
             header=None,
@@ -109,8 +111,8 @@ class Test_populate_database(TestCase):
             usecols=[0, 1, 2, 3, 4, 5],
         )
         messages = reformat_message_data(messages, self.td)
-        book_path, _ = _get_book_and_message_paths(self.path_to_test_data, self.ticker, self.td, self.n_levels)
-        book_cols, _ = _get_book_and_message_columns(self.n_levels)
+        book_path, _ = get_book_and_message_paths(self.path_to_test_data, self.ticker, self.td, self.n_levels)
+        book_cols, _ = get_book_and_message_columns(self.n_levels)
         books = get_book_snapshots(book_path, book_cols, messages, None, self.n_levels, self.total_daily_messages)
         return messages, books
 
