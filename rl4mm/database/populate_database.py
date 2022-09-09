@@ -113,7 +113,7 @@ parser.add_argument(
     default="2012-06-21",
     help="The maxinum trading date to add.",
 )
-parser.add_argument("-nl", "--n_levels", action="store", type=int, default=200, help="the number of orderbook levels")
+parser.add_argument("-nl", "--n_levels", action="store", type=int, default=50, help="the number of orderbook levels")
 parser.add_argument(
     "--path_to_lobster_data",
     action="store",
