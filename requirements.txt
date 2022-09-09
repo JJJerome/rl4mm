@@ -17,7 +17,7 @@ psycopg2
 pydantic~=1.9.0
 python-dotenv~=0.19.2
 py7zr
-ray
+ray[rllib]
 scipy
 seaborn~=0.11.2
 sqlalchemy~=1.4.31
