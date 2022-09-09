@@ -11,7 +11,7 @@ from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.tune.suggest.bayesopt import BayesOptSearch
 from ray.tune.suggest import ConcurrencyLimiter
 
-from main_helper import (
+from rl4mm.helpers.main_helper import (
     add_env_args,
     add_ray_args,
     get_env_configs,

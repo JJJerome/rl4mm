@@ -10,7 +10,13 @@ from ray.tune.registry import register_env
 from rl4mm.utils.utils import save_best_checkpoint_path
 from rl4mm.gym.utils import env_creator
 
-from main_helper import add_env_args, add_ray_args, get_env_configs, get_ray_config, get_tensorboard_logdir
+from rl4mm.helpers.main_helper import (
+    add_env_args,
+    add_ray_args,
+    get_env_configs,
+    get_ray_config,
+    get_tensorboard_logdir,
+)
 
 
 def main(args):

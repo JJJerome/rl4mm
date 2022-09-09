@@ -5,7 +5,7 @@ from rl4mm.database.HistoricalDatabase import HistoricalDatabase
 
 from rl4mm.gym.utils import plot_reward_distributions, get_episode_summary_dict
 
-from main_helper import add_env_args, get_env_configs
+from rl4mm.helpers.main_helper import add_env_args, get_env_configs
 
 from rl4mm.gym.order_tracking.InfoCalculators import SimpleInfoCalculator
 
@@ -19,7 +19,7 @@ experiment_list = [
 ]
 
 
-def plot_reward_distributions_wrapper(env_config, agent, episode_summary_dict, experiment):
+def plot_reward_distributions_wrapper(env_config, agent, experiment):
 
     plot_reward_distributions(
         ticker=env_config["ticker"],
