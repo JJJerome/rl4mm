@@ -13,3 +13,4 @@
 ray_results
 experiments/helpers/process_output
 *.json
+/rl4mm.egg-info/
