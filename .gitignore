@@ -1,0 +1,16 @@
+*.pdf
+/.env
+*.csv
+*.swp
+*.swo
+*.pyc
+*.xml
+*.iml
+/examples/
+/.idea/
+/data/
+*.ipynb\_checkpoints*
+ray_results
+experiments/helpers/process_output
+*.json
+/rl4mm.egg-info/
