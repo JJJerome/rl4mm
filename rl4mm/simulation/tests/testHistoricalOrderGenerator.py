@@ -17,7 +17,7 @@ class TestHistoricalOrderGenerator(TestCase):
     n_levels = 50
     test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
     test_db = HistoricalDatabase(engine=test_engine)
-    generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
+    generator = HistoricalOrderGenerator(ticker, test_db, preload_orders=False)
 
     @classmethod
     def setUpClass(cls) -> None:

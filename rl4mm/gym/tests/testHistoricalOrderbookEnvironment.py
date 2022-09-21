@@ -26,9 +26,9 @@ class testHistoricalOrderbookEnvironment(TestCase):
     n_levels = 50
     test_engine = create_engine("sqlite:///:memory:")  # spin up a temporary sql db in RAM
     test_db = HistoricalDatabase(engine=test_engine)
-    generator = HistoricalOrderGenerator(ticker, test_db, save_messages_locally=False)
+    generator = HistoricalOrderGenerator(ticker, test_db, preload_orders=False)
     simulator = OrderbookSimulator(
-        ticker=ticker, order_generators=[generator], n_levels=50, database=test_db, preload_messages=False
+        ticker=ticker, order_generators=[generator], n_levels=50, database=test_db, preload_orders=False
     )
     env = HistoricalOrderbookEnvironment(
         step_size=timedelta(milliseconds=100),
@@ -39,7 +39,7 @@ class testHistoricalOrderbookEnvironment(TestCase):
         max_end_timedelta=timedelta(hours=10, seconds=2),
         max_quote_level=10,
         simulator=simulator,
-        preload_messages=False,
+        preload_orders=False,
         features=[Inventory(), Spread(), PriceMove(lookback_periods=1), PriceRange(lookback_periods=1)],
     )
 
@@ -63,6 +63,13 @@ class testHistoricalOrderbookEnvironment(TestCase):
         for i in range(len(expected)):
             self.assertAlmostEqual(actual[i], expected[i], places=1)
 
+    def test_get_prices(self):
+        self.env.reset()
+        best_prices = self.env._get_best_prices()
+        # Check that arrays are ordered (ascending for sell and descending for buy)
+        self.assertTrue(np.array_equal(best_prices["buy"], np.flip(np.sort(best_prices["buy"]))))
+        self.assertTrue(np.array_equal(best_prices["sell"], np.sort(best_prices["sell"])))
+
     def test_convert_action_to_orders(self):
         self.env.reset()
         # to avoid typing errors
@@ -76,9 +83,12 @@ class testHistoricalOrderbookEnvironment(TestCase):
         for order in internal_orders_1:
             self.assertEqual(order.volume, 10)  # BetaBinom(1,1) corresponds to Uniform
         internal_orders_2 = self.env.convert_action_to_orders(action=ACTION_2)  # type: ignore
+        best_prices = self.env._get_best_prices()
+        order_prices = np.concatenate((best_prices["buy"],best_prices["sell"]))
         expected_order_sizes = [19, 17, 15, 13, 11, 9, 7, 5, 3, 1] * 2  # Placing more orders towards the best price
         for i, order in enumerate(internal_orders_2):
             self.assertEqual(expected_order_sizes[i], order.volume)
+            self.assertEqual(order_prices[i], order.price)
         # Testing update
         for order in internal_orders_1:
             self.env.simulator.exchange.process_order(order)  # Add orders to the orderbooks
@@ -91,3 +101,20 @@ class testHistoricalOrderbookEnvironment(TestCase):
             elif expected_order_sizes[i] < 0:
                 self.assertIsInstance(order, Cancellation)
                 self.assertEqual(order.volume, abs(expected_order_sizes[i]))
+
+    def test_volume_diff_to_orders(self):
+        self.env.reset()
+        # to avoid typing errors
+        internal_orders_1: List[Union[Cancellation, LimitOrder]]
+        internal_orders_1 = self.env.convert_action_to_orders(action=ACTION_1)  # type: ignore
+        for order in internal_orders_1:
+            self.env.simulator.exchange.process_order(order)  # Add orders to the orderbooks
+        for order in internal_orders_1:
+            self.assertEqual(order.volume, 10)  # BetaBinom(1,1) corresponds to Uniform
+        internal_orders_2 = self.env.convert_action_to_orders(action=ACTION_2)  # type: ignore
+        expected_order_sizes = [19, 17, 15, 13, 11, 9, 7, 5, 3, 1] * 2  # Placing more orders towards the best price
+        for i, order in enumerate(internal_orders_2):
+            self.assertEqual(expected_order_sizes[i], order.volume)
+        # Testing update
+
+
