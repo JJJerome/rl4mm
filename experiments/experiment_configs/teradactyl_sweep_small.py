@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 
-from rl4mm.agents.baseline_agents import FixedActionAgent, ContinuousTeradactyl
+from rl4mm.agents.baseline_agents import FixedActionAgent, Teradactyl
 
 a_range = [1.01,2,5]
 b_range = [1.01,2,5]
@@ -20,12 +20,12 @@ def get_env_configs_and_agents(env_config:dict):
             if a == 1 and b == 1:
                 continue
 
-            omega = ContinuousTeradactyl.calculate_omega(a, b)
-            kappa = ContinuousTeradactyl.calculate_kappa(a, b)
+            omega = Teradactyl.calculate_omega(a, b)
+            kappa = Teradactyl.calculate_kappa(a, b)
 
-            agents.append(ContinuousTeradactyl(max_inventory=max_inv, 
-                                               default_kappa=kappa,
-                                               default_omega=omega,
-                                               max_kappa=max_kappa))
+            agents.append(Teradactyl(max_inventory=max_inv,
+                                     default_kappa=kappa,
+                                     default_omega=omega,
+                                     max_kappa=max_kappa))
 
     return env_configs, agents

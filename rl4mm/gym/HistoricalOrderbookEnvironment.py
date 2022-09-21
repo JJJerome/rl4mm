@@ -288,12 +288,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
                 self.state.portfolio.inventory += order.volume
                 self.state.portfolio.cash -= order.volume * order.price
 
-    # def _update_book_snapshots_STALE(self, orderbook: Orderbook) -> None:
-    #     current_book_snapshots = self.state["book_snapshots"][1:]
-    #     new_book_dict = convert_to_lobster_format(orderbook, LEVELS_FOR_FEATURE_CALCULATION)
-    #     new_book_snapshot = pd.DataFrame.from_dict({self.state.now_is: new_book_dict}).T
-    #     self.state["book_snapshots"] = pd.concat([current_book_snapshots, new_book_snapshot])
-
     def _get_current_internal_order_volumes(self) -> dict[Literal["buy", "sell"], tuple[np.ndarray]]:
         best_prices = self._get_best_prices()
         internal_volumes = dict()
@@ -303,13 +297,16 @@ class HistoricalOrderbookEnvironment(gym.Env):
 
     def _get_best_prices(self):
         tick_size = self.central_orderbook.tick_size
-        if self.enter_spread:
-            midprice = self.central_orderbook.midprice
-            best_buy = int(np.floor(midprice / tick_size) * tick_size)
-            best_sell = int(np.ceil(midprice / tick_size) * tick_size)
-        if not self.enter_spread:
-            best_buy = self.central_orderbook.best_buy_price
-            best_sell = self.central_orderbook.best_sell_price
+        best_buy = (
+            int(np.floor(self.central_orderbook.midprice / tick_size) * tick_size)
+            if self.enter_spread
+            else self.central_orderbook.best_buy_price
+        )
+        best_sell = (
+            int(np.ceil(self.central_orderbook.midprice / tick_size) * tick_size)
+            if self.enter_spread
+            else self.central_orderbook.best_sell_price
+        )
         buy_prices = np.arange(
             best_buy - self.min_quote_level * tick_size,
             best_buy - self.max_quote_level * tick_size,
@@ -352,23 +349,6 @@ class HistoricalOrderbookEnvironment(gym.Env):
         trading_dates = pd.bdate_range(self.min_date, self.max_date)
         trading_date = get_next_trading_dt(pd.to_datetime(np.random.choice(trading_dates)))
         return datetime.combine(trading_date.date(), datetime.min.time())
-
-    # def _reset_internal_state_slow_STALE(self):
-    #     snapshot_start = self.state.now_is - self.step_size * self.max_feature_window_size
-    #     book_snapshots = self.simulator.database.get_book_snapshot_series(
-    #         start_date=snapshot_start,
-    #         end_date=self.state.now_is,
-    #         ticker=self.ticker,
-    #         freq=convert_timedelta_to_freq(self.step_size),
-    #         n_levels=LEVELS_FOR_FEATURE_CALCULATION,
-    #     )
-    #     self.state = State(
-    #         inventory=self.initial_portfolio["inventory"],
-    #         cash=self.initial_portfolio["cash"],
-    #         asset_price=self.price.calculate_from_current_book(book_snapshots.iloc[-1]),
-    #         book_snapshots=book_snapshots,
-    #         proportion_of_episode_remaining=1.0,
-    #     )
 
     def render(self, mode="human"):
         pass

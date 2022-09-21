@@ -269,9 +269,9 @@ class AmihudLambda(Feature):
         self.true_lookback_periods = lookback_periods
         self.slowing_factor = slowing_factor
         self.prices: deque = deque(maxlen=self.true_lookback_periods + 1)
-        self.returns = deque(maxlen=self.true_lookback_periods)
-        self.dollar_volumes = deque(maxlen=self.true_lookback_periods)
-        self.partial_price_sum = 0
+        self.returns: deque = deque(maxlen=self.true_lookback_periods)
+        self.dollar_volumes: deque = deque(maxlen=self.true_lookback_periods)
+        self.partial_price_sum = 0.0
         self.partial_dollar_volume = 0
         self.steps_until_update = self.slowing_factor - 1
 
@@ -297,7 +297,8 @@ class AmihudLambda(Feature):
                 self.returns = np.diff(np.array(self.prices)) / np.array(self.prices)[:1]
                 index = np.array(self.dollar_volumes) > 0
                 self.current_value = (
-                    sum(np.abs(self.returns)[index] / np.array(self.dollar_volumes)[index]) / self.true_lookback_periods
+                    sum(np.abs(np.array(self.returns))[index] / np.array(self.dollar_volumes)[index])
+                    / self.true_lookback_periods
                 )
             else:
                 assert len(self.prices) == self.true_lookback_periods + 1
@@ -362,7 +363,7 @@ class TradeDirectionImbalance(Feature):
     ):
         super().__init__(name, -1.0, 1.0, update_frequency, lookback_periods, normalisation_on, max_norm_len)
         self.track_internal = track_internal
-        self.trades = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
+        self.trades:dict = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
         self.total_trades = 0
         self.trade_diff = 0
 
@@ -421,7 +422,7 @@ class TradeVolumeImbalance(Feature):
     ):
         super().__init__(name, -1.0, 1.0, update_frequency, lookback_periods, normalisation_on, max_norm_len)
         self.track_internal = track_internal
-        self.volumes = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
+        self.volumes:dict = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
         self.total_volume = 0
         self.volume_imbalance = 0
 

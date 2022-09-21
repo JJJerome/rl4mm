@@ -84,7 +84,7 @@ class testHistoricalOrderbookEnvironment(TestCase):
             self.assertEqual(order.volume, 10)  # BetaBinom(1,1) corresponds to Uniform
         internal_orders_2 = self.env.convert_action_to_orders(action=ACTION_2)  # type: ignore
         best_prices = self.env._get_best_prices()
-        order_prices = np.concatenate((best_prices["buy"],best_prices["sell"]))
+        order_prices = np.concatenate((best_prices["buy"], best_prices["sell"]))
         expected_order_sizes = [19, 17, 15, 13, 11, 9, 7, 5, 3, 1] * 2  # Placing more orders towards the best price
         for i, order in enumerate(internal_orders_2):
             self.assertEqual(expected_order_sizes[i], order.volume)
@@ -116,5 +116,3 @@ class testHistoricalOrderbookEnvironment(TestCase):
         for i, order in enumerate(internal_orders_2):
             self.assertEqual(expected_order_sizes[i], order.volume)
         # Testing update
-
-

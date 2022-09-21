@@ -1,6 +1,6 @@
 from rl4mm.agents.custom_policy import CustomPolicy
 from ray.rllib.agents.trainer import Trainer
-from rl4mm.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent, ContinuousTeradactyl
+from rl4mm.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent, Teradactyl
 import numpy as np
 
 
@@ -64,7 +64,7 @@ class TeradactylAgentWrapper(Trainer):
 class ContinuousTeradactylPolicy(CustomPolicy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.agent = ContinuousTeradactyl(
+        self.agent = Teradactyl(
             default_kappa=self.config["model"]["custom_model_config"]["default_kappa"],
             default_omega=self.config["model"]["custom_model_config"]["default_omega"],
             max_kappa=self.config["model"]["custom_model_config"]["max_kappa"],

@@ -3,7 +3,7 @@ max_quote_range = [10]  # [10, 15, 20]
 default_omega_range = [0.1, 0.3]  # to reduce. Choose one
 default_kappa_range = [4]  # maybe to reduce. Choose one
 
-from rl4mm.agents.baseline_agents import ContinuousTeradactyl
+from rl4mm.agents.baseline_agents import Teradactyl
 
 
 kappa_scaling_range = [1,5,10]
@@ -18,9 +18,9 @@ def get_env_configs_and_agents(env_config:dict):
         for default_kappa in default_kappa_range:
             for kappa_scaling in kappa_scaling_range:
                 for max_inv in max_inv_range:
-                    agents.append(ContinuousTeradactyl(max_inventory=max_inv,
-                                                       default_kappa=default_kappa,
-                                                       default_omega=default_omega,
-                                                       max_kappa=default_kappa*kappa_scaling))
+                    agents.append(Teradactyl(max_inventory=max_inv,
+                                             default_kappa=default_kappa,
+                                             default_omega=default_omega,
+                                             max_kappa=default_kappa*kappa_scaling))
 
     return env_configs, agents

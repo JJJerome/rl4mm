@@ -30,60 +30,7 @@ class FixedActionAgent(Agent):
         return f"FixedAction_{tmp}"
 
 
-class TeradactylAgent(Agent):
-    def __init__(self, max_inventory=None, kappa=10, default_a=3, default_b=1):
-        self.max_inventory = max_inventory
-        self.kappa = kappa
-        self.default_a = default_a
-        self.default_b = default_b
-
-        # TODO: fix
-        if max_inventory is None:
-            self.denom = 100
-        else:
-            self.denom = self.max_inventory
-
-    def get_action(self, state: np.ndarray) -> np.ndarray:
-
-        def get_alpha(omega, kappa):
-            return (omega * (kappa - 2)) + 1
-
-        def get_beta(omega, kappa):
-            return (1 - omega) * (kappa - 2) + 1
-
-        inventory = state[self.inventory_index]
-
-        if inventory == 0:
-            tmp = np.array([self.default_a, self.default_b, self.default_a, self.default_b])
-
-        else:
-
-            def clamp_to_unit_interval(x: float):
-                return max(min(x, 1), -1)
-
-            omega_bid = 0.5 * (1 + clamp_to_unit_interval(inventory / self.denom))
-            omega_ask = 0.5 * (1 - clamp_to_unit_interval(inventory / self.denom))
-
-            alpha_bid = get_alpha(omega_bid, self.kappa)
-            alpha_ask = get_alpha(omega_ask, self.kappa)
-
-            beta_bid = get_beta(omega_bid, self.kappa)
-            beta_ask = get_beta(omega_ask, self.kappa)
-
-            tmp = np.array([alpha_bid, beta_bid, alpha_ask, beta_ask])
-
-        if self.max_inventory is not None:
-            tmp = np.append(tmp, self.max_inventory)
-
-        return tmp
-
-    def get_name(self):
-        return (
-            f"Teradactyl_def_a_{self.default_a}_def_b_{self.default_b}_kappa_{self.kappa}_max_inv_{self.max_inventory}"
-        )
-
-
-class ContinuousTeradactyl(Agent):
+class Teradactyl(Agent):
     def __init__(
         self,
         max_inventory=None,
@@ -92,7 +39,7 @@ class ContinuousTeradactyl(Agent):
         max_kappa: float = 10.0,
         exponent: float = 1.0,
         market_clearing: bool = False,
-        inventory_index: int = 3
+        inventory_index: int = 3,
     ):
         self.max_inventory = max_inventory
         self.default_kappa = default_kappa
