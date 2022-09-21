@@ -45,24 +45,13 @@ class TeradactylAgent(Agent):
 
     def get_action(self, state: np.ndarray) -> np.ndarray:
 
-        ############################
-        # self.features
-        ############################
-        # 0: Spread,
-        # 1: MidpriceMove,
-        # 2: Volatility,
-        # 3: Inventory,
-        # 4: TimeRemaining,
-        # 5: MicroPrice
-        ############################
-
         def get_alpha(omega, kappa):
             return (omega * (kappa - 2)) + 1
 
         def get_beta(omega, kappa):
             return (1 - omega) * (kappa - 2) + 1
 
-        inventory = state[3]
+        inventory = state[self.inventory_index]
 
         if inventory == 0:
             tmp = np.array([self.default_a, self.default_b, self.default_a, self.default_b])
@@ -103,6 +92,7 @@ class ContinuousTeradactyl(Agent):
         max_kappa: float = 10.0,
         exponent: float = 1.0,
         market_clearing: bool = False,
+        inventory_index: int = 3
     ):
         self.max_inventory = max_inventory
         self.default_kappa = default_kappa
@@ -110,6 +100,7 @@ class ContinuousTeradactyl(Agent):
         self.max_kappa = max_kappa
         self.exponent = exponent
         self.market_clearing = market_clearing
+        self.inventory_index = inventory_index
         self.eps = 0.00001  # np.finfo(float).eps
 
         if max_inventory is None:
@@ -117,16 +108,16 @@ class ContinuousTeradactyl(Agent):
         else:
             self.denom = self.max_inventory
 
-    def get_omega_bid_and_ask(self, inv: int):
-        if inv >= 0:
+    def get_omega_bid_and_ask(self, inventory: int):
+        if inventory >= 0:
             omega_bid = self.default_omega * (
-                1 + (1 / self.default_omega - 1) * self.clamp_to_unit(inv / self.denom) ** self.exponent
+                1 + (1 / self.default_omega - 1) * self.clamp_to_unit(inventory / self.denom) ** self.exponent
             )
-            omega_ask = self.default_omega * (1 - self.clamp_to_unit(inv / self.denom) ** self.exponent)
+            omega_ask = self.default_omega * (1 - self.clamp_to_unit(inventory / self.denom) ** self.exponent)
         else:
-            omega_bid = self.default_omega * (1 - abs(self.clamp_to_unit(inv / self.denom)) ** self.exponent)
+            omega_bid = self.default_omega * (1 - abs(self.clamp_to_unit(inventory / self.denom)) ** self.exponent)
             omega_ask = self.default_omega * (
-                1 + (1 / self.default_omega - 1) * abs(self.clamp_to_unit(inv / self.denom)) ** self.exponent
+                1 + (1 / self.default_omega - 1) * abs(self.clamp_to_unit(inventory / self.denom)) ** self.exponent
             )
         return omega_bid, omega_ask
 
@@ -136,34 +127,16 @@ class ContinuousTeradactyl(Agent):
         ) ** self.exponent + self.default_kappa
 
     def get_action(self, state: np.ndarray) -> np.ndarray:
-
-        ############################
-        # self.features
-        ############################
-        # 0: Spread,
-        # 1: MidpriceMove,
-        # 2: Volatility,
-        # 3: Inventory,
-        # 4: TimeRemaining,
-        # 5: MicroPrice
-        ############################
-
-        inventory = state[3]
-
+        inventory = state[self.inventory_index]
         omega_bid, omega_ask = self.get_omega_bid_and_ask(inventory)
         kappa = self.get_kappa(inventory)
-
         alpha_bid = self.calculate_alpha(omega_bid, kappa)
         alpha_ask = self.calculate_alpha(omega_ask, kappa)
-
         beta_bid = self.calculate_beta(omega_bid, kappa)
         beta_ask = self.calculate_beta(omega_ask, kappa)
-
         tmp = np.array([alpha_bid, beta_bid, alpha_ask, beta_ask])
-
         if self.market_clearing is True:
             tmp = np.append(tmp, self.max_inventory * 2)
-
         return tmp
 
     def get_name(self):
