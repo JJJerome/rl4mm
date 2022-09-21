@@ -88,7 +88,7 @@ class Teradactyl(Agent):
 
     def get_name(self):
         return (
-            f"ContinuousTeradactyl_def_omega_{self.default_omega}_def_kappa_{self.default_kappa}_"
+            f"Teradactyl_def_omega_{self.default_omega}_def_kappa_{self.default_kappa}_"
             + f"max_inv_{self.max_inventory}_max_kappa_{self.max_kappa}_exponent_{self.exponent}"
         )
 

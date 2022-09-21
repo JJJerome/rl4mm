@@ -363,7 +363,7 @@ class TradeDirectionImbalance(Feature):
     ):
         super().__init__(name, -1.0, 1.0, update_frequency, lookback_periods, normalisation_on, max_norm_len)
         self.track_internal = track_internal
-        self.trades:dict = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
+        self.trades: dict = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
         self.total_trades = 0
         self.trade_diff = 0
 
@@ -422,7 +422,7 @@ class TradeVolumeImbalance(Feature):
     ):
         super().__init__(name, -1.0, 1.0, update_frequency, lookback_periods, normalisation_on, max_norm_len)
         self.track_internal = track_internal
-        self.volumes:dict = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
+        self.volumes: dict = dict(buy=deque(maxlen=self.lookback_periods), sell=deque(maxlen=self.lookback_periods))
         self.total_volume = 0
         self.volume_imbalance = 0
 

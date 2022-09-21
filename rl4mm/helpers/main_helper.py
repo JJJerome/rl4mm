@@ -4,14 +4,13 @@ import copy
 
 from rl4mm.utils.utils import boolean_string
 from rl4mm.utils.utils import get_timedelta_from_clock_time
-from rl4mm.utils.custom_metrics_callback import Custom_Callbacks
+from rl4mm.utils.rllib.custom_metrics_callback import Custom_Callbacks
 
 from ray import tune
 
-from rl4mm.agents.baseline_agent_wrappers import (
+from rl4mm.utils.rllib.baseline_agent_wrappers import (
     FixedActionAgentWrapper,
-    TeradactylAgentWrapper,
-    ContinuousTeradactylWrapper,
+    TeradactylWrapper,
 )
 
 
@@ -388,14 +387,6 @@ def get_rule_based_agent_and_custom_model_config(args):
             "threshold": tune.uniform(500, 1000),
         }
         rule_based_agent = FixedActionAgentWrapper
-    elif args["rule_based_agent"] == "teradactyl":
-        custom_model_config = {
-            "kappa": tune.uniform(10.0, 10.0),
-            "default_a": tune.uniform(3.0, 4.0),
-            "default_b": tune.uniform(1.0, 2.0),
-            "max_inventory": args["max_inventory"],
-        }
-        rule_based_agent = TeradactylAgentWrapper
     elif args["rule_based_agent"] == "continuous_teradactyl":
         # Automatically converted to space format within BayesOpt:
         custom_model_config = {
@@ -405,7 +396,7 @@ def get_rule_based_agent_and_custom_model_config(args):
             "exponent": tune.uniform(1.0, 5.0),
             "max_inventory": args["max_inventory"],
         }
-        rule_based_agent = ContinuousTeradactylWrapper
+        rule_based_agent = TeradactylWrapper
     else:
         raise Exception(f"{args['rule_based_agent']} wrapper not implemented.")
 

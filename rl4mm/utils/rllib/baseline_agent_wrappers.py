@@ -1,6 +1,6 @@
-from rl4mm.agents.custom_policy import CustomPolicy
+from rl4mm.utils.rllib.custom_policy import CustomPolicy
 from ray.rllib.agents.trainer import Trainer
-from rl4mm.agents.baseline_agents import RandomAgent, FixedActionAgent, TeradactylAgent, Teradactyl
+from rl4mm.agents.baseline_agents import RandomAgent, FixedActionAgent, Teradactyl
 import numpy as np
 
 
@@ -42,26 +42,7 @@ class RandomAgentWrapper(Trainer):
 # --------------------------------------------------------------------------------------------------
 
 
-class TeradactylAgentPolicy(CustomPolicy):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.agent = TeradactylAgent(
-            kappa=self.config["model"]["custom_model_config"]["kappa"],
-            default_a=self.config["model"]["custom_model_config"]["default_a"],
-            default_b=self.config["model"]["custom_model_config"]["default_b"],
-            max_inventory=self.config["model"]["custom_model_config"]["max_inventory"],
-        )
-
-
-class TeradactylAgentWrapper(Trainer):
-    def get_default_policy_class(self, config):
-        return TeradactylAgentPolicy
-
-
-# --------------------------------------------------------------------------------------------------
-
-
-class ContinuousTeradactylPolicy(CustomPolicy):
+class TeradactylPolicy(CustomPolicy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.agent = Teradactyl(
@@ -73,6 +54,6 @@ class ContinuousTeradactylPolicy(CustomPolicy):
         )
 
 
-class ContinuousTeradactylWrapper(Trainer):
+class TeradactylWrapper(Trainer):
     def get_default_policy_class(self, config):
-        return ContinuousTeradactylPolicy
+        return TeradactylPolicy

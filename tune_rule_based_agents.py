@@ -83,7 +83,7 @@ if __name__ == "__main__":
         "-rba",
         "--rule_based_agent",
         default="continuous_teradactyl",
-        choices=["fixed", "teradactyl", "continuous_teradactyl"],
+        choices=["fixed", "teradactyl"],
         help="Specify rule based agent.",
         type=str,
     )

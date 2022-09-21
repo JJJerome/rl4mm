@@ -28,7 +28,7 @@ def fname_to_dict(fname):
     # teradactyl_sweep:
 
     # 0                    1   2     3   4   5     6 7   8   9   10  11    12 13       14  15 16         17         18 19 20   21
-    # ContinuousTeradactyl_def_omega_0.2_def_kappa_4_max_inv_300_max_kappa_40_exponent_1.5_GE_2022-03-01_2022-03-14_el_60_minq_0_maxq_15_es_False.json
+    # Teradactyl_def_omega_0.2_def_kappa_4_max_inv_300_max_kappa_40_exponent_1.5_GE_2022-03-01_2022-03-14_el_60_minq_0_maxq_15_es_False.json
 
     d["strategy"] = tmp[0]
     d["def_omega"] = tmp[3]

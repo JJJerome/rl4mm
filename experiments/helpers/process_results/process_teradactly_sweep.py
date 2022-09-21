@@ -25,13 +25,6 @@ def fname_to_dict(fname):
     tmp = fname.split("_")
     d = dict()
 
-    # teradactyl_sweep:
-
-    # 0                    1   2     3   4   5     6 7   8   9   10  11    12 13 14         15         16 17 18   19
-    # ContinuousTeradactyl_def_omega_0.3_def_kappa_5_max_inv_500_max_kappa_15_KO_2022-03-01_2022-03-14_el_60_minq_0_maxq_10_es_False.json
-    # teradactyl_sweep_1:
-    # ContinuousTeradactyl_def_omega_0.3_def_kappa_4_max_inv_200_max_kappa_4_BA_2022-03-01_2022-03-14_el_60_minq_0_maxq_10_es_False.json
-
     d["strategy"] = tmp[0]
     d["def_omega"] = tmp[3]
     d["def_kappa"] = tmp[6]
