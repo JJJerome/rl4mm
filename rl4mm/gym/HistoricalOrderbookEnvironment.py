@@ -304,9 +304,9 @@ class HistoricalOrderbookEnvironment(gym.Env):
     def _get_best_prices(self):
         tick_size = self.central_orderbook.tick_size
         if self.enter_spread:
-            midprice = (self.central_orderbook.best_buy_price + self.central_orderbook.best_sell_price) / 2
+            midprice = self.central_orderbook.midprice
             best_buy = int(np.floor(midprice / tick_size) * tick_size)
-            best_sell = int(np.ceil(midprice / tick_size) * tick_size)  # TODO: check me when quoting withing spread.
+            best_sell = int(np.ceil(midprice / tick_size) * tick_size)
         if not self.enter_spread:
             best_buy = self.central_orderbook.best_buy_price
             best_sell = self.central_orderbook.best_sell_price
