@@ -74,8 +74,8 @@ class SimpleInfoCalculator(InfoCalculator):
         weighted_midprice_offset = (sell_centre_of_mass - buy_centre_of_mass) / 2
         weighted_spread = buy_centre_of_mass + sell_centre_of_mass
         if not self.enter_spread:
-            midprice_offset += internal_state.orderbook.spread
-            weighted_midprice_offset += internal_state.orderbook.spread
+            spread += internal_state.orderbook.spread
+            weighted_spread += internal_state.orderbook.spread
         return spread, weighted_spread, midprice_offset, weighted_midprice_offset
 
     def calculate_market_spread(self, internal_state: State):
