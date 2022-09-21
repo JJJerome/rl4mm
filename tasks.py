@@ -35,5 +35,5 @@ def check_python(c):
     print("Running mypy...")
     c.run(f"mypy -p {MODULES_TO_CHECK[0]}" + MYPY_EXCLUSION_STR)
     print("No mypy errors")
-    c.run("python check_init_files.py")
-    c.run("python check_all_py_imports.py")
+    c.run("python checks/check_init_files.py")
+    c.run("python checks/check_all_py_imports.py")
