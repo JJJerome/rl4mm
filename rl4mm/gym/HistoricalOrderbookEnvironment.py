@@ -77,7 +77,7 @@ class HistoricalOrderbookEnvironment(gym.Env):
         market_order_fraction_of_inventory: float = 0.0,
         enter_spread: bool = False,
         n_levels: int = 50,
-        preload_messages: bool = True,
+        preload_orders: bool = True,
     ):
         super(HistoricalOrderbookEnvironment, self).__init__()
 
@@ -122,23 +122,23 @@ class HistoricalOrderbookEnvironment(gym.Env):
         self.max_inventory = max_inventory
         self.features = features or self.get_default_features(step_size, episode_length)
         self.inc_prev_action_in_obs = inc_prev_action_in_obs
-        low_obs = np.array([feature.min_value for feature in self.features])
-        high_obs = np.array([feature.max_value for feature in self.features])
+        low_obs = np.array([np.float32(feature.min_value) for feature in self.features])
+        high_obs = np.array([np.float32(feature.max_value) for feature in self.features])
         # If the previous action is included in the observation:
         if self.inc_prev_action_in_obs:
-            low_obs = np.concatenate((low_obs, self.action_space.low))
-            high_obs = np.concatenate((high_obs, self.action_space.high))
+            low_obs = np.concatenate((low_obs, np.float32(self.action_space.low)))
+            high_obs = np.concatenate((high_obs, np.float32(self.action_space.high)))
         self.observation_space = Box(
             low=low_obs,
             high=high_obs,
-            dtype=np.float64,
+            dtype=np.float32,
         )
         self.max_feature_window_size = max([feature.window_size for feature in self.features])
         self.simulator = simulator or OrderbookSimulator(
             ticker=ticker,
-            order_generators=[HistoricalOrderGenerator(ticker, HistoricalDatabase(), preload_messages)],
+            order_generators=[HistoricalOrderGenerator(ticker, HistoricalDatabase(), preload_orders)],
             n_levels=self.n_levels,
-            preload_messages=preload_messages,
+            preload_orders=preload_orders,
             episode_length=episode_length,
             warm_up=self.max_feature_window_size,
         )
@@ -304,16 +304,16 @@ class HistoricalOrderbookEnvironment(gym.Env):
     def _get_best_prices(self):
         tick_size = self.central_orderbook.tick_size
         if self.enter_spread:
-            midprice = (self.simulator.exchange.best_buy_price + self.simulator.exchange.best_sell_price) / 2
+            midprice = (self.central_orderbook.best_buy_price + self.central_orderbook.best_sell_price) / 2
             best_buy = int(np.floor(midprice / tick_size) * tick_size)
             best_sell = int(np.ceil(midprice / tick_size) * tick_size)  # TODO: check me when quoting withing spread.
         if not self.enter_spread:
-            best_buy = self.simulator.exchange.best_buy_price
-            best_sell = self.simulator.exchange.best_sell_price
+            best_buy = self.central_orderbook.best_buy_price
+            best_sell = self.central_orderbook.best_sell_price
         buy_prices = np.arange(
-            best_buy - (self.max_quote_level - 1) * tick_size,
-            best_buy - (self.min_quote_level - 1) * tick_size,
-            tick_size,
+            best_buy - self.min_quote_level * tick_size,
+            best_buy - self.max_quote_level * tick_size,
+            -tick_size,
             dtype=int,
         )
         sell_prices = np.arange(
