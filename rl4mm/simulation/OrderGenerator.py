@@ -13,7 +13,7 @@ class OrderGenerator(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def preload_messages(self, min_date: datetime, max_date: datetime):
+    def preload_episode_orders(self, min_date: datetime, max_date: datetime):
         pass
 
     @abc.abstractmethod

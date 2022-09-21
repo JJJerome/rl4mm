@@ -28,20 +28,20 @@ class OrderbookSimulator:
         order_generators: List[OrderGenerator] = None,
         n_levels: int = 50,
         database: HistoricalDatabase = None,
-        preload_messages: bool = True,
+        preload_orders: bool = True,
         episode_length: timedelta = timedelta(minutes=30),
         warm_up: timedelta = timedelta(seconds=0),
         outer_levels: int = 20,
     ) -> None:
         self.ticker = ticker
         self.exchange = exchange or Exchange(ticker)
-        order_generators = order_generators or [HistoricalOrderGenerator(ticker, database, preload_messages)]
+        order_generators = order_generators or [HistoricalOrderGenerator(ticker, database, preload_orders)]
         self.order_generators = {gen.name: gen for gen in order_generators}
         self.now_is: datetime = datetime(2000, 1, 1)
         self.n_levels = n_levels
         self.database = database or HistoricalDatabase()
-        self.preload_messages = preload_messages
-        if preload_messages:
+        self.preload_orders = preload_orders
+        if preload_orders:
             assert episode_length is not None, "When saving messages locally, episode length must be pre-specified."
         self.episode_length = episode_length
         self.warm_up = warm_up
@@ -60,9 +60,9 @@ class OrderbookSimulator:
         self._reset_initial_price_ranges()
         assert start_date.microsecond == 0, "Episodes must be started on the second."
         self.now_is = start_date
-        if self.preload_messages:
+        if self.preload_orders:
             for order_generator_name in self.order_generators.keys():
-                self.order_generators[order_generator_name].preload_messages(
+                self.order_generators[order_generator_name].preload_episode_orders(
                     start_date, start_date + self.episode_length + self.warm_up
                 )
         return start_book

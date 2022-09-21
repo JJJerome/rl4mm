@@ -18,19 +18,19 @@ class HistoricalOrderGenerator(OrderGenerator):
         self,
         ticker: str = "MSFT",
         database: HistoricalDatabase = None,
-        save_messages_locally: bool = True,
+        preload_orders: bool = True,
     ):
         self.ticker = ticker
         self.database = database or HistoricalDatabase()
-        self.save_messages_locally = save_messages_locally
-        if self.save_messages_locally:
+        self.preload_orders = preload_orders
+        if self.preload_orders:
             self.episode_messages = pd.DataFrame([])
             self.start_of_episode = datetime.max
             self.end_of_episode = datetime.min
         self.exchange_name = "NASDAQ"  # Here, we are only using LOBSTER data for now
 
     def generate_orders(self, start_date: datetime, end_date: datetime) -> Deque[Order]:
-        if self.save_messages_locally:
+        if self.preload_orders:
             assert (self.start_of_episode < self._get_mid_datetime(start_date, end_date)) and (
                 self._get_mid_datetime(start_date, end_date) < self.end_of_episode
             ), f"Cannot generate orders between {start_date} and {end_date} as they have not been stored locally yet."
@@ -56,7 +56,7 @@ class HistoricalOrderGenerator(OrderGenerator):
             ), "Trying to step forward before initial cross-trade!"
             return messages[messages.message_type != "market_hidden"]
 
-    def preload_messages(self, min_date: datetime, max_date: datetime):
+    def preload_episode_orders(self, min_date: datetime, max_date: datetime):
         messages = self.database.get_messages(min_date, max_date, self.ticker)
         self.episode_messages = self._process_messages_and_add_internal(messages)
         self.start_of_episode = min_date
