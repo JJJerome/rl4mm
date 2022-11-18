@@ -6,8 +6,11 @@ import plotly.express as px
 from rl4mm.orderbook.models import Orderbook
 
 
-def visualise_orderbook(orderbook: Orderbook, n_levels: int = 10, tick_size: float = 0.01):
+def visualise_orderbook(
+    orderbook: Orderbook, n_levels: int = 10, tick_size: float = 0.01, price_scaling: float = 1 / 100
+):
     df = convert_orderbook_to_dataframe(orderbook, n_levels)
+    df.price = df.price * price_scaling
     fig = px.bar(
         df,
         x="price",
